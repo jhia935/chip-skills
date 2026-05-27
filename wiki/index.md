@@ -49,6 +49,8 @@ A catalog of all pages in this wiki, organized by category. See [[overview]] for
 - [[ciprian-covaci]], [[aurel-gontean]] — Politehnica Timișoara; singing-MLCC review co-authors.
 - [[evgeniy-dulkin]], [[michael-roth]] — Hebrew University of Jerusalem; Curie-shift literature synthesis.
 - [[victor-lu]] — Knowles Capacitors application engineer; DC-bias phenomenon blog.
+- [[marco-deluca]] — Materials Center Leoben; trace-doping ferroelectrics researcher.
+- [[hiroshi-yabuta]] — Canon Inc.; Bi/Mn double-doping researcher.
 
 ### Organizations
 - [[nasa-nepp]] — NASA Electronic Parts and Packaging program; primary public sponsor of BME reliability research.
@@ -105,6 +107,8 @@ A catalog of all pages in this wiki, organized by category. See [[overview]] for
 - [[soft-termination-mlcc]] — Recipe-level toggle for strain decoupling; suppresses both acoustic noise and AC-coefficient.
 - [[field-induced-curie-shift]] — DC bias shifts BaTiO₃ T_C upward by ~130 mK/(V/µm); the central mechanism behind the DC bias × TCC coupling.
 - [[tetragonality-c-a-ratio]] — c/a lattice ratio; structural parameter that controls DC-bias robustness and T_C shift magnitude.
+- [[class-specific-tc-engineering]] — Why each MLCC class has its own T_C; dopant-slope table (Zr −4.1, Sr −3, Pb +4, BiYbO₃ +10 K at 0.005 mol%) and class-by-class compositional summary.
+- [[bi-lone-pair-doping]] — Bi³⁺ 6s² lone-pair drives local distortion; Pb²⁺-equivalent T_C-up shifter without Pb; foundation of modern X8R/X9R compositions.
 - [[green-tape-shrinkage-anisotropy]] — Drying + burnout + sintering shrinkage stages; powder shape, tape thickness, binder/metal content trade-offs.
 - [[green-density-vs-shrinkage]] — Mass-conservation `1 − (ρ_g/ρ_f)^(1/3)` relation; binder content sets green density which sets sintering shrinkage.
 - [[skorohod-olevsky-viscous-sintering]] — Continuum sintering model: `dε_i/dt = σ'/(2ηφ) + (tr σ − 3P_L)/(18ηψ)·I`; predicts free + constrained shrinkage.
@@ -206,6 +210,10 @@ A catalog of all pages in this wiki, organized by category. See [[overview]] for
 - [[lim-cho-2010-batio3-mlcc-field-induced]] — Ferroelectrics 2010; field-induced phase transition in X7R MLCC; two-mechanism hysteresis.
 - [[yoon-kim-2020-batio3-tetragonality-dc-bias]] — J. Mater. Chem. C 2020; tetragonality (c/a) controls DC-bias performance; lower c/a → better bias robustness.
 - [[lu-knowles-2023-dc-bias-explained]] — Knowles 2023; practitioner worked example: 200 V X7R, +15 % / −30 % combined T × V_DC envelope.
+- [[deluca-2018-biybo3-batio3-doping]] — J. Mater. Chem. A 2018; trace BiYbO₃ (0.005 mol%) shifts T_C +10 K via Bi³⁺ lone-pair; T-O transition drops 50 K.
+- [[yabuta-2017-bi-mn-batio3-tetragonality]] — Sci. Rep. 2017; Bi/Mn co-doping increases c/a and stabilizes tetragonal phase; Mn-T_C-reduction recovered by Bi.
+- [[x9r-batio3-bimg-nanbo3-2022]] — Crystals 2022; X9R MLCC at `0.5BT-0.25BMT-0.25NN`; ε_r ≈ 630±15 % over −70 to +220 °C.
+- [[cazro3-x8r-batio3-2015]] — Cer. Int. 2015; CaZrO₃ + Y₂O₃ co-doping for X8R via internal-stress core-shell shift.
 
 ### Patents
 - [[us-4115493-murata-sakabe-1978-bme-foundational]] — Sakabe & Seno 1978; the foundational Ca-doped BaTiO₃ non-reducing dielectric that enabled Ni-electrode MLCC; expired 1997. Composition `{(Ba₁₋ₓCaₓ)O}ₘ(Ti₁₋ᵧZrᵧ)O₂` with m=1.005-1.03, x=0.02-0.22.

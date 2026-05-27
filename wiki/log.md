@@ -11,6 +11,33 @@ Chronological record of wiki operations. Newest entries first.
 
 ---
 
+## [2026-05-28] ingest | Class-specific T_C engineering — 8 pages (1 synthesis concept, 1 stub concept, 4 sources, 2 entities)
+
+User asked to search for the reason why T_C for each MLCC dielectric class is different, from academic publications. This is the **compositional engineering** explanation of why C0G is paraelectric, X7R sits at ~125 °C, X8R/X9R extends to 150-200 °C, Y5V puts T_C at room temperature.
+
+Sources ingested (4):
+- [[deluca-2018-biybo3-batio3-doping]] — J. Mater. Chem. A 2018. Trace BiYbO₃ at 0.005 mol% shifts T_C **+10 K** (very high leverage). T-O transition drops 50 K. Mechanism: Bi³⁺ stereochemically-active 6s² lone-pair.
+- [[yabuta-2017-bi-mn-batio3-tetragonality]] — Sci. Rep. 2017. Bi+Mn co-doping at 0.1-0.5 mol%; Bi recovers Mn-induced T_C reduction; c/a increases with Bi content.
+- [[x9r-batio3-bimg-nanbo3-2022]] — Crystals 2022. `0.5BT–0.25BMT–0.25NaNbO₃` ternary system hits X9R: ε_r ≈ 630 ± 15 % across −70 to +220 °C. Demonstrates the **multi-end-member** approach.
+- [[cazro3-x8r-batio3-2015]] — Cer. Int. 2015. CaZrO₃ + Y₂O₃ doping creates **internal-stress core-shell** that shifts T_C upward via tensile-stress stabilization of tetragonal phase (chemical analog of the [[field-induced-curie-shift|E-field shift]] via the pressure-field equivalence).
+
+Concept pages (2):
+- [[class-specific-tc-engineering]] — **central new synthesis**. Dopant slope table (Zr −4.1, Sr −3, Pb +4, BiYbO₃ +10 K at 0.005 mol%). Two-knob framework (peak-shifter + peak-broadener). Class-by-class compositional summary. Three orthogonal mechanisms for T_C up-shift (lone-pair, internal-stress, acceptor/donor).
+- [[bi-lone-pair-doping]] — central mechanism stub; Bi³⁺ 6s² lone-pair = Pb²⁺-equivalent without environmental restriction. Multi-cation Bi-based shifters table (BiYbO₃, BMT, BiScO₃, NBT).
+
+Entities (2): [[marco-deluca]], [[hiroshi-yabuta]].
+
+Key findings:
+1. **T_C engineering uses dopant slopes**: Zr → Ti at −4.1 °C/mol%; Sr → Ba at ~ −3 °C/mol%; Pb → Ba at ~ +4 °C/mol%; trace Bi-based compounds at ~ +2000 effective °C/mol% (saturating above 0.01 mol%).
+2. **Two-knob framework**: every class composition combines a **peak-shifter** (moves T_C up/down) AND a **peak-broadener** (flattens dε_r/dT around T_C).
+3. **Three orthogonal up-shift mechanisms**: lone-pair (Bi-based, highest leverage), internal-stress (CaZrO₃ core-shell), acceptor/donor compensation (Bi/Mn). Modern X8R/X9R combines at least two.
+4. **Y5V uniquely puts T_C inside operating range** (~25 °C) and relies entirely on relaxor/PNR broadening — opposite design philosophy from X7R.
+5. **C0G uses a non-BaTiO₃ base** (CaZrO₃, Ba-Nd-Ti) — paraelectric throughout; no T_C in operating range.
+
+Wiki state: 198 pages (was 190, +8), 0 dangling wikilinks.
+
+---
+
 ## [2026-05-27] ingest | DC bias × TCC reshape mechanism — 11 pages (2 concepts, 5 entities, 4 sources, 3 concept updates)
 
 User asked to search for **DC bias dependency of TCC curve** (how V_DC reshapes ε_r(T)) and **temperature dependency of DC bias effective capacitance** (how T modulates f_V(V_DC)). These are the two halves of the same T × V_DC coupling. Earlier ingests covered the empirical 2D-surface academic measurements and the multiplicative coupling model; this ingest focuses on the **underlying mechanism** — field-induced Curie shift.
