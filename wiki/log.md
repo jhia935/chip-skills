@@ -11,6 +11,12 @@ Chronological record of wiki operations. Newest entries first.
 
 ---
 
+## [2026-05-27] query | TCC × DC-bias relation (re-asked) — existing query page updated with new academic anchors
+
+Question: "describe relation between TCC and DC-bias cap". Same question as earlier "how does DC-bias cap and TCC cap related?" — but asked after the academic-bias-TCC ingest, so the answer is much richer. Updated existing filed page [[dc-bias-vs-tcc-relationship]] in place rather than creating a duplicate. Added: Rayleigh microscopic-basis subsection, academic-literature calibration table (E₀ values from He 2022, Hwang 2024, He 2025, etc.), grain-size convergence note, bulk-vs-MLCC gap caveat. Pages consulted: [[tcc-dc-bias-interaction]], [[empirical-c-t-vdc-academic-measurements]], plus all 7 academic source pages from the prior ingest.
+
+---
+
 ## [2026-05-27] ingest | Academic bias-TCC measurements + empirical 2D-surface synthesis
 
 User asked to look for bias-TCC measurements from academic publications and "include suggestion 1" (empirical T × V_DC surface for a reference part).

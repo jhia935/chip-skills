@@ -7,6 +7,10 @@ sources:
   - epci-high-cv-mlcc-bias-aging.md
   - vishay-x7r-cap-drift-dc-bias.md
   - psma-ceramic-capacitor-basics.md
+  - fujii-trolier-mckinstry-2023-batio3-nonlinearity.md
+  - he-2022-dy-ho-batio3-dc-bias.md
+  - hwang-2024-coreshell-electrode-dc-bias.md
+  - song-2017-compositionally-graded-mlcc.md
 tags:
   - paper
 status: complete
@@ -41,6 +45,10 @@ The two effects come from **largely independent physical mechanisms**:
 
 An EPCI 2024 measurement of a 1 µF 0603 X5R across −5 to +70 °C showed that **the normalized bias-derating curves track tightly across temperature** — i.e. `f_V(V_DC)` is approximately T-independent over the working range. So `f_T × f_V` captures the dominant behavior for typical X5R/X7R parts within **±5–10 %**.
 
+### Microscopic basis (Rayleigh decomposition)
+
+[[fujii-trolier-mckinstry-2023-batio3-nonlinearity|Fujii & Trolier-McKinstry 2023]] decomposed ε_r into reversible (ε'_init) plus irreversible ([[rayleigh-analysis|Rayleigh]] α') contributions across −180 to +150 °C. Key finding: **α' collapses above T_C** — there are no mobile domain walls in the paraelectric phase to suppress with DC bias. This is the **microscopic justification** for the separable multiplicative model — the same domain-wall population that TCC modulates is the population DC bias kills, and where that population is small (above T_C, in formulated X7R with engineered shells, or in fine-grain compositions) the multiplicative model is most accurate.
+
 ## Where the coupling becomes significant
 
 Per [[tcc-dc-bias-interaction]]:
@@ -53,6 +61,23 @@ Per [[tcc-dc-bias-interaction]]:
 ## Vendor variation dominates class label
 
 A practical caveat from the [[epci-high-cv-mlcc-bias-aging|EPCI cross-vendor study]]: nominal "0805 X7R 10 µF 6.3 V" parts from three vendors showed bias loss from **−35 % to −65 %** at rated voltage. **The TCC class (X5R/X7R/X8R) describes the temperature envelope at 0 V; it does not reliably predict bias behavior.** Some vendors' X7R have worse bias than other vendors' X5R of the same case + capacitance.
+
+## Academic-literature calibration (recipe-specific sigmoid)
+
+Recent academic work (2022–2026) gives recipe-specific values of the DC-bias sigmoid `f_V(E) = 1 / (1 + (E/E₀)^p)` that are **substantially shallower** than the chip-sim's class-generic defaults. Full table in [[empirical-c-t-vdc-academic-measurements]]; highlights:
+
+| Recipe | E₀ (V/µm) | Bias loss at 4 V/µm | Source |
+|---|---|---|---|
+| X7R generic default | 5.0 | ~50 % | chip-sim |
+| Dy-Mg, 180 nm grain (bulk ceramic) | **7.0** | −23.6 % | [[he-2022-dy-ho-batio3-dc-bias]] |
+| Core-shell + Ni-electrode X7S MLCC | 6.0 | −28 % | [[hwang-2024-coreshell-electrode-dc-bias]] |
+| GB-engineered 200–260 nm grain | — | — | [[an-2026-grain-boundary-segregation-dc-bias]] |
+| 4 mol% Ca-at-B (PNR composition) | **~10** | −15 % at 30 kV/cm | [[he-2025-bsite-ca-batio3-pnr]] |
+
+Two practical observations from this corpus:
+
+1. **The grain-size sweet spot for DC-bias robustness converges to 150–260 nm** across three independent groups ([[he-2022-dy-ho-batio3-dc-bias|He 2022]], [[wang-2023-x5r-ni-mlcc-combined-out-field|Wang 2023]], [[an-2026-grain-boundary-segregation-dc-bias|An 2026]]) — narrower than the pre-2022 "anywhere sub-300 nm" rule.
+2. **Bulk-ceramic measurements systematically under-state finished-MLCC bias loss by ~10 percentage points** ([[hwang-2024-coreshell-electrode-dc-bias|Hwang 2024]]: bulk −17 % vs MLCC −28 % at 4 kV/mm, same composition). The MLCC's thinner dielectric concentrates field near the electrode interfaces.
 
 ## Worked example (the simulator's Tier 2 path)
 
@@ -79,8 +104,12 @@ DC-bias and TCC are **two independent fractional derating factors** that multipl
 ## Cross-references
 
 - [[tcc-dc-bias-interaction]] — central synthesis page
+- [[empirical-c-t-vdc-academic-measurements]] — academic-literature calibration table
 - [[temperature-coefficient-of-capacitance]]
 - [[dc-bias-derating]]
+- [[rayleigh-analysis]] — the ε'_init + α' decomposition method
+- [[polar-nanoregions-pnr]] — microstructure that flattens f_V while broadening f_T
+- [[core-shell-batio3]] — the dominant industrial mechanism
 - [[dc-bias-aging]] — distinct, slow time-dependent companion to instant DC-bias derating
 - [[aging-class-2]] — unbiased logarithmic aging (separate phenomenon)
 - [[epci-high-cv-mlcc-bias-aging]] — Zednicek 2019 multiplicative formula
@@ -94,3 +123,8 @@ DC-bias and TCC are **two independent fractional derating factors** that multipl
 - [[vishay-x7r-cap-drift-dc-bias]] — Coppens et al. 2021: X7R derating curves
 - [[psma-ceramic-capacitor-basics]]
 - "DC and AC Bias Dependence of MLCC Capacitors Including Temperature Dependence", passive-components.eu, 2024 — empirical finding that `f_V(V_DC)` is approximately T-independent for X5R
+- [[fujii-trolier-mckinstry-2023-batio3-nonlinearity]] — Microstructures 2023: Rayleigh decomposition of ε_r across T
+- [[he-2022-dy-ho-batio3-dc-bias]] — Cer. Int. 2022: Dy-Mg 180 nm grain calibration anchor
+- [[hwang-2024-coreshell-electrode-dc-bias]] — ACS AMI 2024: bulk vs MLCC bias loss gap
+- [[song-2017-compositionally-graded-mlcc]] — Sci. Rep. 2017: rare academic 2D characterisation T × V_DC
+- [[he-2025-bsite-ca-batio3-pnr]] — Microstructures 2026: PNR-based bias-stable dielectric
