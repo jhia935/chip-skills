@@ -2,12 +2,32 @@
 title: Activity Log
 type: log
 created: 2026-05-19
-updated: 2026-05-20
+updated: 2026-05-27
 ---
 
 # Activity Log
 
 Chronological record of wiki operations. Newest entries first.
+
+---
+
+## [2026-05-27] ingest | Foundational MLCC patents — 4 sources
+
+User asked to fill the wiki with patent data. Searched Google Patents and USPTO for the foundational and most-influential MLCC patents across the major vendors. Ingested four with detailed bibliographic data, claims, and connection to existing wiki concepts:
+
+- [[us-4115493-murata-sakabe-1978-bme-foundational]] — Murata's foundational BME patent (Yukio Sakabe & Hiroshi Seno, filed 1977, granted 1978, expired 1997). The Ca-doped BaTiO₃ non-reducing dielectric `{(Ba₁₋ₓCaₓ)O}ₘ(Ti₁₋ᵧZrᵧ)O₂` that enabled mass-production Ni-electrode MLCC starting in 1982 and cut MLCC dielectric/electrode cost 60-80%.
+- [[us-7172985-kemet-non-reducible-dielectric]] — KEMET 2007 update: Ca-Sr zirconium titanate primary (94-99.9 wt%) + SiO₂-B₂O₃-Li-MO glass (0.1-5 wt%). Anchors the [[bme-c0g]] Class I BME product family.
+- [[us-8713770-kemet-flex-crack-voids]] — KEMET 2014 (John Prymak): sacrificial pre-channel material printed into the green stack burns out during firing, leaving designed voids that route flex cracks toward non-active regions. Basis for KEMET's FO-CAP / Open Mode line.
+- [[us-9336947-samsung-low-temp-sintering-dielectric]] — Samsung Electro-Mechanics 2016 (Lim, Yoon, Kim, Kim): B₂O₃-BaO sintering aid at 0.1-2 mol% loading drops the BT densification window to 1050-1150 °C, enabling sub-µm dielectric layers without runaway grain growth.
+
+Each page links into the existing concept pages ([[core-shell-batio3]], [[bme-sintering-atmosphere]], [[ni-batio3-cosintering-interface]], [[layer-thickness-and-metal-ceramic-ratio]], [[failure-modes-mlcc]], etc.) showing how the patented inventions map onto the design rules and process knobs the simulator and wiki are already tracking.
+
+Coverage gaps (deferred):
+- Foundational SEMCO core-shell BaTiO₃ patents (we have a low-T sintering one but not the core-shell formulation patent itself).
+- TDK Y-doped / Mg-co-doped X7R patents.
+- Murata sub-µm thin-layer manufacturing patents (post-2010).
+- KEMET FT-CAP soft-termination patent (US 7,670,981 — referenced but not yet ingested).
+- Murata GCM/GJM automotive AEC-Q200 specific patents.
 
 ---
 

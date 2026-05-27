@@ -166,6 +166,12 @@ A catalog of all pages in this wiki, organized by category. See [[overview]] for
 - [[garcia-vanderbilt-1998-batio3-dft-er]] — arXiv 1998; first-principles ε_r(T) of BaTiO₃ via effective Hamiltonian + Monte Carlo; reproduces Curie-Weiss and tetragonal-phase anisotropy.
 - [[liu-2019-sm-mn-codoped-batio3-permittivity]] — *Materials* 2019; quantitative Sm 2-7 mol% + Mn 1 mol% in BT; ε_r,peak 5,500 → 15,000 and T_C 105 → 20 °C slopes.
 
+### Patents
+- [[us-4115493-murata-sakabe-1978-bme-foundational]] — Sakabe & Seno 1978; the foundational Ca-doped BaTiO₃ non-reducing dielectric that enabled Ni-electrode MLCC; expired 1997. Composition `{(Ba₁₋ₓCaₓ)O}ₘ(Ti₁₋ᵧZrᵧ)O₂` with m=1.005-1.03, x=0.02-0.22.
+- [[us-7172985-kemet-non-reducible-dielectric]] — Pinceloup & Beeson (KEMET) 2007; Ca-Sr zirconium titanate + silica-boron-Li glass enabling Class I BME C0G — KEMET's [[bme-c0g]] product line.
+- [[us-8713770-kemet-flex-crack-voids]] — Prymak (KEMET) 2014; sacrificial-pattern voids in the green stack route flex cracks toward non-active regions; technical basis for FO-CAP / OpenMode.
+- [[us-9336947-samsung-low-temp-sintering-dielectric]] — Lim et al. (SEMCO) 2016; B₂O₃-BaO sintering aid (0.1-2 mol%) drops BT densification window to 1050-1150 °C, enabling sub-µm dielectric layers without runaway grain growth.
+
 ## Comparisons
 
 - [[dielectric-class-comparison]] — Master table covering every commercially significant TCC code (Class I C0G/U2J/extended; Class II X5R/X7R/X8R/X8L/X0U/X9R; Class III Y5V/Z5U) with εr ranges, tolerances, T_op, aging, applications.
