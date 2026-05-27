@@ -25,6 +25,7 @@ A catalog of all pages in this wiki, organized by category. See [[overview]] for
 - [[wurth-elektronik]] — German passive-components manufacturer; publisher of analytical-depth ANP114 polarization model.
 - [[knowles-capacitors]] — High-reliability MLCC specialist for aerospace, defense, medical, HV; practitioner blog publisher.
 - [[hebrew-university-jerusalem]] — Israel; Dul'kin/Roth Department of Applied Physics; BaTiO₃ Curie-shift literature synthesis.
+- [[ben-gurion-university]] — Israel; Ben-Yaakov power-electronics group; non-linear-capacitor theory.
 
 ### Product series
 - [[murata-grm-series]] — General-purpose Murata MLCC; GRM03 through GRM55.
@@ -51,6 +52,8 @@ A catalog of all pages in this wiki, organized by category. See [[overview]] for
 - [[victor-lu]] — Knowles Capacitors application engineer; DC-bias phenomenon blog.
 - [[marco-deluca]] — Materials Center Leoben; trace-doping ferroelectrics researcher.
 - [[hiroshi-yabuta]] — Canon Inc.; Bi/Mn double-doping researcher.
+- [[sam-ben-yaakov]] — Ben-Gurion University; power-electronics theorist; three-capacitance-definitions framework.
+- [[seiji-hidaka]] — Murata CAD/CAE Technology; author of MLCC Dynamic Model documentation.
 
 ### Organizations
 - [[nasa-nepp]] — NASA Electronic Parts and Packaging program; primary public sponsor of BME reliability research.
@@ -109,6 +112,8 @@ A catalog of all pages in this wiki, organized by category. See [[overview]] for
 - [[tetragonality-c-a-ratio]] — c/a lattice ratio; structural parameter that controls DC-bias robustness and T_C shift magnitude.
 - [[class-specific-tc-engineering]] — Why each MLCC class has its own T_C; dopant-slope table (Zr −4.1, Sr −3, Pb +4, BiYbO₃ +10 K at 0.005 mol%) and class-by-class compositional summary.
 - [[bi-lone-pair-doping]] — Bi³⁺ 6s² lone-pair drives local distortion; Pb²⁺-equivalent T_C-up shifter without Pb; foundation of modern X8R/X9R compositions.
+- [[ac-dc-capacitance-mapping]] — Joint `C(V_AC, V_DC)` surface; charge-based Q(V) formulation; three regimes; recipe-aware Tier 3 simulator path.
+- [[three-capacitance-definitions]] — Local `dQ/dV`, total `Q/V`, large-signal `ΔQ/ΔV`; diverge by up to 30 % for non-linear MLCCs; application chooses the right one.
 - [[green-tape-shrinkage-anisotropy]] — Drying + burnout + sintering shrinkage stages; powder shape, tape thickness, binder/metal content trade-offs.
 - [[green-density-vs-shrinkage]] — Mass-conservation `1 − (ρ_g/ρ_f)^(1/3)` relation; binder content sets green density which sets sintering shrinkage.
 - [[skorohod-olevsky-viscous-sintering]] — Continuum sintering model: `dε_i/dt = σ'/(2ηφ) + (tr σ − 3P_L)/(18ηψ)·I`; predicts free + constrained shrinkage.
@@ -214,6 +219,8 @@ A catalog of all pages in this wiki, organized by category. See [[overview]] for
 - [[yabuta-2017-bi-mn-batio3-tetragonality]] — Sci. Rep. 2017; Bi/Mn co-doping increases c/a and stabilizes tetragonal phase; Mn-T_C-reduction recovered by Bi.
 - [[x9r-batio3-bimg-nanbo3-2022]] — Crystals 2022; X9R MLCC at `0.5BT-0.25BMT-0.25NN`; ε_r ≈ 630±15 % over −70 to +220 °C.
 - [[cazro3-x8r-batio3-2015]] — Cer. Int. 2015; CaZrO₃ + Y₂O₃ co-doping for X8R via internal-stress core-shell shift.
+- [[murata-dynamic-model-hidaka-2016]] — Murata 2016 technical article; behavioral-source SPICE model handling `T × V_DC` automatically; returns C_local only.
+- [[ben-yaakov-2025-nonlinear-capacitance-definition]] — EPCI 2025; three distinct capacitance definitions (local, total, large-signal) for non-linear MLCCs; application chooses.
 
 ### Patents
 - [[us-4115493-murata-sakabe-1978-bme-foundational]] — Sakabe & Seno 1978; the foundational Ca-doped BaTiO₃ non-reducing dielectric that enabled Ni-electrode MLCC; expired 1997. Composition `{(Ba₁₋ₓCaₓ)O}ₘ(Ti₁₋ᵧZrᵧ)O₂` with m=1.005-1.03, x=0.02-0.22.

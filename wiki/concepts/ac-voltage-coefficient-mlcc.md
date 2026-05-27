@@ -105,6 +105,8 @@ The chip-sim's current model uses only `f_T × f_V × f_age` (assumes `f_AC = 1`
 - [[temperature-coefficient-of-capacitance]] — sibling derating factor; coupled to AC via Rayleigh α'(T)
 - [[dc-bias-derating]] — sibling derating factor; AC sensitivity collapses at high DC
 - [[tcc-ac-coupling]] — the dedicated synthesis page for AC × TCC interaction
+- [[ac-dc-capacitance-mapping]] — the full joint `C(V_AC, V_DC)` surface; this page's AC axis at fixed V_DC = 0
+- [[three-capacitance-definitions]] — local vs total vs large-signal C; resolves "what does measured C mean" at finite AC
 - [[ferroelectric-domain-wall]] — the underlying object whose mobility drives all three contributing mechanisms
 - [[rayleigh-analysis]] — small-signal decomposition supporting `f_AC`
 - [[electrostriction]] — strain-mechanism contributor

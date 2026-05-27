@@ -95,6 +95,8 @@ So `f_V(V_DC, T)` is a mildly non-separable function with a complex T-dependence
 - [[mlcc-capacitance-equation]]
 - [[temperature-coefficient-of-capacitance]] — temperature side of the same problem
 - [[tcc-dc-bias-interaction]] — how the two derating factors couple under combined T + V_DC operation
+- [[ac-dc-capacitance-mapping]] — the full joint `C(V_AC, V_DC)` surface; this page's V_DC axis at fixed standard V_AC
+- [[three-capacitance-definitions]] — local/total/large-signal C; resolves which "capacitance" the f_V derating applies to
 
 ## References
 - [[vishay-x7r-cap-drift-dc-bias]]

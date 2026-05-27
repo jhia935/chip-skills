@@ -11,6 +11,38 @@ Chronological record of wiki operations. Newest entries first.
 
 ---
 
+## [2026-05-28] ingest | AC × DC capacitance mapping — 7 pages (2 concepts, 3 entities, 2 sources, 2 concept updates)
+
+User asked to search for the relation between capacitance under combined AC voltage and DC field together — the "AC-DC mapping" (joint `C(V_AC, V_DC)` surface). Previous ingests covered each axis separately; this ingest is about the joint surface itself.
+
+Sources ingested (2):
+- [[murata-dynamic-model-hidaka-2016]] — Murata 2016 technical article (Hidaka). Behavioral-source SPICE model handles `T × V_DC` automatically; returns only C_local (not C_large). Static model is a snapshot of the dynamic at one (T, V_DC) point.
+- [[ben-yaakov-2025-nonlinear-capacitance-definition]] — EPCI 2025 (Ben-Yaakov, Ben-Gurion U). **Three distinct definitions of capacitance** for non-linear MLCCs: local `dQ/dV` (ripple/LCR), total `Q/V` (charge transfer), large-signal `ΔQ/ΔV` (resonant). Diverge by 10-30 % for high-bias-loss Class II parts.
+
+Concept pages (2):
+- [[ac-dc-capacitance-mapping]] — central new synthesis. Charge-based Q(V) formulation gives all three definitions for free. Three regimes (low-DC / mid-DC / high-DC × low-AC / mid-AC / high-AC). AC sensitivity collapses at high DC because operating point sits on saturating tail. Tier 3 simulator path: integrate Kalbitz Q(V) over operating AC swing.
+- [[three-capacitance-definitions]] — companion concept page. Energy formula `E = ∫V·dQ` (NOT ½CV²) for non-linear caps. Vendor models: only Kalbitz analytic Q(V) gives all three definitions for free.
+
+Entity stubs (3): [[seiji-hidaka]] (Murata), [[sam-ben-yaakov]] (Ben-Gurion), [[ben-gurion-university]].
+
+Concept pages updated (2):
+- [[ac-voltage-coefficient-mlcc]] — added cross-refs to new mapping and definitions pages.
+- [[dc-bias-derating]] — added cross-refs.
+
+Key findings:
+1. **Capacitance is application-dependent** for non-linear MLCCs. Same Q(V) curve yields three different "capacitance" numbers depending on whether you're computing ripple (C_local), charge transfer (C_total), or resonant frequency (C_large).
+2. **The joint AC × DC surface derives from a single 1D Q(V) function**. The Kalbitz analytic form gives the full surface implicitly.
+3. **AC × DC interaction is NOT separable** in the simple multiplicative sense. At high DC, the operating point sits on the saturating tail of Q(V), so AC excursions sample a flat region and AC sensitivity collapses. This is the empirical observation of [[herb-ma-2020-2022-mlcc-ac-dc-aging|Ma 2020/2022]] explained at the model level.
+4. **Vendor SPICE models split into three classes**:
+   - Murata Dynamic Model: returns C_local automatically over (T, V_DC); no AC axis
+   - Static Models: C_local at one fixed (T, V_DC); no AC axis
+   - Kalbitz analytic Q(V): all three definitions; both axes
+5. **The energy formula `E = ½CV²` is wrong for non-linear MLCCs**; for X5R 10 µF 6.3 V charged to 5 V, the gap can be 30 %. Matters for high-CV energy-buffer applications.
+
+Wiki state: 205 pages (was 198, +7), 0 dangling wikilinks.
+
+---
+
 ## [2026-05-28] ingest | Class-specific T_C engineering — 8 pages (1 synthesis concept, 1 stub concept, 4 sources, 2 entities)
 
 User asked to search for the reason why T_C for each MLCC dielectric class is different, from academic publications. This is the **compositional engineering** explanation of why C0G is paraelectric, X7R sits at ~125 °C, X8R/X9R extends to 150-200 °C, Y5V puts T_C at room temperature.
