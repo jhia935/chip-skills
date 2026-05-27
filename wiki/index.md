@@ -38,10 +38,15 @@ A catalog of all pages in this wiki, organized by category. See [[overview]] for
 
 ### People
 - [[donhang-liu]] — NASA Goddard NEPP capacitor reliability specialist; authored the BME reliability framework.
+- [[susan-trolier-mckinstry]] — Penn State; major ferroelectrics name; co-authored T-resolved Rayleigh-analysis of BaTiO₃ (2023).
+- [[shashank-priya]] — Penn State / formerly Virginia Tech; senior author on the 2017 compositionally-graded MLCC paper.
+- [[ichiro-fujii]] — first author on the 2023 Rayleigh-analysis BaTiO₃ paper.
 
 ### Organizations
 - [[nasa-nepp]] — NASA Electronic Parts and Packaging program; primary public sponsor of BME reliability research.
 - [[aec-council]] — Automotive Electronics Council; publisher of AEC-Q200 automotive passive qualification spec.
+- [[penn-state]] — Center for Dielectrics and Piezoelectrics; primary US academic hub for ferroelectric ceramics.
+- [[virginia-tech]] — CEHMS; past institutional home of Priya, dielectric composites research.
 
 ## Concepts
 
@@ -79,6 +84,11 @@ A catalog of all pages in this wiki, organized by category. See [[overview]] for
 - [[master-sintering-curve]] — Su-Johnson MSC; activation energies for BaTiO₃; breaks down above 1200 °C.
 - [[binder-burnout-debinding]] — First firing step (200–600 °C); PVB kinetics; Ar+1%O₂ window; BBO defect modes.
 - [[tcc-dc-bias-interaction]] — How TCC and DC-bias derating couple; multiplicative f_T × f_V model is accurate to ±5–10 % for X5R/X7R, breaks down for Y5V and near-T_C compositions.
+- [[empirical-c-t-vdc-academic-measurements]] — Synthesis of academic 2D-surface measurements; recipe-specific (E₀, p) calibration table for the Tier 2 simulator.
+- [[polar-nanoregions-pnr]] — Short-range polar order in a non-polar matrix; route to high ε_r with low DC-bias loss without long-range ferroelectric order.
+- [[rayleigh-analysis]] — Linear ε'(E_AC) decomposition into reversible ε'_init plus irreversible α'; basis for understanding TCC × bias coupling.
+- [[dielectric-tunability]] — Same physics as DC-bias derating, opposite sign convention; how the relaxor/varactor literature frames the effect.
+- [[relaxor-ferroelectric]] — Material class with broadened, frequency-dependent dielectric peak; no long-range ferroelectric order.
 - [[green-tape-shrinkage-anisotropy]] — Drying + burnout + sintering shrinkage stages; powder shape, tape thickness, binder/metal content trade-offs.
 - [[green-density-vs-shrinkage]] — Mass-conservation `1 − (ρ_g/ρ_f)^(1/3)` relation; binder content sets green density which sets sintering shrinkage.
 - [[skorohod-olevsky-viscous-sintering]] — Continuum sintering model: `dε_i/dt = σ'/(2ηφ) + (tr σ − 3P_L)/(18ηψ)·I`; predicts free + constrained shrinkage.
@@ -166,6 +176,13 @@ A catalog of all pages in this wiki, organized by category. See [[overview]] for
 - [[sugimura-hirao-2009-batio3-additive-ni-electrode]] — Noritake industry paper; 30 nm BT at 10 mass% achieves > 75 % Ni film coverage on the dielectric.
 - [[garcia-vanderbilt-1998-batio3-dft-er]] — arXiv 1998; first-principles ε_r(T) of BaTiO₃ via effective Hamiltonian + Monte Carlo; reproduces Curie-Weiss and tetragonal-phase anisotropy.
 - [[liu-2019-sm-mn-codoped-batio3-permittivity]] — *Materials* 2019; quantitative Sm 2-7 mol% + Mn 1 mol% in BT; ε_r,peak 5,500 → 15,000 and T_C 105 → 20 °C slopes.
+- [[song-2017-compositionally-graded-mlcc]] — Sci. Rep. 2017; BTS-BCN graded MLCC, 70 % tunability at 50 kV/cm, −55…+125 °C × 0–50 kV/cm measurement.
+- [[fujii-trolier-mckinstry-2023-batio3-nonlinearity]] — Microstructures 2023; Rayleigh-analysis ε'_init + α' decomposition of BaTiO₃ from −180 to +150 °C.
+- [[he-2025-bsite-ca-batio3-pnr]] — Microstructures 2026; B-site 4 mol% Ca in BT → PNR microstructure, bias loss 60 % → 15 % at 30 kV/cm.
+- [[wang-2023-x5r-ni-mlcc-combined-out-field]] — Cer. Int. 2023; 1210-case Dy/Ho-coated X5R Ni-MLCC characterized under combined T × V_DC × V_AC.
+- [[he-2022-dy-ho-batio3-dc-bias]] — Cer. Int. 2022; Dy-Mg co-doped BaTiO₃ with 180 nm grain, ε_r 2000, −23.6 % at 4 kV/mm.
+- [[hwang-2024-coreshell-electrode-dc-bias]] — ACS AMI 2024; core-shell + Ni-electrode optimization; bulk −17 % vs MLCC −28 % at 4 kV/mm.
+- [[an-2026-grain-boundary-segregation-dc-bias]] — Adv. Mater. 2026; GB-segregation engineering; optimal grain 200–260 nm under E > 4 V/µm.
 
 ### Patents
 - [[us-4115493-murata-sakabe-1978-bme-foundational]] — Sakabe & Seno 1978; the foundational Ca-doped BaTiO₃ non-reducing dielectric that enabled Ni-electrode MLCC; expired 1997. Composition `{(Ba₁₋ₓCaₓ)O}ₘ(Ti₁₋ᵧZrᵧ)O₂` with m=1.005-1.03, x=0.02-0.22.

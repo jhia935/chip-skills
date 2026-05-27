@@ -53,6 +53,19 @@ $$
 - Y5V: `E₀ ≈ 1.5 V/µm`, `p ≈ 1.0` (drops near −90 % at rated V — [[murata-grm-series-tcc-data]])
 - C0G: `f_VCC ≈ 1` (paraelectric, no domain effect)
 
+## Recipe-specific calibration from academic literature
+
+Class-generic `(E₀, p)` underestimates the bias robustness of modern engineered formulations. See [[empirical-c-t-vdc-academic-measurements]] for the full table. Highlights:
+
+| Recipe | E₀ (V/µm) | Source |
+|---|---|---|
+| X7R, Dy + Mg, 180 nm grain (bulk ceramic) | **7.0** | [[he-2022-dy-ho-batio3-dc-bias]] |
+| X7S finished MLCC, core-shell + Ni-electrode optimized | **6.0** | [[hwang-2024-coreshell-electrode-dc-bias]] |
+| X5R 1210, Dy + Ho coated, ~150 nm grain | **~6.5** | [[wang-2023-x5r-ni-mlcc-combined-out-field]] |
+| BaTi₀.₉₆Ca₀.₀₄O₃ (PNR composition) | **~10** | [[he-2025-bsite-ca-batio3-pnr]] |
+
+Bulk-ceramic measurements systematically **under-state** finished-MLCC bias loss because the MLCC's thinner dielectric concentrates field near the electrode interfaces (Hwang 2024: bulk −17 % vs MLCC −28 %, same composition at 4 kV/mm).
+
 ## Recovery
 The VCC effect is **reversible**: removing the bias allows capacitance to recover, immediately for the "instant VCC" part and slowly (hours to days) for any [[dc-bias-aging]] component. Full recovery requires de-aging above [[curie-temperature]].
 

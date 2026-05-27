@@ -99,8 +99,10 @@ The fact that the entire field is still **patenting dopant ratios** in 2024–20
 ## References
 - [[nasa-batio3-mlcc-failure-mechanisms]]
 - [[arxiv-batio3-silica-interdiffusion]] — interdiffusion creates dielectric dispersion
-- An et al., *Adv. Mater.* 2026, doi:10.1002/adma.202507233 — Microstructure Optimization via Grain-Boundary Segregation
+- [[an-2026-grain-boundary-segregation-dc-bias]] — Adv. Mater. 2026: 200–260 nm grain optimum for E > 4 V/µm
+- [[hwang-2024-coreshell-electrode-dc-bias]] — ACS AMI 2024: bulk −17 % vs MLCC −28 % at 4 kV/mm, X7S
+- [[he-2022-dy-ho-batio3-dc-bias]] — Cer. Int. 2022: Dy-Mg, 180 nm, ε_r 2000, −23.6 % at 4 kV/mm
+- [[wang-2023-x5r-ni-mlcc-combined-out-field]] — Cer. Int. 2023: 1210 X5R 390 nF, Dy-Ho coated
 - Jeon et al., *J. Am. Ceram. Soc.* 95:8 (2012) 2435 — "Mechanism of Core/Shell Structure Formation"
 - Chen et al., *J. Am. Ceram. Soc.* 103 (2020) — "Role of diffusion behavior on formation and evolution of core-shell structure"
-- ACS Appl. Mater. Interfaces 2024, doi:10.1021/acsami.3c16740 — DC-Bias Stability & Reliability via core-shell + electrode
 - ScienceDirect 2026 papers on Y/Ho/Dy/Tb co-doping (multiple)

@@ -11,6 +11,47 @@ Chronological record of wiki operations. Newest entries first.
 
 ---
 
+## [2026-05-27] ingest | Academic bias-TCC measurements + empirical 2D-surface synthesis
+
+User asked to look for bias-TCC measurements from academic publications and "include suggestion 1" (empirical T × V_DC surface for a reference part).
+
+Searched the academic literature (Adv. Mater., Sci. Rep., Cer. Int., Microstructures, ACS AMI). The closest analog to a vendor SimSurfing 2D surface in the published academic literature is [[wang-2023-x5r-ni-mlcc-combined-out-field]], a 1210-case Dy/Ho-coated X5R Ni-MLCC explicitly characterized under combined T × V_DC × V_AC fields. The cleanest microscopic decomposition is [[fujii-trolier-mckinstry-2023-batio3-nonlinearity]] (Rayleigh α' across −180 to +150 °C). The richest cross-axis measurement is [[song-2017-compositionally-graded-mlcc]] (T −55 to +125 °C × E 0 to 50 kV/cm on a graded BTS-BCN MLCC).
+
+Pages created (7 source + 5 concept + 5 entity = 17):
+
+Sources:
+- [[song-2017-compositionally-graded-mlcc]] — Sci. Rep. 2017, 70 % tunability
+- [[fujii-trolier-mckinstry-2023-batio3-nonlinearity]] — Rayleigh decomposition, T-resolved
+- [[he-2025-bsite-ca-batio3-pnr]] — Microstructures 2026, B-site Ca → PNR
+- [[wang-2023-x5r-ni-mlcc-combined-out-field]] — Cer. Int. 2023, combined out-field X5R
+- [[he-2022-dy-ho-batio3-dc-bias]] — Cer. Int. 2022, Dy-Mg 180 nm, −23.6 % at 4 V/µm
+- [[hwang-2024-coreshell-electrode-dc-bias]] — ACS AMI 2024, core-shell + electrode, X7S MLCC
+- [[an-2026-grain-boundary-segregation-dc-bias]] — Adv. Mater. 2026, 200–260 nm sweet spot
+
+Concept synthesis + stubs:
+- [[empirical-c-t-vdc-academic-measurements]] — central synthesis; cross-paper convergence + recipe-specific (E₀, p) calibration table for the chip-sim's [[dc-bias-derating]] sigmoid
+- [[polar-nanoregions-pnr]] — promotes the He 2025 microstructure to a first-class concept
+- [[rayleigh-analysis]] — promotes the measurement method from a tag to a page
+- [[dielectric-tunability]] — same physics as bias derating, varactor-literature sign convention
+- [[relaxor-ferroelectric]] — material class anchor
+- [[susan-trolier-mckinstry]], [[ichiro-fujii]], [[shashank-priya]], [[penn-state]], [[virginia-tech]] — person/org stubs from these papers
+
+Pages updated:
+- [[tcc-dc-bias-interaction]] — added "Academic-literature calibration anchors" section pointing at the new sources.
+- [[dc-bias-derating]] — added "Recipe-specific calibration from academic literature" with the (E₀, p) table.
+- [[core-shell-batio3]] — promoted three references to wikilinks pointing at the new source pages.
+
+Key cross-paper findings:
+1. **Grain-size sweet spot for DC-bias robustness converges to 150–260 nm** with Dy-based dopant package. (He 2022, Wang 2023, An 2026).
+2. **Bulk ceramic measurements systematically under-state finished-MLCC bias loss** by ~10 percentage points (Hwang 2024: −17 % bulk vs −28 % MLCC, same composition at 4 kV/mm).
+3. **Above T_C, α' → 0** (Fujii 2023) — provides the microscopic basis for the separable multiplicative model used in [[tcc-dc-bias-interaction]].
+4. **PNR-based dielectrics open a route around the X8R high-T-bias coupling regime** (He 2025: bias loss 60 % → 15 %, T_C shift from 129 → 60 °C).
+5. **Calibration values for the simulator's sigmoid**: Dy-Mg 180 nm → `E₀ ≈ 7 V/µm`; PNR composition → `E₀ ≈ 10 V/µm`. Both are substantially shallower than the chip-sim's current X7R default of 5 V/µm.
+
+Wiki state: 165 pages (was 148, +17), 0 dangling wikilinks.
+
+---
+
 ## [2026-05-27] query | DC-bias vs TCC relationship
 
 Question: "how does DC-bias cap and TCC cap related?" Filed as [[dc-bias-vs-tcc-relationship]]. Key pages consulted: [[tcc-dc-bias-interaction]], [[temperature-coefficient-of-capacitance]], [[dc-bias-derating]], [[epci-high-cv-mlcc-bias-aging]]. Short answer: two independent multiplicative derating factors `f_T(T) × f_V(V_DC)` of the Zednicek formula; separable for typical X5R/X7R within ±5–10 %; couples significantly near T_C, at high bias, and for Y5V.

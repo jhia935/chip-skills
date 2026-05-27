@@ -124,10 +124,25 @@ A designer asks: "If I run an 0805 X5R 10 µF 6.3 V part at 5 V DC and 60 °C, w
 
 The takeaway: **at the simulator's accuracy target (±10 %)**, the separable multiplicative model captures the TCC × DC-bias interaction well. The coupling between the two is real but small, and the much bigger sources of error in the simulator come from (a) not knowing the specific vendor part's actual `(E₀, p)` and (b) per-vendor variation in the TCC envelope shape within "X7R."
 
+## Academic-literature calibration anchors
+
+The chip-sim's separable multiplicative model can be calibrated against published measurements rather than guessed at. [[empirical-c-t-vdc-academic-measurements]] is the synthesis page; the key data points:
+
+- **Fujii & Trolier-McKinstry 2023** ([[fujii-trolier-mckinstry-2023-batio3-nonlinearity]]): the Rayleigh-decomposition microscopic basis — `α'` (the bias-killable part of ε_r) collapses above T_C, confirming the multiplicative model's separability assumption for typical operating points.
+- **He et al. 2022** ([[he-2022-dy-ho-batio3-dc-bias]]): the canonical "Dy-Mg, 180 nm grain" recipe — only **−23.6 % at 4 kV/mm** — much shallower than the chip-sim's X7R default. Calibration: `E₀ ≈ 7.0 V/µm`.
+- **Hwang 2024** ([[hwang-2024-coreshell-electrode-dc-bias]]): bulk vs MLCC comparison — same composition, but the MLCC loses an extra 11 percentage points at 4 kV/mm (−17 % → −28 %) because of electrode-side field concentration. **Bulk ceramic measurements systematically under-state MLCC bias loss.**
+- **Wang 2023** ([[wang-2023-x5r-ni-mlcc-combined-out-field]]): the only published academic MLCC characterized under the **combined** T × V_DC × V_AC out-field. 1210-case X5R, 390 nF, 150 nm grain, Dy-Ho coated.
+- **He 2025** ([[he-2025-bsite-ca-batio3-pnr]]): demonstrates that **[[polar-nanoregions-pnr|PNR-based dielectrics]]** (no long-range ferroelectric order) reduce DC-bias loss from 60 % to 15 % at 30 kV/cm — opens a route around the X8R high-T-bias coupling regime.
+- **Song 2017** ([[song-2017-compositionally-graded-mlcc]]): the rare academic MLCC characterized at multiple temperatures AND multiple bias points; tunability up to 70 %.
+- **An 2026** ([[an-2026-grain-boundary-segregation-dc-bias]]): refines the grain-size sweet spot to **200–260 nm** for E > 4 V/µm.
+
 ## Cross-references
 
 - [[temperature-coefficient-of-capacitance]] — TCC fundamentals and EIA letter envelope
 - [[dc-bias-derating]] — DC-bias sigmoid model and field-vs-voltage distinction
+- [[empirical-c-t-vdc-academic-measurements]] — calibration synthesis across the academic 2D-surface literature
+- [[polar-nanoregions-pnr]] — alternative microstructure that flattens both `f_V` and broadens `f_T`
+- [[rayleigh-analysis]] — microscopic decomposition supporting the multiplicative model
 - [[dc-bias-aging]] — time-dependent capacitance drift under sustained DC bias (distinct from instant V_DC effect)
 - [[aging-class-2]] — natural aging (logarithmic decay with no bias applied)
 - [[epci-high-cv-mlcc-bias-aging]] — Zednicek 2019 multiplicative formula `C_actual = C × F_DCV × F_ACV × F_T × F_age`
