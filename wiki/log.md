@@ -11,6 +11,12 @@ Chronological record of wiki operations. Newest entries first.
 
 ---
 
+## [2026-05-27] query | DC-bias vs TCC relationship
+
+Question: "how does DC-bias cap and TCC cap related?" Filed as [[dc-bias-vs-tcc-relationship]]. Key pages consulted: [[tcc-dc-bias-interaction]], [[temperature-coefficient-of-capacitance]], [[dc-bias-derating]], [[epci-high-cv-mlcc-bias-aging]]. Short answer: two independent multiplicative derating factors `f_T(T) × f_V(V_DC)` of the Zednicek formula; separable for typical X5R/X7R within ±5–10 %; couples significantly near T_C, at high bias, and for Y5V.
+
+---
+
 ## [2026-05-27] ingest | TCC × DC-bias interaction — new concept page synthesizing the coupling
 
 User asked to crawl for TCC characteristics and their relation to DC-bias effective capacitance. Audited existing coverage first: solid pages on each topic individually ([[temperature-coefficient-of-capacitance]], [[dc-bias-derating]], [[aging-class-2]], [[dc-bias-aging]]) but **the coupling between them was under-documented**.

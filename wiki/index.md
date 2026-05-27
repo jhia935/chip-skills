@@ -183,5 +183,6 @@ A catalog of all pages in this wiki, organized by category. See [[overview]] for
 
 ## Queries
 
+- [[dc-bias-vs-tcc-relationship]] — How DC-bias and TCC derating relate: independent multiplicative factors (`f_T × f_V`) of the Zednicek formula; couples significantly near T_C, at high bias, and for Y5V.
 - [[shrinkage-shape-dependence-batio3-vs-alumina]] — BaTiO₃ does not show the powder-shape-driven anisotropy that alumina does (Heunisch K_xy 1.9-12.7 vs BT ≈ 1); finished-MLCC anisotropy comes from lamination constraint, not green-tape powder shape.
 - [[capacitance-simulation-from-recipe-and-geometry]] — Three-tier pipeline from recipe + geometry to predicted capacitance (Tier 1 geometric ±20 %; Tier 2 material-corrected ±10 %; Tier 3 SOVS-process-coupled ±5 %).
