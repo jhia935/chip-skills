@@ -23,6 +23,8 @@ A catalog of all pages in this wiki, organized by category. See [[overview]] for
 - [[rohm]] — Switching-regulator IC vendor; MLCC application-note authority *(stub)*.
 - [[intel]] — CPU OEM whose 2010 thin-layer MLCC reliability report triggered the Liu NASA NEPP framework *(stub)*.
 - [[wurth-elektronik]] — German passive-components manufacturer; publisher of analytical-depth ANP114 polarization model.
+- [[knowles-capacitors]] — High-reliability MLCC specialist for aerospace, defense, medical, HV; practitioner blog publisher.
+- [[hebrew-university-jerusalem]] — Israel; Dul'kin/Roth Department of Applied Physics; BaTiO₃ Curie-shift literature synthesis.
 
 ### Product series
 - [[murata-grm-series]] — General-purpose Murata MLCC; GRM03 through GRM55.
@@ -45,6 +47,8 @@ A catalog of all pages in this wiki, organized by category. See [[overview]] for
 - [[rene-kalbitz]] — Würth Elektronik; author of ANP114 polarization model.
 - [[herb-te-jen-ma]] — Samsung Electro-Mechanics application engineer; AC × DC × aging quantitative writeup.
 - [[ciprian-covaci]], [[aurel-gontean]] — Politehnica Timișoara; singing-MLCC review co-authors.
+- [[evgeniy-dulkin]], [[michael-roth]] — Hebrew University of Jerusalem; Curie-shift literature synthesis.
+- [[victor-lu]] — Knowles Capacitors application engineer; DC-bias phenomenon blog.
 
 ### Organizations
 - [[nasa-nepp]] — NASA Electronic Parts and Packaging program; primary public sponsor of BME reliability research.
@@ -99,6 +103,8 @@ A catalog of all pages in this wiki, organized by category. See [[overview]] for
 - [[piezoelectricity-batio3]] — Linear E→strain in BaTiO₃; vanishes above T_C.
 - [[mlcc-acoustic-noise]] — "Singing capacitors"; same strain mechanism as AC voltage coefficient.
 - [[soft-termination-mlcc]] — Recipe-level toggle for strain decoupling; suppresses both acoustic noise and AC-coefficient.
+- [[field-induced-curie-shift]] — DC bias shifts BaTiO₃ T_C upward by ~130 mK/(V/µm); the central mechanism behind the DC bias × TCC coupling.
+- [[tetragonality-c-a-ratio]] — c/a lattice ratio; structural parameter that controls DC-bias robustness and T_C shift magnitude.
 - [[green-tape-shrinkage-anisotropy]] — Drying + burnout + sintering shrinkage stages; powder shape, tape thickness, binder/metal content trade-offs.
 - [[green-density-vs-shrinkage]] — Mass-conservation `1 − (ρ_g/ρ_f)^(1/3)` relation; binder content sets green density which sets sintering shrinkage.
 - [[skorohod-olevsky-viscous-sintering]] — Continuum sintering model: `dε_i/dt = σ'/(2ηφ) + (tr σ − 3P_L)/(18ηψ)·I`; predicts free + constrained shrinkage.
@@ -196,6 +202,10 @@ A catalog of all pages in this wiki, organized by category. See [[overview]] for
 - [[kalbitz-wurth-anp114-mlcc-voltage-frequency]] — Würth ANP114; SPICE-friendly analytic C(V, f) polarization model with bell-shaped peak `sech²((V−Vc)/b)`.
 - [[herb-ma-2020-2022-mlcc-ac-dc-aging]] — SEMCO 2020/2022; quantifies AC × DC interaction (30 % swing at zero DC; 4 % extra loss at 10 mV_rms vs 500 mV_rms).
 - [[covaci-gontean-2022-singing-mlcc]] — Sensors 2022; piezo + electrostriction strain model `s = d_33 E + M_33 E²` for MLCC acoustic noise.
+- [[dulkin-roth-2020-batio3-curie-shift]] — arXiv 2020; consolidates dT_C/dE ≈ +1.3 °C/(kV/cm) from four single-crystal methods; pressure-field equivalence.
+- [[lim-cho-2010-batio3-mlcc-field-induced]] — Ferroelectrics 2010; field-induced phase transition in X7R MLCC; two-mechanism hysteresis.
+- [[yoon-kim-2020-batio3-tetragonality-dc-bias]] — J. Mater. Chem. C 2020; tetragonality (c/a) controls DC-bias performance; lower c/a → better bias robustness.
+- [[lu-knowles-2023-dc-bias-explained]] — Knowles 2023; practitioner worked example: 200 V X7R, +15 % / −30 % combined T × V_DC envelope.
 
 ### Patents
 - [[us-4115493-murata-sakabe-1978-bme-foundational]] — Sakabe & Seno 1978; the foundational Ca-doped BaTiO₃ non-reducing dielectric that enabled Ni-electrode MLCC; expired 1997. Composition `{(Ba₁₋ₓCaₓ)O}ₘ(Ti₁₋ᵧZrᵧ)O₂` with m=1.005-1.03, x=0.02-0.22.

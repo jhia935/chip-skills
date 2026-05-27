@@ -11,6 +11,42 @@ Chronological record of wiki operations. Newest entries first.
 
 ---
 
+## [2026-05-27] ingest | DC bias × TCC reshape mechanism — 11 pages (2 concepts, 5 entities, 4 sources, 3 concept updates)
+
+User asked to search for **DC bias dependency of TCC curve** (how V_DC reshapes ε_r(T)) and **temperature dependency of DC bias effective capacitance** (how T modulates f_V(V_DC)). These are the two halves of the same T × V_DC coupling. Earlier ingests covered the empirical 2D-surface academic measurements and the multiplicative coupling model; this ingest focuses on the **underlying mechanism** — field-induced Curie shift.
+
+Sources ingested (4):
+- [[dulkin-roth-2020-batio3-curie-shift]] — arXiv 2020 (Hebrew U Jerusalem). Quantitative anchor: four independent single-crystal techniques converge on **dT_C/dE ≈ +1.3 °C/(kV/cm) = +130 mK/(V/µm)**. Pressure-field equivalence (p/E ≈ 23.8 bar·cm/kV) — the deep reason piezo/electrostriction couple identically.
+- [[lim-cho-2010-batio3-mlcc-field-induced]] — Ferroelectrics 2010. **Validates the T_C shift in a finished X7R MLCC** (not just single crystal). Identifies a second hysteresis mechanism from injected charge alongside the classical ferroelectric switching.
+- [[yoon-kim-2020-batio3-tetragonality-dc-bias]] — J. Mater. Chem. C 2020. **Structural anchor**: c/a tetragonality controls DC-bias performance. Lower c/a → better bias robustness AND smaller field-induced T_C shift. Mechanism: fine grain, Ba excess, or proximity to T_C all reduce c/a; the chip-sim simulator's recipe (T_sinter, A/B ratio, dopants) maps directly to c/a.
+- [[lu-knowles-2023-dc-bias-explained]] — Knowles 2023 blog. Practitioner worked example: 200 V X7R 0.1 µF, +15 % / −30 % worst-case combined envelope. Linear-sum vs multiplicative model agreement at small individual losses.
+
+New concept pages (2):
+- [[field-induced-curie-shift]] — central new synthesis. T_C shifts upward, ε_r peak decreases; two faces of bias-induced polarization saturation. Multiplicative model handles amplitude collapse but not peak shift — under-predicts excursion near T_C for X8R/X8L parts.
+- [[tetragonality-c-a-ratio]] — structural-parameter stub; the operative knob in the chip-sim recipe-to-bias-curve map.
+
+Entity stubs (5):
+- [[evgeniy-dulkin]], [[michael-roth]], [[hebrew-university-jerusalem]], [[victor-lu]], [[knowles-capacitors]].
+
+Concept pages updated (3):
+- [[tcc-dc-bias-interaction]] — added quantitative T_C shift anchor (+1.3 °C/(kV/cm)) and cross-refs to the three new sources + [[field-induced-curie-shift]].
+- [[dc-bias-derating]] — added "Temperature dependence of f_V" section explaining the three T-dependence regimes (above T_C, near T_C, well below T_C) and tabulating by dielectric class (C0G/X7R/X8R/Y5V).
+- [[empirical-c-t-vdc-academic-measurements]] — added "Additional anchor" section pointing to the three new field-induced-Curie-shift sources.
+
+Headline findings:
+1. **Quantitative T_C shift rule of thumb**: dT_C/dE ≈ +1.3 °C/(kV/cm) = +130 mK/(V/µm), from cross-method consolidation in BaTiO₃ single crystals (Dul'kin & Roth 2020).
+2. **Pressure-field equivalence**: 23.8 bar·cm/kV — the same Landau response governs both, which is why piezo + electrostriction strain coupling produces equivalent T_C shifts and why soft-terminated MLCCs should show smaller bias-induced TCC reshaping in flex-loaded boards.
+3. **Two simultaneous deformations under DC bias**: peak amplitude collapses (the `f_V` factor in the multiplicative model) AND peak position shifts upward (NOT captured by the multiplicative model). Combined model needs both.
+4. **Structural origin**: lower c/a tetragonality → smaller shift, flatter `f_V`, higher ε_r under bias. Fine-grain (200–260 nm) X7R compositions have low c/a, explaining the cross-paper grain-size convergence.
+5. **Practical impact**:
+   - X7R (T_C ~ 120 °C, well above operating range): peak shift negligible; multiplicative model excellent.
+   - X8R/X8L (T_C ~ 70-90 °C): +1.3 K/(V/µm) correction needed when V_DC > 30 % rated.
+   - Y5V (T_C in operating range): multiplicative model unreliable; flag uncertainty.
+
+Wiki state: 190 pages (was 179, +11), 0 dangling wikilinks.
+
+---
+
 ## [2026-05-27] ingest | AC dependency of TCC curve — 14 pages (5 concepts, 4 entities, 3 sources, 2 concept updates)
 
 User asked to "search for AC dependency of TCC curve" — the third leg of the ε_r(T, V_DC, V_AC) surface. Previous ingests covered the T axis and V_DC axis individually plus T × V_DC; this ingest covers the V_AC axis and the T × V_AC coupling.

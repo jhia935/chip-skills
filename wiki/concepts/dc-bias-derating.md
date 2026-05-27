@@ -69,6 +69,25 @@ Bulk-ceramic measurements systematically **under-state** finished-MLCC bias loss
 ## Recovery
 The VCC effect is **reversible**: removing the bias allows capacitance to recover, immediately for the "instant VCC" part and slowly (hours to days) for any [[dc-bias-aging]] component. Full recovery requires de-aging above [[curie-temperature]].
 
+## Temperature dependence of f_V (the f_V vs T axis)
+
+The bias-derating sigmoid parameters `(E_0, p)` are **mildly temperature-dependent** but `f_V(V_DC)` is approximately **T-independent** over the working range for typical X5R/X7R parts (the [[empirical-c-t-vdc-academic-measurements|EPCI 2024 empirical finding]] — normalized curves track tightly from −5 to +70 °C).
+
+Where T-dependence enters non-trivially:
+
+1. **[[field-induced-curie-shift|Curie peak shift under bias]]**: T_C moves up by ~130 mK per V/µm of DC field. For T close to (T_C − bias-shift), the bias loss is amplified beyond what `f_V(V_DC)` alone predicts. Documented in [[lim-cho-2010-batio3-mlcc-field-induced|Lim & Cho 2010]] for X7R MLCCs.
+2. **Above T_C**: in the paraelectric phase, `f_V ≈ 1` (no domains to align). `α' → 0` per [[fujii-trolier-mckinstry-2023-batio3-nonlinearity|Fujii 2023]].
+3. **Near T_C and below**: the [[tetragonality-c-a-ratio|c/a ratio]] approaches 1, which **enhances** bias-pulled dielectric response along the c-axis ([[yoon-kim-2020-batio3-tetragonality-dc-bias|Yoon 2020]]) — so `f_V` at fixed E actually **rises slightly** with T toward T_C. This is opposite the usual intuition that high T compounds bias loss.
+
+So `f_V(V_DC, T)` is a mildly non-separable function with a complex T-dependence that depends on **where the part's T_C sits relative to the operating range**:
+
+| Class | T_C range | f_V × T behavior |
+|---|---|---|
+| C0G (paraelectric) | N/A | `f_V ≈ 1` always |
+| X7R/X5R, T_C ≫ T_op | 110–130 °C | Approximately T-independent in operating range; multiplicative model OK |
+| X8R/X8L | 70–90 °C | T-dependent; multiplicative model OK with +1.3 K/(V/µm) T_C correction |
+| Y5V | T_C in operating range | Strongly coupled; multiplicative model unreliable |
+
 ## Cross-references
 - [[dc-bias-aging]] — long-term time-dependent capacitance drift under continuous DC bias
 - [[aging-class-2]] — unbiased aging (separate phenomenon)

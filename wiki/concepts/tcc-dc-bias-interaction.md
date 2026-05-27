@@ -66,6 +66,21 @@ A large DC bias (`E > 5 V/µm` for X7R, `E > 1 V/µm` for Y5V) **shifts and broa
 
 This means an X7R part nominally rated ±15 % over −55…+125 °C **can violate that envelope under DC bias** — the temperature curve shape changes, not just its overall scale. A part at rated voltage may show a "U-shaped" TCC instead of the inverted-U Curie response.
 
+**Quantitative anchor**: [[dulkin-roth-2020-batio3-curie-shift|Dul'kin & Roth 2020]] consolidated four independent single-crystal measurements and established a practical rule of thumb:
+
+$$
+\frac{\Delta T_C}{\Delta E} \;\approx\; +1.3 \;\frac{\text{°C}}{\text{kV/cm}} \;=\; +130 \;\frac{\text{mK}}{\text{V/µm}}
+$$
+
+So at typical MLCC operating fields:
+- `E = 5 V/µm` (X7R at half rated V): ΔT_C ≈ +650 mK — small
+- `E = 10 V/µm` (high-CV thin-layer parts at rated V): ΔT_C ≈ +1.3 K — affects X8R/X8L envelope
+- `E = 20 V/µm` (rare deep bias): ΔT_C ≈ +2.6 K — significant near T_C
+
+[[lim-cho-2010-batio3-mlcc-field-induced|Lim & Cho 2010]] validated this in a finished X7R MLCC (not just a single crystal) and found a **second hysteresis mechanism** from injected-charge effects alongside the classical ferroelectric switching. The Lim-Cho measurement supports treating the simulator's `f_V` model as combining (a) amplitude collapse and (b) peak shift; see [[field-induced-curie-shift]] for the full mechanism page.
+
+[[yoon-kim-2020-batio3-tetragonality-dc-bias|Yoon, Kim, & Kim 2020]] tied the shift to a measurable structural parameter — [[tetragonality-c-a-ratio|c/a]] — and showed it tracks with grain size and A/B ratio. Fine-grain (low c/a) X7R compositions have **smaller field-induced peak shift** AND **flatter `f_V` curve** simultaneously, explaining the cross-paper convergence in [[empirical-c-t-vdc-academic-measurements]].
+
 ### 3. Vendor variation dominates class category
 
 The [[epci-high-cv-mlcc-bias-aging|EPCI cross-vendor measurement]] of nominal "0805 X7R 10 µF 6.3 V" parts from three vendors found capacitance loss at rated voltage ranging from **−35 % to −65 %**, and the EPCI 2024 paper notes that **some vendors' X7R parts have worse bias sensitivity than other vendors' X5R parts** of the same case + capacitance. The TCC class (X5R/X7R/X8R) tells you about the temperature envelope at 0 V; it does **not** reliably predict how a part will derate under bias.

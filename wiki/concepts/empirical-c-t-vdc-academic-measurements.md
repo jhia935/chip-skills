@@ -37,6 +37,18 @@ Very few MLCC papers publish a full N×M grid of `ε_r(T_i, E_j)`. The common pa
 | [[an-2026-grain-boundary-segregation-dc-bias]] | Grain-size optimum | GB-segregation engineered | room T | E > 4 V/µm | Optimal grain 200–260 nm |
 | [[he-2025-bsite-ca-batio3-pnr]] | 1D bias + composition sweep | BaTi₀.₉₆Ca₀.₀₄O₃ (PNR) | −55…+200 °C | up to 30 kV/cm | α dropped 60 % → 15 % |
 
+## Additional anchor: the field-induced Curie-shift literature
+
+Three further academic papers connect single-crystal physics to MLCC engineering for the **peak-shift** half of the DC-bias × TCC coupling:
+
+| Paper | Contribution |
+|---|---|
+| [[dulkin-roth-2020-batio3-curie-shift]] | Quantifies dT_C/dE ≈ +1.3 °C/(kV/cm) in BaTiO₃ single crystals via four independent methods |
+| [[lim-cho-2010-batio3-mlcc-field-induced]] | Validates field-induced T_C shift in a finished X7R MLCC; identifies two-mechanism hysteresis |
+| [[yoon-kim-2020-batio3-tetragonality-dc-bias]] | Ties shift to [[tetragonality-c-a-ratio|c/a]] structural parameter; explains *why* fine-grain X7R is bias-robust |
+
+The shift mechanism is captured in the [[field-induced-curie-shift]] concept page.
+
 ## Cross-paper convergence: what these measurements agree on
 
 1. **Grain-size sweet spot for DC-bias stability**: ~150–260 nm with appropriate dopant package. Below ~100 nm the [[nano-grain-batio3-epsilon-r|nano-grain ε_r collapse]] takes over; above ~500 nm the bias loss rises sharply.
