@@ -11,6 +11,28 @@ Chronological record of wiki operations. Newest entries first.
 
 ---
 
+## [2026-05-27] ingest | TCC × DC-bias interaction — new concept page synthesizing the coupling
+
+User asked to crawl for TCC characteristics and their relation to DC-bias effective capacitance. Audited existing coverage first: solid pages on each topic individually ([[temperature-coefficient-of-capacitance]], [[dc-bias-derating]], [[aging-class-2]], [[dc-bias-aging]]) but **the coupling between them was under-documented**.
+
+Crawled vendor app notes (Murata, Wurth ANP114), industry articles (EPCI / passive-components.eu, Knowles blog), and academic measurements (X5R bias vs T from −5 to +70 °C). Key findings synthesized into the new concept page:
+
+- [[tcc-dc-bias-interaction]] — central new synthesis:
+  1. **Multiplicative model** `C_actual = C_rated × f_T × f_V × f_AC × f_age` is the standard industry approach (Zednicek/EPCI). Approximately correct for typical operating points.
+  2. **The two factors are largely independent**: EPCI 2024 measurement showed normalized bias curves track tightly across −5 to +70 °C for X5R, i.e. `f_V(V_DC)` is approximately T-independent over the working range.
+  3. **Where it breaks down**: (a) Y5V (Curie peak in operating range — strongest coupling), (b) X5R/X7R at high V_DC and high T near T_C (multiplicative model under-predicts loss by 5–15 %), (c) X8L asymmetric envelope.
+  4. **Vendor variation dominates class category**: EPCI cross-vendor measurement of "0805 X7R 10 µF 6.3 V" found bias loss ranging from −35 % to −65 % across three vendors; some vendors' X7R parts have worse bias than other vendors' X5R. Class label (X5R/X7R/X8R) doesn't reliably predict bias robustness.
+  5. **Vendor SPICE tool implementations**: split into "dynamic" (Murata SimSurfing — 2D coupled lookup) vs separable multiplicative (Murata SpiCap, K-SIM, SEAT, SEMCO CSS).
+  6. **Worked example** for the chip-sim Tier 2: 0805 X5R 10 µF 6.3 V at 5 V DC and 60 °C → `f_T × f_V = 0.93 × 0.27 = 0.25` → 2.51 µF predicted vs 2.2–2.6 µF measured. Multiplicative model lands inside the ±10 % accuracy target.
+
+Updates:
+- [[temperature-coefficient-of-capacitance]] — added "Coupling with DC bias" section pointing at the new page, plus cross-ref.
+- [[dc-bias-derating]] — added "Coupling with temperature (TCC)" section, plus cross-ref.
+
+Wiki state: 147 pages (was 146), still 0 dangling wikilinks. Total concept-page count for the temperature-and-voltage derating cluster: 5 ([[temperature-coefficient-of-capacitance]], [[dc-bias-derating]], [[aging-class-2]], [[dc-bias-aging]], [[tcc-dc-bias-interaction]]).
+
+---
+
 ## [2026-05-27] ingest | Patent corpus expansion — 4 new patents, 2 drafts promoted
 
 User asked to expand the patent corpus and to look for dangling / draft documents to enrich. Audited the wiki first:

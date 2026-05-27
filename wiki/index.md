@@ -78,6 +78,7 @@ A catalog of all pages in this wiki, organized by category. See [[overview]] for
 - [[cold-sintering]] — Sub-300 °C densification with transient liquid phase (Randall group).
 - [[master-sintering-curve]] — Su-Johnson MSC; activation energies for BaTiO₃; breaks down above 1200 °C.
 - [[binder-burnout-debinding]] — First firing step (200–600 °C); PVB kinetics; Ar+1%O₂ window; BBO defect modes.
+- [[tcc-dc-bias-interaction]] — How TCC and DC-bias derating couple; multiplicative f_T × f_V model is accurate to ±5–10 % for X5R/X7R, breaks down for Y5V and near-T_C compositions.
 - [[green-tape-shrinkage-anisotropy]] — Drying + burnout + sintering shrinkage stages; powder shape, tape thickness, binder/metal content trade-offs.
 - [[green-density-vs-shrinkage]] — Mass-conservation `1 − (ρ_g/ρ_f)^(1/3)` relation; binder content sets green density which sets sintering shrinkage.
 - [[skorohod-olevsky-viscous-sintering]] — Continuum sintering model: `dε_i/dt = σ'/(2ηφ) + (tr σ − 3P_L)/(18ηψ)·I`; predicts free + constrained shrinkage.

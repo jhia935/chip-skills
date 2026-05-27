@@ -65,12 +65,18 @@ reported at both T_min and T_max.
 - Class I: `f_T(T) = 1 + \text{TCC} \cdot (T − 25)` with TCC from the letter code.
 - Class II: piecewise table or smooth fit to the published curve (Murata SimSurfing, vendor datasheets). For X7R the simplest model is the ±15 % box; for higher fidelity, fit a quadratic with maximum near T_C.
 
+## Coupling with DC bias
+
+TCC is the temperature dependence of `ε_r` at **zero DC bias**. Under non-trivial DC bias, the temperature curve **shifts and reshapes** — most dramatically near the Curie peak. The simulator's separable multiplicative model `f_T(T) × f_V(V_DC)` is correct to ~5–10 % for most production X5R/X7R parts but breaks down for Y5V or compositions engineered near room-temperature T_C. See [[tcc-dc-bias-interaction]] for the full coupling story, the where-it-breaks-down regimes, and how vendor SPICE tools handle (or don't handle) the coupling.
+
 ## Cross-references
 - [[eia-rs-198-dielectric-classes]]
 - [[curie-temperature]]
 - [[batio3]]
 - [[cazro3]]
 - [[mlcc-capacitance-equation]]
+- [[dc-bias-derating]]
+- [[tcc-dc-bias-interaction]] — how the two factors couple under combined T + V_DC operation
 
 ## References
 - [[psma-ceramic-capacitor-basics]]

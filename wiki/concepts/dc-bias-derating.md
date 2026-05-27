@@ -61,6 +61,8 @@ The VCC effect is **reversible**: removing the bias allows capacitance to recove
 - [[aging-class-2]] — unbiased aging (separate phenomenon)
 - [[eia-rs-198-dielectric-classes]]
 - [[mlcc-capacitance-equation]]
+- [[temperature-coefficient-of-capacitance]] — temperature side of the same problem
+- [[tcc-dc-bias-interaction]] — how the two derating factors couple under combined T + V_DC operation
 
 ## References
 - [[vishay-x7r-cap-drift-dc-bias]]
