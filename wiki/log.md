@@ -11,6 +11,37 @@ Chronological record of wiki operations. Newest entries first.
 
 ---
 
+## [2026-05-27] ingest | Patent corpus expansion — 4 new patents, 2 drafts promoted
+
+User asked to expand the patent corpus and to look for dangling / draft documents to enrich. Audited the wiki first:
+- 142 total pages, **0 dangling wikilinks** (clean).
+- 8 pages with `status: draft`. Highest-referenced: [[tdk]] (15 incoming), [[bordia-scherer-composite-sintering]] (10), [[nanbo3]] (7), [[rahaman-ceramic-processing-sintering-textbook]] (7), [[srtio3]] (7).
+
+Ingested four more US patents:
+- [[us-6043974-philips-dy-stabilizer]] — Chen/Lee/Tseng (Philips → Phycomp Holding) 2000. The Dy-at-A-site insight that became universal X7R BME doping practice. Composition `(Ba₁₋ₐ₋ᵦCaₐDyᵦ)(Ti₁₋ᶜ₋ᵈ₋ₑ₋ƒZrᶜMnᵈNbₑ)ƒO₃₊δ`. Mechanism: Dy donor at the Ba site fixes Mn's charge state, suppresses DC-bias-driven IR degradation under high T.
+- [[us-7670981-kemet-c0g-bme]] — Randall, Pinceloup, Gurav, Burn et al. (KEMET) 2010. Evolved Ca-Sr zirconium titanate base with **composition-vs-thickness rule**: transition-metal oxides (Mn) below 4.5 µm dielectric thickness, Group III/IV oxides (Si, Ge) above. The modern KEMET C0G BME chemistry.
+- [[us-9799451-samsung-na-substituted-batio3]] — Park et al. (SEMCO) 2017. Partial Na substitution at the Ba site (x = 0.005–0.035) as the lattice-distortion route to V_O suppression. Alternative to RE doping for X5R/X7R/X8R; cost-friendlier (Na ≪ Dy).
+- [[us-11222749-samsung-dy-nb-thin-layer]] — Kim et al. (SEMCO) 2022. Dy + Nb co-doping at 0.2–1.5 mol% per 100 mol Ti for sub-0.5 µm dielectric layers. Nb segregates to grain boundaries; Dy partitions through the grain — complementary site occupancy. The modern thin-layer high-CV BT chemistry. Family includes US 11,127,532 / 11,735,361 / 11,776,748 / 11,295,894 (Nd variant).
+
+Promoted two drafts from `status: draft` to `status: complete`:
+- [[tdk]] — fleshed out the TDK entity page. Added the C / CGA / CGJ / CKG / CNA series breakdown, the metric-size-code convention, the CeraLink anti-ferroelectric line from EPCOS heritage, the part-number format with a worked example, and a candid note that the wiki's patent corpus has a TDK gap (Google Patents search returns mostly Samsung/KEMET/Murata for MLCC; TDK patents skew Japanese-filing).
+- [[bordia-scherer-composite-sintering]] — expanded from a stub to a full concept page. Now covers the core physics (back-stress + contact substitution + anisotropic strain), the linear bound `(1 − v_i)` vs the empirically observed 7× retardation factor in real Ni-BT pastes, the three-paper structure (Paper I constitutive, II Skorohod comparison, III rigid inclusions), and four limits of the model.
+
+Wiki state: 146 total pages (was 142), 6 drafts remaining (down from 8), still 0 dangling wikilinks.
+
+Remaining drafts (low-priority — minor entity stubs and a textbook bibliographic page):
+- [[nanbo3]], [[srtio3]] (material pages)
+- [[intel]], [[rohm]] (peripheral company stubs)
+- [[mistler-twiname-tape-casting-textbook]], [[rahaman-ceramic-processing-sintering-textbook]] (textbook reference pages — intentional stubs since the books themselves aren't ingested)
+
+Coverage gaps still standing:
+- TDK MLCC-specific patents (search keeps returning Samsung)
+- Murata sub-µm thin-layer manufacturing patents (post-2010)
+- Murata GCM automotive AEC-Q200 specific patents
+- KEMET FT-CAP soft-termination patent (US 7,670,981 turned out to be the C0G BME patent, not soft-termination — soft-term is a different number not yet identified)
+
+---
+
 ## [2026-05-27] ingest | Foundational MLCC patents — 4 sources
 
 User asked to fill the wiki with patent data. Searched Google Patents and USPTO for the foundational and most-influential MLCC patents across the major vendors. Ingested four with detailed bibliographic data, claims, and connection to existing wiki concepts:

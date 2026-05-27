@@ -168,9 +168,13 @@ A catalog of all pages in this wiki, organized by category. See [[overview]] for
 
 ### Patents
 - [[us-4115493-murata-sakabe-1978-bme-foundational]] — Sakabe & Seno 1978; the foundational Ca-doped BaTiO₃ non-reducing dielectric that enabled Ni-electrode MLCC; expired 1997. Composition `{(Ba₁₋ₓCaₓ)O}ₘ(Ti₁₋ᵧZrᵧ)O₂` with m=1.005-1.03, x=0.02-0.22.
+- [[us-6043974-philips-dy-stabilizer]] — Chen, Lee, Tseng (Philips → Phycomp) 2000; Dy at the Ba site stabilizes Mn charge and suppresses DC-bias-driven IR degradation; the industry-standard Dy-Mn co-doping recipe traces here.
 - [[us-7172985-kemet-non-reducible-dielectric]] — Pinceloup & Beeson (KEMET) 2007; Ca-Sr zirconium titanate + silica-boron-Li glass enabling Class I BME C0G — KEMET's [[bme-c0g]] product line.
+- [[us-7670981-kemet-c0g-bme]] — Randall et al. (KEMET) 2010; evolved C0G BME with composition-vs-thickness rule (Mn below 4.5 µm; Si/Ge above). Ten inventors including Ian Burn.
 - [[us-8713770-kemet-flex-crack-voids]] — Prymak (KEMET) 2014; sacrificial-pattern voids in the green stack route flex cracks toward non-active regions; technical basis for FO-CAP / OpenMode.
 - [[us-9336947-samsung-low-temp-sintering-dielectric]] — Lim et al. (SEMCO) 2016; B₂O₃-BaO sintering aid (0.1-2 mol%) drops BT densification window to 1050-1150 °C, enabling sub-µm dielectric layers without runaway grain growth.
+- [[us-9799451-samsung-na-substituted-batio3]] — Park, Kim, Kim, Kim (SEMCO) 2017; Na partially substituted at the Ba site (x = 0.005-0.035) distorts lattice and suppresses V_O migration; alternative to RE doping for X5R/X7R/X8R.
+- [[us-11222749-samsung-dy-nb-thin-layer]] — Kim, Baik, Kwon, Jo (SEMCO) 2022; Dy + Nb co-doping at 0.2-1.5 mol% per 100 mol Ti, with Nb segregating to grain boundaries; the chemistry behind sub-0.5 µm dielectric layers.
 
 ## Comparisons
 
