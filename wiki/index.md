@@ -22,6 +22,7 @@ A catalog of all pages in this wiki, organized by category. See [[overview]] for
 - [[yageo]] — Taiwanese parent of KEMET; AEC-Q200 spec contributor *(stub)*.
 - [[rohm]] — Switching-regulator IC vendor; MLCC application-note authority *(stub)*.
 - [[intel]] — CPU OEM whose 2010 thin-layer MLCC reliability report triggered the Liu NASA NEPP framework *(stub)*.
+- [[wurth-elektronik]] — German passive-components manufacturer; publisher of analytical-depth ANP114 polarization model.
 
 ### Product series
 - [[murata-grm-series]] — General-purpose Murata MLCC; GRM03 through GRM55.
@@ -41,6 +42,9 @@ A catalog of all pages in this wiki, organized by category. See [[overview]] for
 - [[susan-trolier-mckinstry]] — Penn State; major ferroelectrics name; co-authored T-resolved Rayleigh-analysis of BaTiO₃ (2023).
 - [[shashank-priya]] — Penn State / formerly Virginia Tech; senior author on the 2017 compositionally-graded MLCC paper.
 - [[ichiro-fujii]] — first author on the 2023 Rayleigh-analysis BaTiO₃ paper.
+- [[rene-kalbitz]] — Würth Elektronik; author of ANP114 polarization model.
+- [[herb-te-jen-ma]] — Samsung Electro-Mechanics application engineer; AC × DC × aging quantitative writeup.
+- [[ciprian-covaci]], [[aurel-gontean]] — Politehnica Timișoara; singing-MLCC review co-authors.
 
 ### Organizations
 - [[nasa-nepp]] — NASA Electronic Parts and Packaging program; primary public sponsor of BME reliability research.
@@ -89,6 +93,12 @@ A catalog of all pages in this wiki, organized by category. See [[overview]] for
 - [[rayleigh-analysis]] — Linear ε'(E_AC) decomposition into reversible ε'_init plus irreversible α'; basis for understanding TCC × bias coupling.
 - [[dielectric-tunability]] — Same physics as DC-bias derating, opposite sign convention; how the relaxor/varactor literature frames the effect.
 - [[relaxor-ferroelectric]] — Material class with broadened, frequency-dependent dielectric peak; no long-range ferroelectric order.
+- [[ac-voltage-coefficient-mlcc]] — Third derating factor (`f_AC`); non-monotonic in AC level; strongest cross-coupling to DC bias of the four Zednicek factors.
+- [[tcc-ac-coupling]] — How AC excitation level reshapes the TCC curve; Rayleigh α'(T) makes coupling explicit.
+- [[electrostriction]] — Quadratic E²→strain; one of three contributors to AC voltage coefficient.
+- [[piezoelectricity-batio3]] — Linear E→strain in BaTiO₃; vanishes above T_C.
+- [[mlcc-acoustic-noise]] — "Singing capacitors"; same strain mechanism as AC voltage coefficient.
+- [[soft-termination-mlcc]] — Recipe-level toggle for strain decoupling; suppresses both acoustic noise and AC-coefficient.
 - [[green-tape-shrinkage-anisotropy]] — Drying + burnout + sintering shrinkage stages; powder shape, tape thickness, binder/metal content trade-offs.
 - [[green-density-vs-shrinkage]] — Mass-conservation `1 − (ρ_g/ρ_f)^(1/3)` relation; binder content sets green density which sets sintering shrinkage.
 - [[skorohod-olevsky-viscous-sintering]] — Continuum sintering model: `dε_i/dt = σ'/(2ηφ) + (tr σ − 3P_L)/(18ηψ)·I`; predicts free + constrained shrinkage.
@@ -183,6 +193,9 @@ A catalog of all pages in this wiki, organized by category. See [[overview]] for
 - [[he-2022-dy-ho-batio3-dc-bias]] — Cer. Int. 2022; Dy-Mg co-doped BaTiO₃ with 180 nm grain, ε_r 2000, −23.6 % at 4 kV/mm.
 - [[hwang-2024-coreshell-electrode-dc-bias]] — ACS AMI 2024; core-shell + Ni-electrode optimization; bulk −17 % vs MLCC −28 % at 4 kV/mm.
 - [[an-2026-grain-boundary-segregation-dc-bias]] — Adv. Mater. 2026; GB-segregation engineering; optimal grain 200–260 nm under E > 4 V/µm.
+- [[kalbitz-wurth-anp114-mlcc-voltage-frequency]] — Würth ANP114; SPICE-friendly analytic C(V, f) polarization model with bell-shaped peak `sech²((V−Vc)/b)`.
+- [[herb-ma-2020-2022-mlcc-ac-dc-aging]] — SEMCO 2020/2022; quantifies AC × DC interaction (30 % swing at zero DC; 4 % extra loss at 10 mV_rms vs 500 mV_rms).
+- [[covaci-gontean-2022-singing-mlcc]] — Sensors 2022; piezo + electrostriction strain model `s = d_33 E + M_33 E²` for MLCC acoustic noise.
 
 ### Patents
 - [[us-4115493-murata-sakabe-1978-bme-foundational]] — Sakabe & Seno 1978; the foundational Ca-doped BaTiO₃ non-reducing dielectric that enabled Ni-electrode MLCC; expired 1997. Composition `{(Ba₁₋ₓCaₓ)O}ₘ(Ti₁₋ᵧZrᵧ)O₂` with m=1.005-1.03, x=0.02-0.22.

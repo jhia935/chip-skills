@@ -143,6 +143,8 @@ The chip-sim's separable multiplicative model can be calibrated against publishe
 - [[empirical-c-t-vdc-academic-measurements]] — calibration synthesis across the academic 2D-surface literature
 - [[polar-nanoregions-pnr]] — alternative microstructure that flattens both `f_V` and broadens `f_T`
 - [[rayleigh-analysis]] — microscopic decomposition supporting the multiplicative model
+- [[ac-voltage-coefficient-mlcc]] — the third derating axis (V_AC), with its own T-coupling
+- [[tcc-ac-coupling]] — TCC × AC interaction; the analog of this page for the V_AC axis
 - [[dc-bias-aging]] — time-dependent capacitance drift under sustained DC bias (distinct from instant V_DC effect)
 - [[aging-class-2]] — natural aging (logarithmic decay with no bias applied)
 - [[epci-high-cv-mlcc-bias-aging]] — Zednicek 2019 multiplicative formula `C_actual = C × F_DCV × F_ACV × F_T × F_age`

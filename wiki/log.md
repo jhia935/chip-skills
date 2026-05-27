@@ -11,6 +11,41 @@ Chronological record of wiki operations. Newest entries first.
 
 ---
 
+## [2026-05-27] ingest | AC dependency of TCC curve — 14 pages (5 concepts, 4 entities, 3 sources, 2 concept updates)
+
+User asked to "search for AC dependency of TCC curve" — the third leg of the ε_r(T, V_DC, V_AC) surface. Previous ingests covered the T axis and V_DC axis individually plus T × V_DC; this ingest covers the V_AC axis and the T × V_AC coupling.
+
+Sources ingested (3):
+- [[kalbitz-wurth-anp114-mlcc-voltage-frequency]] — Würth ANP114 by R. Kalbitz: SPICE-friendly analytic C(V) = Cs + a·sech²((V−Vc)/b) polarization model; 1 V_rms / 1 kHz / 20 h preconditioning test conditions. PDF extracted to resources/literature/_tmp/wurth-anp114.txt.
+- [[herb-ma-2020-2022-mlcc-ac-dc-aging]] — Samsung Electro-Mechanics (Herb Ma) 2020 Microwaves & RF + 2022 EPCI: quantifies AC × DC × aging interaction. Key data: 0.5 V_rms / 1 kHz is the EIA-198-1F standard test; reducing AC to 10 mV_rms costs an additional 4 % capacitance loss; at zero DC bias AC level swings C by up to 30 %; at heavy DC the AC effect collapses.
+- [[covaci-gontean-2022-singing-mlcc]] — Sensors 2022 review: strain `s_z = d_33·E + M_33·E²`; piezoelectricity gives fundamental-frequency vibration ∝ E_AC, electrostriction at fundamental gives `∝ E_DC · E_AC`, electrostriction at 2ω gives `∝ E_AC²/2`. SPL = 0.57·V_cb + 127.30 empirical correlation.
+
+Concepts created (5):
+- [[ac-voltage-coefficient-mlcc]] — central new synthesis; three mechanisms (Rayleigh, bell-shape integration, piezo+electrostriction); non-monotonic in AC amplitude; AC × DC NOT separable in the naive multiplicative sense.
+- [[tcc-ac-coupling]] — dedicated treatment of how AC level reshapes the TCC curve via `dα'/dT · E_AC`; all curves converge above T_C; ~3-5 % working-point shift across the standard 0.01 to 1.0 V_rms range.
+- [[electrostriction]] — quadratic E²→strain; universal; survives above T_C; gives second-harmonic strain.
+- [[piezoelectricity-batio3]] — linear E→strain; requires non-centrosymmetric phase; vanishes above T_C; needs DC poling for finite d_33.
+- [[mlcc-acoustic-noise]] — "singing capacitors"; same root mechanism as AC voltage coefficient.
+- [[soft-termination-mlcc]] — recipe-level toggle; KEMET FT-CAP / FO-CAP, Murata ZRB, TDK MEGACAP, JCC soft-term lines.
+
+Entities created (5):
+- [[rene-kalbitz]] (Würth), [[wurth-elektronik]], [[herb-te-jen-ma]] (SEMCO), [[ciprian-covaci]] + [[aurel-gontean]] (Politehnica Timișoara).
+
+Concepts updated (2):
+- [[temperature-coefficient-of-capacitance]] — added "Coupling with AC level" section; cross-refs to ac-voltage-coefficient-mlcc and tcc-ac-coupling.
+- [[tcc-dc-bias-interaction]] — added AC-axis cross-refs.
+
+Key findings:
+1. **AC dependence is non-monotonic**: C rises with AC amplitude up to ~50-500 mV_rms then falls — sweeping the bell-shaped C(V) curve. At very low AC (~10 mV_rms) C is ~4 % below standard-condition.
+2. **AC × DC is NOT separable**: at zero DC bias AC level can swing C by 30 %; at heavy DC the AC effect collapses to negligible. The Zednicek multiplicative formula `C = C_rated · f_T · f_V · f_AC · f_age` is approximate.
+3. **Three contributing mechanisms**, each with its own T-dependence: Rayleigh α'(T) collapses above T_C (Fujii 2023); bell-shape amplitude `a(T)` shrinks with T (Kalbitz); piezoelectric `d_33` drops near T_C while electrostriction `M_33` survives (Covaci & Gontean).
+4. **TCC curve depends on AC level**: dε'/dT|_E_AC has an explicit `+ dα'/dT · E_AC` term, so the same part traces different TCC curves at 10 mV_rms vs 500 mV_rms — all curves converge above T_C.
+5. **Standard test conditions**: EIA-198-1F mandates **0.5 V_rms / 1 kHz / room T / no DC bias**. Published TCC envelopes are valid at this condition; real-circuit operating conditions can shift effective TCC by 3-5 %.
+
+Wiki state: 179 pages (was 165, +14), 0 dangling wikilinks.
+
+---
+
 ## [2026-05-27] query | TCC × DC-bias relation (re-asked) — existing query page updated with new academic anchors
 
 Question: "describe relation between TCC and DC-bias cap". Same question as earlier "how does DC-bias cap and TCC cap related?" — but asked after the academic-bias-TCC ingest, so the answer is much richer. Updated existing filed page [[dc-bias-vs-tcc-relationship]] in place rather than creating a duplicate. Added: Rayleigh microscopic-basis subsection, academic-literature calibration table (E₀ values from He 2022, Hwang 2024, He 2025, etc.), grain-size convergence note, bulk-vs-MLCC gap caveat. Pages consulted: [[tcc-dc-bias-interaction]], [[empirical-c-t-vdc-academic-measurements]], plus all 7 academic source pages from the prior ingest.

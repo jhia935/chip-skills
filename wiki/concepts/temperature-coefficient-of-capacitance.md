@@ -69,6 +69,10 @@ reported at both T_min and T_max.
 
 TCC is the temperature dependence of `ε_r` at **zero DC bias**. Under non-trivial DC bias, the temperature curve **shifts and reshapes** — most dramatically near the Curie peak. The simulator's separable multiplicative model `f_T(T) × f_V(V_DC)` is correct to ~5–10 % for most production X5R/X7R parts but breaks down for Y5V or compositions engineered near room-temperature T_C. See [[tcc-dc-bias-interaction]] for the full coupling story, the where-it-breaks-down regimes, and how vendor SPICE tools handle (or don't handle) the coupling.
 
+## Coupling with AC level
+
+The published TCC envelope is also measured at a specific AC excitation level — **0.5 V_rms / 1 kHz** per EIA-198-1F (or 1 V_rms in some legacy datasheets). The same part at a different AC level traces out a **different `ε_r(T)` curve**: the [[rayleigh-analysis|Rayleigh α'(T)]] contribution scales linearly with `E_AC`, so `dε'/dT|_E_AC` has an explicit AC-amplitude-proportional term. At low AC (< 50 mV_rms) the TCC curve is closer to the intrinsic-only `ε'_init(T)` shape; at high AC it has more α'-driven steepening near T_C. Above T_C all AC-level curves converge (α' → 0). See [[tcc-ac-coupling]] for the dedicated synthesis.
+
 ## Cross-references
 - [[eia-rs-198-dielectric-classes]]
 - [[curie-temperature]]
@@ -77,6 +81,8 @@ TCC is the temperature dependence of `ε_r` at **zero DC bias**. Under non-trivi
 - [[mlcc-capacitance-equation]]
 - [[dc-bias-derating]]
 - [[tcc-dc-bias-interaction]] — how the two factors couple under combined T + V_DC operation
+- [[ac-voltage-coefficient-mlcc]] — the third derating axis
+- [[tcc-ac-coupling]] — TCC × AC interaction
 
 ## References
 - [[psma-ceramic-capacitor-basics]]
