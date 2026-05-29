@@ -11,15 +11,22 @@
   // ============================================================
 
   // Case dimensions in µm — wiki/concepts/case-size-geometry.md
+  //
+  // Margins (em = end set-back, sm = side margin) are SIZE-SCALED:
+  //   em ≈ 0.12·L (cap 350 µm, floor 40),  sm ≈ 0.10·W (cap 250 µm, floor 25).
+  // The earlier table used near-constant absolute margins (em=125, sm=100) that
+  // were fine for 0805+ but consumed a 0201 — on a 0.3 mm-wide chip, sm=100 left
+  // only 100 µm of overlap (15 % active area), under-predicting small high-CV
+  // parts by ~3×. These values come from the rule above (see case-size-geometry).
   const CASES = [
-    { id: '0201_0603', label: 'EIA 0201 / metric 0603 (0.6 × 0.3 mm)', L: 600,  W: 300,  em: 125, sm: 100, Hmax: 330 },
-    { id: '0402_1005', label: 'EIA 0402 / metric 1005 (1.0 × 0.5 mm)', L: 1000, W: 500,  em: 125, sm: 100, Hmax: 550 },
-    { id: '0603_1608', label: 'EIA 0603 / metric 1608 (1.6 × 0.8 mm)', L: 1600, W: 810,  em: 175, sm: 100, Hmax: 900 },
-    { id: '0805_2012', label: 'EIA 0805 / metric 2012 (2.0 × 1.25 mm)', L: 2010, W: 1250, em: 250, sm: 150, Hmax: 1350 },
-    { id: '1206_3216', label: 'EIA 1206 / metric 3216 (3.2 × 1.6 mm)', L: 3200, W: 1600, em: 250, sm: 150, Hmax: 1800 },
-    { id: '1210_3225', label: 'EIA 1210 / metric 3225 (3.2 × 2.5 mm)', L: 3200, W: 2500, em: 250, sm: 150, Hmax: 2800 },
-    { id: '1812_4532', label: 'EIA 1812 / metric 4532 (4.5 × 3.2 mm)', L: 4500, W: 3200, em: 300, sm: 200, Hmax: 3500 },
-    { id: '2220_5750', label: 'EIA 2220 / metric 5750 (5.7 × 5.0 mm)', L: 5700, W: 5000, em: 320, sm: 220, Hmax: 3500 },
+    { id: '0201_0603', label: 'EIA 0201 / metric 0603 (0.6 × 0.3 mm)', L: 600,  W: 300,  em: 72,  sm: 30,  Hmax: 330 },
+    { id: '0402_1005', label: 'EIA 0402 / metric 1005 (1.0 × 0.5 mm)', L: 1000, W: 500,  em: 120, sm: 50,  Hmax: 550 },
+    { id: '0603_1608', label: 'EIA 0603 / metric 1608 (1.6 × 0.8 mm)', L: 1600, W: 810,  em: 192, sm: 81,  Hmax: 900 },
+    { id: '0805_2012', label: 'EIA 0805 / metric 2012 (2.0 × 1.25 mm)', L: 2010, W: 1250, em: 240, sm: 125, Hmax: 1350 },
+    { id: '1206_3216', label: 'EIA 1206 / metric 3216 (3.2 × 1.6 mm)', L: 3200, W: 1600, em: 350, sm: 160, Hmax: 1800 },
+    { id: '1210_3225', label: 'EIA 1210 / metric 3225 (3.2 × 2.5 mm)', L: 3200, W: 2500, em: 350, sm: 250, Hmax: 2800 },
+    { id: '1812_4532', label: 'EIA 1812 / metric 4532 (4.5 × 3.2 mm)', L: 4500, W: 3200, em: 350, sm: 250, Hmax: 3500 },
+    { id: '2220_5750', label: 'EIA 2220 / metric 5750 (5.7 × 5.0 mm)', L: 5700, W: 5000, em: 350, sm: 250, Hmax: 3500 },
   ];
 
   // ε_r,nominal — wiki/concepts/eia-rs-198-dielectric-classes.md
@@ -361,9 +368,10 @@
   // sitting on the rising limb of the BaTiO₃ grain-size ε_r curve.
   //
   // This curve is a least-squares fit of implied-ε_r vs grain over the 24 Liu
-  // X7R parts (excluding the A08X47416 transcription outlier):
-  //     ε_r,X7R(g) ≈ clamp(−600 + 10600·g_µm, 2000, 9000)
-  // Solving ε_r = 3000 gives g ≈ 0.34 µm — consistent with the modern
+  // X7R parts (excluding the A08X47416 transcription outlier), recomputed after
+  // the 2026-05-29 size-scaled margin update:
+  //     ε_r,X7R(g) ≈ clamp(−681 + 10467·g_µm, 2000, 9000)
+  // Solving ε_r = 3000 gives g ≈ 0.35 µm — consistent with the modern
   // thin-layer X7R grain used for the class default. See
   // wiki/concepts/nano-grain-batio3-epsilon-r.md.
   //
@@ -375,7 +383,7 @@
     const base = CLASSES.find(c => c.id === cls).er;
     if (cls === 'C0G') return base;          // paraelectric — grain-independent
     if (grain_um == null) return base;        // no grain info → class default
-    const erX7R = Math.max(2000, Math.min(9000, -600 + 10600 * grain_um));
+    const erX7R = Math.max(2000, Math.min(9000, -681 + 10467 * grain_um));
     const X7R_DEFAULT = 3000;                 // CLASSES X7R.er
     return erX7R * base / X7R_DEFAULT;         // scale other classes by their ratio
   }

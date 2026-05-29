@@ -30,6 +30,8 @@ Wiki ingest — the manufacturing-physics basis:
 
 Honest correction recorded: my "0.15–0.2 µm dielectric" reconciliation of the KYOCERA part was unphysical — the user was right. Real CL03A475 sits at ~0.3 µm; the lever for tiny high-CV is tighter margins + thinner electrodes + more layers down to the floor, not sub-0.2 µm dielectric. Wiki 213 pages, 0 dangling.
 
+**Follow-up (same day):** user found `compute()` still gave only ~456 nF for a realistic 0201 recipe while the envelope tile said 5.8 µF — because I'd fixed margins only in `cmaxEnvelope`, not in `compute()`/the CASES table. Root cause: the CASES margins were near-constant absolute values (`em=125, sm=100`) that consume a 0201 (only 15 % active area). Fixed globally: CASES margins are now **size-scaled** (`em≈0.12·L` cap 350, `sm≈0.10·W` cap 250), used by `compute`/`predictCMax`/`solveRecipe`/UI alike. Refit the grain-ε_r curve for the new areas (`−681 + 10467·grain`, was `−600 + 10600`); Liu LOO-CV stays centered (geomean 1.01×, σ 45 %). Now `compute()` 0201 X5R gives 1.4 µF at d=0.5 µm / N=300 and 3.6 µF at d=0.3 µm / N=450 — consistent with the 5.8 µF envelope. [[case-size-geometry]] margin table updated. Tests stay 293 green.
+
 ---
 
 ## [2026-05-29] simulator | Critical review fixes: grain-size ε_r, held-out validation, DC-bias benchmark

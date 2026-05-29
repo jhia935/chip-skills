@@ -85,17 +85,20 @@ The simulator's [[samsung-cl-series|SEMCO]] encoder takes either user-side notat
 ## Margins & overlap area
 For BME construction, [[nasa-nepp-bme-mlcc-reliability]] Table II:
 
-| Case | L (µm) | W (µm) | End margin (µm) | Side margin (µm) | Overlap A (mm²) | Scale vs 0402 |
-|---|---|---|---|---|---|---|
-| 0402 | 1000 | 500  | 125 | 100 | 0.225 | 1.00 |
-| 0603 | 1600 | 810  | 175 | 100 | 0.763 | 3.39 |
-| 0805 | 2010 | 1250 | 250 | 150 | 1.520 | 6.76 |
-| 1206 | 3200 | 1600 | 250 | 150 | 3.510 | 15.60 |
-| 1210 | 3200 | 2500 | 250 | 150 | 5.940 | 26.40 |
-| 1812 | 4500 | 3200 | 300 | 200 | 10.920 | 48.53 |
-| 2220 | 5700 | 5000 | 320 | 220 | 23.074 | 102.55 |
+Margins are **size-scaled**, not constant: `end margin em ≈ 0.12·L` (floor 40, cap 350 µm) and `side margin sm ≈ 0.10·W` (floor 25, cap 250 µm). A constant absolute margin (the simulator's original `em=125, sm=100`) is fine for 0805+ but **consumes a 0201** — on a 0.3 mm-wide chip `sm=100` leaves only 100 µm of overlap (15 % active area), which under-predicts small high-CV parts ~3×. The corrected values:
 
-The **end margin** is the keep-out between the buried internal electrode tip and the termination of opposite polarity (anti-arcing distance). The **side margin** is the keep-out between the electrode edge and the chip side wall (anti-delamination, mechanical robustness).
+| Case | L (µm) | W (µm) | End margin (µm) | Side margin (µm) | Overlap A (mm²) |
+|---|---|---|---|---|---|
+| 0201 | 600  | 300  | 72  | 30  | 0.124 |
+| 0402 | 1000 | 500  | 120 | 50  | 0.352 |
+| 0603 | 1600 | 810  | 192 | 81  | 0.788 |
+| 0805 | 2010 | 1250 | 240 | 125 | 1.530 |
+| 1206 | 3200 | 1600 | 350 | 160 | 3.277 |
+| 1210 | 3200 | 2500 | 350 | 250 | 5.000 |
+| 1812 | 4500 | 3200 | 350 | 250 | 10.508 |
+| 2220 | 5700 | 5000 | 350 | 250 | 22.275 |
+
+The **end margin** is the keep-out between the buried internal electrode tip and the termination of opposite polarity (anti-arcing distance). The **side margin** is the keep-out between the electrode edge and the chip side wall (anti-delamination, mechanical robustness). Both have an absolute floor (handling/insulation) and saturate for large cases — hence the fractional-with-cap rule rather than a pure percentage. See [[dielectric-layer-thickness-floor]] for the companion limit on layer count.
 
 ## Height & layer count budget
 Total external height:
