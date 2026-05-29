@@ -242,7 +242,11 @@
     if (!c)   throw new Error(`Unknown case id: ${inp.case}`);
     if (!cls) throw new Error(`Unknown class id: ${inp.cls}`);
 
-    const A_overlap_um2 = (c.L - 2 * c.em) * (c.W - 2 * c.sm);
+    // Margins: use per-call overrides if supplied (UI sliders), else the
+    // case-default size-scaled values from CASES.
+    const em = inp.em != null ? inp.em : c.em;
+    const sm = inp.sm != null ? inp.sm : c.sm;
+    const A_overlap_um2 = (c.L - 2 * em) * (c.W - 2 * sm);
     const A_eff_um2     = A_overlap_um2 * inp.coverage * (1 - inp.disc);
     const d_fired_um    = inp.hBT * (1 - inp.sTotal);
     const hNi_fired_um  = inp.hNi * (1 - inp.sTotal);
@@ -289,7 +293,7 @@
     }
 
     return {
-      caseRec: c, clsRec: cls,
+      caseRec: c, clsRec: cls, em, sm,
       A_overlap_um2, A_eff_um2, d_fired_um, hNi_fired_um, H_active_um, H_stack_um,
       C_nominal_F, C_derated_F, f_T, f_V, E_applied,
       chip_vol_mm3, vol_density, warnings,

@@ -138,9 +138,13 @@
   <div class="row"><label>Layer count N<sub>e</sub></label><input type="range" id="Ne" min="10" max="1000" step="1" value="300"><span class="val" id="Ne_val"></span></div>
   <div class="row"><label>Cover (µm/side)</label><input type="range" id="cover" min="20" max="100" step="1" value="40"><span class="val" id="cover_val"></span></div>
 
+  <h2>Margins <span style="text-transform:none;font-weight:400">(default to case size; override here)</span></h2>
+  <div class="row"><label>End margin (µm)</label><input type="range" id="em" min="20" max="400" step="1" value="72"><span class="val" id="em_val"></span></div>
+  <div class="row"><label>Side margin (µm)</label><input type="range" id="sm" min="10" max="300" step="1" value="30"><span class="val" id="sm_val"></span></div>
+
   <h2>Process factors</h2>
   <div class="row"><label>Coverage</label><input type="range" id="coverage" min="0.70" max="0.98" step="0.01" value="0.85"><span class="val" id="coverage_val"></span></div>
-  <div class="row"><label>Shrinkage s</label><input type="range" id="sTotal" min="0.05" max="0.20" step="0.01" value="0.12"><span class="val" id="sTotal_val"></span></div>
+  <div class="row"><label>Shrinkage s</label><input type="range" id="sTotal" min="0.05" max="0.70" step="0.01" value="0.14"><span class="val" id="sTotal_val"></span></div>
   <div class="row"><label>Discontinuity</label><input type="range" id="disc" min="0.00" max="0.40" step="0.01" value="0.20"><span class="val" id="disc_val"></span></div>
 
   <h2>Operating point (Tier 2 overlay)</h2>
@@ -216,6 +220,8 @@ function readInputs() {
     hNi:  parseFloat(document.getElementById('hNi').value),
     Ne:   parseInt(document.getElementById('Ne').value, 10),
     cover: parseFloat(document.getElementById('cover').value),
+    em:   parseFloat(document.getElementById('em').value),
+    sm:   parseFloat(document.getElementById('sm').value),
     coverage: parseFloat(document.getElementById('coverage').value),
     sTotal:   parseFloat(document.getElementById('sTotal').value),
     disc:     parseFloat(document.getElementById('disc').value),
@@ -230,6 +236,8 @@ function updateInputDisplays(inp) {
   document.getElementById('hNi_val').textContent      = inp.hNi.toFixed(1);
   document.getElementById('Ne_val').textContent       = inp.Ne;
   document.getElementById('cover_val').textContent    = inp.cover;
+  document.getElementById('em_val').textContent       = inp.em;
+  document.getElementById('sm_val').textContent       = inp.sm;
   document.getElementById('coverage_val').textContent = inp.coverage.toFixed(2);
   document.getElementById('sTotal_val').textContent   = inp.sTotal.toFixed(2);
   document.getElementById('disc_val').textContent     = inp.disc.toFixed(2);
@@ -272,7 +280,7 @@ function renderOutputs(r, inp) {
 
   const rows = [
     ['Case L × W',           `${r.caseRec.L} × ${r.caseRec.W} µm`],
-    ['End / side margin',    `${r.caseRec.em} / ${r.caseRec.sm} µm`],
+    ['End / side margin',    `${r.em} / ${r.sm} µm` + (r.em !== r.caseRec.em || r.sm !== r.caseRec.sm ? ' (override)' : '')],
     ['A_overlap',            fmt(r.A_overlap_um2 / 1e6, 3, ' mm²')],
     ['A_eff',                fmt(r.A_eff_um2 / 1e6, 3, ' mm²')],
     ['Active stack height',  fmt(r.H_active_um / 1000, 3, ' mm')],
@@ -472,6 +480,8 @@ function onSolveRecipe() {
   setSlider('coverage', 0.90);
   setSlider('sTotal',   0.14);
   setSlider('disc',     0.15);
+  // solveRecipe uses the case-default margins internally — sync the sliders.
+  syncMarginsToCase();
   // Set V_DC default to the rated V for a worst-case view (user can dial back)
   setSlider('vdc',      Math.min(V_rated, 50));
 
@@ -491,13 +501,24 @@ function setSlider(id, v) {
   el.value = Math.max(min, Math.min(max, v));
 }
 
+// Reset the margin sliders to the selected case's size-scaled defaults.
+// Called at boot and whenever the case changes; the user can still override.
+function syncMarginsToCase() {
+  const c = CASES.find(x => x.id === document.getElementById('caseSize').value);
+  if (!c) return;
+  setSlider('em', c.em);
+  setSlider('sm', c.sm);
+}
+
 // ============================================================
 // Boot
 // ============================================================
 
 populateDropdowns();
+syncMarginsToCase();
 initCharts();
 document.querySelectorAll('input, select').forEach(el => el.addEventListener('input', update));
+document.getElementById('caseSize').addEventListener('change', () => { syncMarginsToCase(); update(); });
 document.getElementById('solve_btn').addEventListener('click', onSolveRecipe);
 update();
 </script>

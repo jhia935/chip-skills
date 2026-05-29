@@ -55,6 +55,22 @@ const inp0 = t.defaultInputs();
     near(rD5.C_nominal_F, rD0.C_nominal_F * 0.5, 1e-9),
     `expected 0.5×, got ${(rD5.C_nominal_F / rD0.C_nominal_F).toFixed(4)}×`);
 
+  // Margin overrides: with no em/sm in input, compute() uses CASES defaults;
+  // supplying them overrides and is reflected in the returned em/sm.
+  const cBase = t.CASES.find(x => x.id === inp0.case);
+  ok('compute() defaults margins to CASES values',
+    r0.em === cBase.em && r0.sm === cBase.sm);
+  const rMar = t.compute({ ...inp0, tier2: false, em: cBase.em / 2, sm: cBase.sm / 2 });
+  ok('compute() honors em/sm overrides (returned values)',
+    rMar.em === cBase.em / 2 && rMar.sm === cBase.sm / 2);
+  // Smaller margins → larger overlap area → larger C (monotonic, same sign).
+  ok('Smaller margins → larger C', rMar.C_nominal_F > r0.C_nominal_F);
+
+  // Shrinkage may now be swept up to ~0.7; C ∝ 1/(1-s) and stays finite.
+  const rHiS = t.compute({ ...inp0, tier2: false, sTotal: 0.6 });
+  ok('High shrinkage (0.6) computes finitely and raises C',
+    isFinite(rHiS.C_nominal_F) && rHiS.C_nominal_F > r0.C_nominal_F);
+
   // C scales with ε_r — derive the expected ratio from CLASSES so the test
   // stays correct if the calibrated ε_r values are tuned later.
   const rC0G = t.compute({ ...inp0, tier2: false, cls: 'C0G' });
