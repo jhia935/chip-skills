@@ -66,6 +66,38 @@
   .vendor-table td.match { color: var(--accent); font-weight: 600; }
   .footer { font-size: 11px; color: var(--muted); margin-top: 16px; padding: 8px 0; }
   .footer code { background: #f0f0f0; padding: 1px 4px; border-radius: 3px; }
+  .target-panel {
+    background: #eef2ff; border: 1px solid #c4ceff; border-radius: 6px;
+    padding: 12px; margin-bottom: 16px;
+  }
+  .target-panel h2 { margin-top: 0; color: var(--accent); }
+  .target-panel .row { grid-template-columns: 110px 1fr; }
+  .target-panel button {
+    width: 100%; padding: 8px 12px; background: var(--accent); color: white;
+    border: none; border-radius: 4px; font-size: 13px; font-weight: 600;
+    cursor: pointer; margin-top: 8px;
+  }
+  .target-panel button:hover { background: #3f4fc4; }
+  .target-panel button:disabled { background: #aab; cursor: not-allowed; }
+  .target-panel .hint { font-size: 11px; color: var(--muted); margin-top: 8px; }
+  .target-panel input[type=number] {
+    width: 100%; padding: 4px 6px; font-size: 13px;
+    border: 1px solid var(--border); border-radius: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .target-panel select { width: 100%; padding: 4px 6px; font-size: 12px; }
+  .target-panel .row-inline { display: grid; grid-template-columns: 1fr 60px; gap: 4px; }
+  .cmax-badge {
+    display: inline-block; padding: 2px 8px; background: #eef2ff; color: var(--accent);
+    border-radius: 4px; font-size: 11px; font-weight: 600; margin-left: 8px;
+  }
+  .fill-bar {
+    height: 6px; background: #e0e3ea; border-radius: 3px; overflow: hidden;
+    margin-top: 4px;
+  }
+  .fill-bar-inner { height: 100%; background: var(--accent); transition: width 0.2s; }
+  .fill-bar-inner.high { background: #f0a000; }
+  .fill-bar-inner.overflow { background: var(--err-border); }
 </style>
 </head>
 <body>
@@ -79,6 +111,26 @@
   <h2>Geometry</h2>
   <div class="row full"><select id="caseSize"></select></div>
   <div class="row full"><select id="dieClass"></select></div>
+
+  <div class="target-panel">
+    <h2>Target spec → recipe</h2>
+    <div class="row">
+      <label>V_rated</label>
+      <div class="row-inline">
+        <input type="number" id="V_rated" min="2" max="3000" step="0.1" value="50">
+        <span class="val">V</span>
+      </div>
+    </div>
+    <div class="row">
+      <label>C target</label>
+      <div class="row-inline">
+        <input type="number" id="C_target" min="0.0001" max="500" step="0.1" value="1">
+        <select id="C_unit"><option value="1">µF</option><option value="0.001">nF</option><option value="0.000001">pF</option></select>
+      </div>
+    </div>
+    <button id="solve_btn">Solve recipe →</button>
+    <div class="hint" id="solve_hint">Auto-populates h_BT, h_Ni, N_e from design rules for the chosen V_rated and C_target.</div>
+  </div>
 
   <h2>Layer dimensions</h2>
   <div class="row"><label>h_BT green (µm)</label><input type="range" id="hBT" min="0.3" max="10" step="0.1" value="2.0"><span class="val" id="hBT_val"></span></div>
@@ -105,8 +157,11 @@
 <div class="topline">
   <div class="stat primary"><div class="label">Capacitance (derated)</div><div class="value" id="out_C">—</div><div class="sub" id="out_C_sub">—</div></div>
   <div class="stat"><div class="label">Nominal (Tier 1)</div><div class="value" id="out_Cnom">—</div><div class="sub">at 25 °C, 0 V</div></div>
-  <div class="stat"><div class="label">d_fired</div><div class="value" id="out_dfired">—</div><div class="sub">post-sinter dielectric</div></div>
-  <div class="stat"><div class="label">Volumetric</div><div class="value" id="out_vol">—</div><div class="sub" id="out_vol_sub">µF/mm³</div></div>
+  <div class="stat"><div class="label">C_max envelope</div><div class="value" id="out_Cmax">—</div>
+    <div class="sub" id="out_Cmax_sub">—</div>
+    <div class="fill-bar"><div class="fill-bar-inner" id="fill_bar"></div></div>
+  </div>
+  <div class="stat"><div class="label">d_fired / N_e</div><div class="value" id="out_dfired">—</div><div class="sub" id="out_dfired_sub">—</div></div>
 </div>
 
 <div class="warnings" id="warnings"></div>
@@ -147,7 +202,7 @@
 
 <script>
 // DOM glue. All math lives in tier1.js (exposed as window.tier1).
-const { CASES, CLASSES, VENDOR_PARTS, compute, fmtCap, fmt } = window.tier1;
+const { CASES, CLASSES, VENDOR_PARTS, compute, fmtCap, fmt, solveRecipe, predictCMax } = window.tier1;
 
 // ============================================================
 // Read / display inputs
@@ -191,9 +246,28 @@ function renderOutputs(r, inp) {
   document.getElementById('out_C_sub').textContent  =
     inp.tier2 ? `at ${inp.top}°C, ${inp.vdc} V (×${(r.f_T*r.f_V).toFixed(2)} from nominal)` : 'Tier 1 only';
   document.getElementById('out_Cnom').textContent   = fmtCap(r.C_nominal_F);
-  document.getElementById('out_dfired').textContent = fmt(r.d_fired_um, 2, ' µm');
-  document.getElementById('out_vol').textContent    = fmt(r.vol_density, 2);
-  document.getElementById('out_vol_sub').textContent = `µF/mm³ | chip vol ${fmt(r.chip_vol_mm3, 2)} mm³`;
+
+  // C_max envelope for the current (case, class) at the V_rated input
+  const V_rated = parseFloat(document.getElementById('V_rated').value) || 50;
+  let cmax;
+  try { cmax = predictCMax({ case: inp.case, cls: inp.cls, V: V_rated }); } catch (e) { cmax = null; }
+  const bar = document.getElementById('fill_bar');
+  if (cmax) {
+    const pct = r.C_nominal_F / cmax.C_max_F * 100;
+    document.getElementById('out_Cmax').textContent     = fmtCap(cmax.C_max_F);
+    document.getElementById('out_Cmax_sub').textContent = `at ${V_rated} V · ${fmt(pct, 1)} % filled`;
+    bar.style.width = Math.min(100, pct) + '%';
+    bar.className = 'fill-bar-inner' + (pct > 100 ? ' overflow' : pct > 80 ? ' high' : '');
+  } else {
+    document.getElementById('out_Cmax').textContent = '—';
+    document.getElementById('out_Cmax_sub').textContent = '—';
+    bar.style.width = '0';
+    bar.className = 'fill-bar-inner';
+  }
+
+  document.getElementById('out_dfired').textContent = `${fmt(r.d_fired_um, 2, ' µm')} · N_e ${inp.Ne}`;
+  document.getElementById('out_dfired_sub').textContent =
+    `vol ${fmt(r.vol_density, 2)} µF/mm³ · chip ${fmt(r.chip_vol_mm3, 2)} mm³`;
 
   const rows = [
     ['Case L × W',           `${r.caseRec.L} × ${r.caseRec.W} µm`],
@@ -355,9 +429,75 @@ function update() {
   renderCharts(inp);
 }
 
+// ============================================================
+// Solve-recipe button: invert the spec into recipe inputs
+// ============================================================
+
+function onSolveRecipe() {
+  const inp = readInputs();
+  const V_rated = parseFloat(document.getElementById('V_rated').value);
+  const C_value = parseFloat(document.getElementById('C_target').value);
+  const C_unit  = parseFloat(document.getElementById('C_unit').value);
+  const C_target_uF = C_value * C_unit;
+
+  const hint = document.getElementById('solve_hint');
+  if (!isFinite(V_rated) || V_rated <= 0 || !isFinite(C_target_uF) || C_target_uF <= 0) {
+    hint.textContent = 'Enter positive V_rated and C target.'; hint.style.color = '#d63030';
+    return;
+  }
+
+  let r;
+  try {
+    r = solveRecipe({ case: inp.case, cls: inp.cls, V: V_rated, C_target_uF });
+  } catch (e) {
+    hint.textContent = 'solveRecipe error: ' + e.message; hint.style.color = '#d63030';
+    return;
+  }
+
+  if (r.overflow) {
+    hint.textContent =
+      `⚠ Cannot fit ${C_target_uF} µF: max is ${r.C_max_uF.toFixed(3)} µF for this case at ${V_rated} V. ` +
+      `Try a bigger case, lower V_rated, or different class.`;
+    hint.style.color = '#d63030';
+    return;
+  }
+
+  // Apply the recipe to the sliders
+  setSlider('hBT',      r.h_BT_green);
+  setSlider('hNi',      r.h_Ni_um);
+  setSlider('Ne',       r.N_e_actual);
+  // The defaults baked into solveRecipe (cover=60, coverage=0.90, sTotal=0.14, disc=0.15)
+  setSlider('cover',    60);
+  setSlider('coverage', 0.90);
+  setSlider('sTotal',   0.14);
+  setSlider('disc',     0.15);
+  // Set V_DC default to the rated V for a worst-case view (user can dial back)
+  setSlider('vdc',      Math.min(V_rated, 50));
+
+  hint.style.color = '';
+  hint.textContent =
+    `Solved: d_fired ${r.d_fired_um.toFixed(2)} µm · N_e ${r.N_e_actual} of ${r.N_e_max} · ` +
+    `H_stack ${r.H_pct.toFixed(0)}% of H_max · fill ${r.fill_pct.toFixed(1)}%`;
+
+  update();
+}
+
+function setSlider(id, v) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const min = parseFloat(el.min);
+  const max = parseFloat(el.max);
+  el.value = Math.max(min, Math.min(max, v));
+}
+
+// ============================================================
+// Boot
+// ============================================================
+
 populateDropdowns();
 initCharts();
 document.querySelectorAll('input, select').forEach(el => el.addEventListener('input', update));
+document.getElementById('solve_btn').addEventListener('click', onSolveRecipe);
 update();
 </script>
 

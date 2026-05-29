@@ -54,6 +54,9 @@ A catalog of all pages in this wiki, organized by category. See [[overview]] for
 - [[hiroshi-yabuta]] — Canon Inc.; Bi/Mn double-doping researcher.
 - [[sam-ben-yaakov]] — Ben-Gurion University; power-electronics theorist; three-capacitance-definitions framework.
 - [[seiji-hidaka]] — Murata CAD/CAE Technology; author of MLCC Dynamic Model documentation.
+- [[seok-hyun-yoon]] — SEMCO MLCC research lead; author on Yoon 2020 + Chun 2024.
+- [[jinhyuk-chun]] — SEMCO researcher; first author Chun 2024.
+- [[ana-maria-hernandez-lopez]] — KEMET Charged; first author Hernández-López 2018.
 
 ### Organizations
 - [[nasa-nepp]] — NASA Electronic Parts and Packaging program; primary public sponsor of BME reliability research.
@@ -221,6 +224,8 @@ A catalog of all pages in this wiki, organized by category. See [[overview]] for
 - [[cazro3-x8r-batio3-2015]] — Cer. Int. 2015; CaZrO₃ + Y₂O₃ co-doping for X8R via internal-stress core-shell shift.
 - [[murata-dynamic-model-hidaka-2016]] — Murata 2016 technical article; behavioral-source SPICE model handling `T × V_DC` automatically; returns C_local only.
 - [[ben-yaakov-2025-nonlinear-capacitance-definition]] — EPCI 2025; three distinct capacitance definitions (local, total, large-signal) for non-linear MLCCs; application chooses.
+- [[chun-2024-screp-batio3-mlcc-degradation]] — Sci. Rep. 2024; three SEMCO X7R prototypes with disclosed case + cap + V + d_fired; implies ε_r ≈ 6000 for modern thin-layer.
+- [[hernandez-lopez-2018-kemet-x7r-halt]] — Materials 2018; KEMET 0603-class HV X7R with full geometry (7.5 µm × 68 layers) + Ca doping variants.
 
 ### Patents
 - [[us-4115493-murata-sakabe-1978-bme-foundational]] — Sakabe & Seno 1978; the foundational Ca-doped BaTiO₃ non-reducing dielectric that enabled Ni-electrode MLCC; expired 1997. Composition `{(Ba₁₋ₓCaₓ)O}ₘ(Ti₁₋ᵧZrᵧ)O₂` with m=1.005-1.03, x=0.02-0.22.

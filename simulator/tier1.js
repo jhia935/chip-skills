@@ -23,12 +23,17 @@
   ];
 
   // ε_r,nominal — wiki/concepts/eia-rs-198-dielectric-classes.md
+  // Calibrated 2026-05-28 against the 25-part vendor lineup. Original conservative
+  // values (X7R=2200, X5R=2500) systematically under-predicted modern thin-layer
+  // parts whose fine-grain core-shell raises effective ε_r. New values track
+  // published measurements: Hwang 2024 MLCC ε_r=2300 (X7S), Murata GRM 2800-3500
+  // for thin-layer X5R/X7R, Liu 2019 Sm-Mn BT up to 15000 (relaxor).
   const CLASSES = [
-    { id: 'C0G', label: 'C0G / NP0 (Class I, ultra-stable)',   er: 30   },
-    { id: 'X5R', label: 'X5R (Class II, −55…+85 °C, ±15 %)',   er: 2500 },
-    { id: 'X7R', label: 'X7R (Class II, −55…+125 °C, ±15 %)',  er: 2200 },
-    { id: 'X8R', label: 'X8R (Class II, −55…+150 °C, ±15 %)',  er: 1800 },
-    { id: 'Y5V', label: 'Y5V (Class III, −30…+85 °C, +22/−82 %)', er: 7000 },
+    { id: 'C0G', label: 'C0G / NP0 (Class I, ultra-stable)',      er: 35    },
+    { id: 'X5R', label: 'X5R (Class II, −55…+85 °C, ±15 %)',      er: 3200  },
+    { id: 'X7R', label: 'X7R (Class II, −55…+125 °C, ±15 %)',     er: 3000  },
+    { id: 'X8R', label: 'X8R (Class II, −55…+150 °C, ±15 %)',     er: 1800  },
+    { id: 'Y5V', label: 'Y5V (Class III, −30…+85 °C, +22/−82 %)', er: 12000 },
   ];
 
   // DC-bias sigmoid params: f_V = 1 / (1 + (E/E0)^p), E in V/µm
@@ -292,6 +297,9 @@
   }
 
   // Default-input factory: handy for tests and the UI's reset action.
+  // Calibrated 2026-05-28 to match modern thin-layer vendor parts. Old defaults
+  // (cover=40, coverage=0.85, disc=0.20) were pessimistic vs current production
+  // margins; updated to match the vendor lineup.
   function defaultInputs() {
     return {
       case: '0805_2012',
@@ -299,13 +307,273 @@
       hBT:  2.0,
       hNi:  1.0,
       Ne:   300,
-      cover: 40,
-      coverage: 0.85,
-      sTotal:   0.12,
-      disc:     0.20,
+      cover:    60,
+      coverage: 0.90,
+      sTotal:   0.14,
+      disc:     0.15,
       tier2:    true,
       vdc:      0,
       top:      25,
+    };
+  }
+
+  // ============================================================
+  // Known-geometry MLCCs — academic / NASA disclosures
+  // ============================================================
+  //
+  // These parts have publicly-disclosed FULL recipe (dielectric thickness,
+  // electrode thickness, layer count, grain size) — extracted from academic
+  // papers and NASA technical reports. Manufacturers are often anonymized
+  // (A/B/C/P) in the original sources.
+  //
+  // Use these for forward-direction calibration: given the disclosed recipe,
+  // does compute() produce a capacitance close to the rated value?
+  //
+  // Source key:
+  //   liu-carts2014       — NASA Liu CARTS 2014, Table III (24 commercial samples)
+  //   polotai-2007        — Penn State 0805 thin-layer demo
+  //   yoon-2020-jmcc      — research X7R model MLCC
+  //   song-2017-screp     — compositionally graded BTS-BCN MLCC
+  //   yan-thesis-2013     — SEMCO 1206/0603 production parts
+  //
+  // d_fired and h_Ni are FIRED dimensions in µm. C_rated is the cap a part of
+  // these specs would carry on a datasheet (decoded from the original part ID).
+
+  // Per-vendor ε_r override. Back-fit from Liu CARTS 2014 Table III data so the
+  // forward predictions for that vendor's parts have geomean ratio ≈ 1.0×.
+  // Vendors anonymized in the source as A/B/C/P — these are unidentified but
+  // recurring across the Liu data. Adding `vendor: 'A'` to a KNOWN_PARTS entry
+  // routes it through this override.
+  const VENDOR_ER_X7R = {
+    // Calibrated from Liu CARTS 2014 Table III: ε_r_vendor = 3000 / geomean_at_default
+    'A': 3500,  // Mfr A geomean was 0.87× → ε_r ≈ 3000/0.87 = 3450, round to 3500
+    'B': 3000,  // Mfr B geomean was ~1.02× → default ε_r OK
+    'C': 3600,  // Mfr C geomean was 0.83× → ε_r ≈ 3614, fine-grain high-ε_r
+    'P': 9000,  // Mfr P geomean was 0.30× → ε_r ≈ 10000, coarse 0.77 µm grain
+                // hits the BaTiO3 grain-size ε_r peak (~0.8-1.2 µm regime)
+  };
+
+  const KNOWN_PARTS = [
+    // ===== Liu CARTS 2014 Table III — 24 commercial samples =====
+    // ID format: <mfr><case><class><cap><V>
+    { id: 'A08X22525', src: 'liu-carts2014', vendor: 'A', case: '0805_2012', cls: 'X7R', V: 25,  C_uF: 2.2,    d_fired_um: 3.89,  h_Ni_fired_um: 1.0, N_a: 211, grain_um: 0.305, halt: 'fail' },
+    { id: 'B08X33425', src: 'liu-carts2014', vendor: 'B', case: '0805_2012', cls: 'X7R', V: 25,  C_uF: 0.33,   d_fired_um: 5.80,  h_Ni_fired_um: 1.0, N_a: 74,  grain_um: 0.420, halt: 'pass' },
+    { id: 'A08X15425', src: 'liu-carts2014', vendor: 'A', case: '0805_2012', cls: 'X7R', V: 25,  C_uF: 0.15,   d_fired_um: 9.80,  h_Ni_fired_um: 1.0, N_a: 43,  grain_um: 0.460, halt: 'pass' },
+    { id: 'C06X10525', src: 'liu-carts2014', vendor: 'C', case: '0603_1608', cls: 'X7R', V: 25,  C_uF: 1.0,    d_fired_um: 3.20,  h_Ni_fired_um: 1.0, N_a: 150, grain_um: 0.440, halt: 'fail' },
+    { id: 'A06X10425', src: 'liu-carts2014', vendor: 'A', case: '0603_1608', cls: 'X7R', V: 25,  C_uF: 0.1,    d_fired_um: 7.89,  h_Ni_fired_um: 1.0, N_a: 62,  grain_um: 0.470, halt: 'pass' },
+    { id: 'A12X47425', src: 'liu-carts2014', vendor: 'A', case: '1206_3216', cls: 'X7R', V: 25,  C_uF: 0.47,   d_fired_um: 10.40, h_Ni_fired_um: 1.0, N_a: 58,  grain_um: 0.492, halt: 'pass' },
+    { id: 'C04X47325', src: 'liu-carts2014', vendor: 'C', case: '0402_1005', cls: 'X7R', V: 25,  C_uF: 0.047,  d_fired_um: 4.40,  h_Ni_fired_um: 1.0, N_a: 60,  grain_um: 0.386, halt: 'fail' },
+    { id: 'B12X47525', src: 'liu-carts2014', vendor: 'B', case: '1206_3216', cls: 'X7R', V: 25,  C_uF: 4.7,    d_fired_um: 4.34,  h_Ni_fired_um: 1.0, N_a: 260, grain_um: 0.376, halt: 'fail' },
+    { id: 'P08X10425', src: 'liu-carts2014', vendor: 'P', case: '0805_2012', cls: 'X7R', V: 25,  C_uF: 0.1,    d_fired_um: 20.20, h_Ni_fired_um: 1.0, N_a: 23,  grain_um: 0.790, halt: 'pass' },
+    { id: 'B06X10516', src: 'liu-carts2014', vendor: 'B', case: '0603_1608', cls: 'X7R', V: 16,  C_uF: 1.0,    d_fired_um: 2.29,  h_Ni_fired_um: 1.0, N_a: 179, grain_um: 0.273, halt: 'fail' },
+    { id: 'A08X47416', src: 'liu-carts2014', vendor: 'A', case: '0805_2012', cls: 'X7R', V: 16,  C_uF: 0.47,   d_fired_um: 3.75,  h_Ni_fired_um: 1.0, N_a: 208, grain_um: 0.319, halt: 'fail', note: 'Outlier — predicted 3× rated; likely transcription error in original table.' },
+    { id: 'B12X68416', src: 'liu-carts2014', vendor: 'B', case: '1206_3216', cls: 'X7R', V: 16,  C_uF: 0.68,   d_fired_um: 6.21,  h_Ni_fired_um: 1.0, N_a: 64,  grain_um: 0.375, halt: 'pass' },
+    { id: 'C08X22516', src: 'liu-carts2014', vendor: 'C', case: '0805_2012', cls: 'X7R', V: 16,  C_uF: 2.2,    d_fired_um: 3.81,  h_Ni_fired_um: 1.0, N_a: 212, grain_um: 0.224, halt: 'pass' },
+    { id: 'B08X22516', src: 'liu-carts2014', vendor: 'B', case: '0805_2012', cls: 'X7R', V: 16,  C_uF: 2.2,    d_fired_um: 3.23,  h_Ni_fired_um: 1.0, N_a: 230, grain_um: 0.340, halt: 'fail' },
+    { id: 'B08X56416', src: 'liu-carts2014', vendor: 'B', case: '0805_2012', cls: 'X7R', V: 16,  C_uF: 0.56,   d_fired_um: 4.21,  h_Ni_fired_um: 1.0, N_a: 80,  grain_um: 0.373, halt: 'pass' },
+    { id: 'C08X47516', src: 'liu-carts2014', vendor: 'C', case: '0805_2012', cls: 'X7R', V: 16,  C_uF: 4.7,    d_fired_um: 2.49,  h_Ni_fired_um: 1.0, N_a: 260, grain_um: 0.230, halt: 'pass' },
+    { id: 'B12X10516', src: 'liu-carts2014', vendor: 'B', case: '1206_3216', cls: 'X7R', V: 16,  C_uF: 1.0,    d_fired_um: 7.82,  h_Ni_fired_um: 1.0, N_a: 99,  grain_um: 0.475, halt: 'pass' },
+    { id: 'B04X10416', src: 'liu-carts2014', vendor: 'B', case: '0402_1005', cls: 'X7R', V: 16,  C_uF: 0.1,    d_fired_um: 3.05,  h_Ni_fired_um: 1.0, N_a: 67,  grain_um: 0.342, halt: 'fail' },
+    { id: 'B12X10606', src: 'liu-carts2014', vendor: 'B', case: '1206_3216', cls: 'X7R', V: 6.3, C_uF: 10,     d_fired_um: 3.11,  h_Ni_fired_um: 1.0, N_a: 348, grain_um: 0.365, halt: 'fail' },
+    { id: 'B04X10406', src: 'liu-carts2014', vendor: 'B', case: '0402_1005', cls: 'X7R', V: 6.3, C_uF: 0.1,    d_fired_um: 2.50,  h_Ni_fired_um: 1.0, N_a: 70,  grain_um: 0.323, halt: 'fail' },
+    { id: 'B08X22506', src: 'liu-carts2014', vendor: 'B', case: '0805_2012', cls: 'X7R', V: 6.3, C_uF: 2.2,    d_fired_um: 3.42,  h_Ni_fired_um: 1.0, N_a: 230, grain_um: 0.419, halt: 'fail' },
+    { id: 'A08X10406', src: 'liu-carts2014', vendor: 'A', case: '0805_2012', cls: 'X7R', V: 6.3, C_uF: 0.1,    d_fired_um: 12.50, h_Ni_fired_um: 1.0, N_a: 34,  grain_um: 0.490, halt: 'pass' },
+    { id: 'B06X22406', src: 'liu-carts2014', vendor: 'B', case: '0603_1608', cls: 'X7R', V: 6.3, C_uF: 0.22,   d_fired_um: 4.01,  h_Ni_fired_um: 1.0, N_a: 67,  grain_um: 0.373, halt: 'pass' },
+    { id: 'P06X10405', src: 'liu-carts2014', vendor: 'P', case: '0603_1608', cls: 'X7R', V: 50,  C_uF: 0.1,    d_fired_um: 12.60, h_Ni_fired_um: 1.0, N_a: 24,  grain_um: 0.770, halt: 'pass' },
+
+    // ===== Chun et al. 2024 Sci. Rep. — 3 SEMCO X7R prototypes =====
+    // Citation: Chun, Heo, Lee, Ye, Kang, Yoon (2024) Sci. Rep. 14, 616
+    // DOI: 10.1038/s41598-024-51254-w
+    // N_a not disclosed; predicted from disclosed C, d, A using class-default ε_r.
+    { id: 'chun-2024-S1', src: 'chun-2024-screp', vendor: 'SEMCO', case: '0805_2012', cls: 'X7R', V: 50, C_uF: 4.7,  d_fired_um: 4.2, h_Ni_fired_um: 1.0, N_a: null, note: 'SEMCO modern rare-earth-doped X7R; layer count not disclosed.' },
+    { id: 'chun-2024-S2', src: 'chun-2024-screp', vendor: 'SEMCO', case: '0402_1005', cls: 'X7R', V: 25, C_uF: 0.22, d_fired_um: 4.5, h_Ni_fired_um: 1.0, N_a: null },
+    { id: 'chun-2024-S3', src: 'chun-2024-screp', vendor: 'SEMCO', case: '0805_2012', cls: 'X7R', V: 25, C_uF: 10,   d_fired_um: 3.2, h_Ni_fired_um: 1.0, N_a: null },
+
+    // ===== Hernandez-Lopez et al. 2018 (Materials) — KEMET HV X7R =====
+    // Citation: Hernandez-Lopez et al. (2018) Materials 11(10), 1900
+    // DOI: 10.3390/ma11101900
+    // 1.8 × 0.8 × 0.8 mm chip is closest to 0603 (1.6 × 0.8); rated V inferred from
+    // d_fired = 7.5 µm and HALT 400-600 V → V_rated ≈ 200 V.
+    { id: 'hernandez-2018-mlcc1', src: 'hernandez-2018', vendor: 'KEMET', case: '0603_1608', cls: 'X7R', V: 200, C_uF: 0.1, d_fired_um: 7.5, h_Ni_fired_um: 1.0, N_a: 68, grain_um: null, note: 'KEMET HV 0603-class; Y 1.05 wt% Ca <0.01 mol% (MLCC-1).' },
+    { id: 'hernandez-2018-mlcc2', src: 'hernandez-2018', vendor: 'KEMET', case: '0603_1608', cls: 'X7R', V: 200, C_uF: 0.1, d_fired_um: 7.5, h_Ni_fired_um: 1.0, N_a: 68, grain_um: null, note: 'Same as MLCC-1 but Ca ≈ 2.8 mol% (MLCC-2).' },
+    { id: 'hernandez-2018-mlcc3', src: 'hernandez-2018', vendor: 'KEMET', case: '0603_1608', cls: 'X7R', V: 200, C_uF: 0.1, d_fired_um: 7.5, h_Ni_fired_um: 1.0, N_a: 68, grain_um: null, note: 'Same as MLCC-1 but Ca ≈ 8.1 mol% (MLCC-3).' },
+
+    // ===== Penn State demo =====
+    { id: 'polotai-0805-thin', src: 'polotai-2007', case: '0805_2012', cls: 'X7R', V: 16, C_uF: null,
+      d_fired_um: 1.0, h_Ni_fired_um: 1.0, N_a: 300, grain_um: null,
+      note: 'Penn State / Randall group thin-layer demonstrator; rated C not disclosed.' },
+
+    // ===== Yoon, Kim, Kim 2020 research X7R =====
+    { id: 'yoon-2020-x7r', src: 'yoon-2020-jmcc', case: '0805_2012', cls: 'X7R', V: 50, C_uF: null,
+      d_fired_um: 7.7, h_Ni_fired_um: 1.0, N_a: 10, grain_um: 0.28,
+      note: 'Research model MLCC for grain-size vs c/a study; rated C not stated.' },
+
+    // ===== Song 2017 compositionally graded =====
+    // Custom case (4.5×4×2 mm); place in 1812 with active-area override
+    { id: 'song-2017-graded', src: 'song-2017-screp', case: '1812_4532', cls: 'X7R', V: 200, C_uF: 0.348,
+      d_fired_um: 40, h_Ni_fired_um: 3, N_a: 48, grain_um: null,
+      A_eff_override_mm2: 16, er_override: 2050,
+      note: 'BTS-BCN graded composition; non-standard 4×4 mm² active area; ε_r ≈ 2050 back-fit.' },
+
+    // ===== Yan thesis 2013 SEMCO (N_a not disclosed) =====
+    { id: 'yan-semco-1206', src: 'yan-thesis-2013', case: '1206_3216', cls: 'X7R', V: 50, C_uF: null,
+      d_fired_um: 2.5, h_Ni_fired_um: 1.2, N_a: null, grain_um: null,
+      note: 'Samsung production MLCC, cross-sectioned. N_e not disclosed.' },
+    { id: 'yan-semco-0603', src: 'yan-thesis-2013', case: '0603_1608', cls: 'X7R', V: 25, C_uF: null,
+      d_fired_um: 2.5, h_Ni_fired_um: 1.2, N_a: null, grain_um: null,
+      note: 'Samsung production MLCC, same study, smaller case.' },
+  ];
+
+  // Resolve the ε_r to use for a KNOWN_PARTS entry. Priority:
+  //   1. k.er_override — explicit per-part override (e.g., Song 2017 BTS-BCN back-fit)
+  //   2. VENDOR_ER_<cls>[k.vendor] — per-vendor band (Liu Mfr A/B/C/P)
+  //   3. CLASSES default for k.cls
+  function erForKnown(k) {
+    if (k.er_override != null) return k.er_override;
+    if (k.vendor && k.cls === 'X7R' && VENDOR_ER_X7R[k.vendor] != null) {
+      return VENDOR_ER_X7R[k.vendor];
+    }
+    return CLASSES.find(x => x.id === k.cls).er;
+  }
+
+  // Forward-compute the predicted C for a KNOWN_PARTS entry using its disclosed recipe.
+  // Returns null if N_a is not disclosed.
+  function computeFromKnown(k) {
+    if (k.N_a == null) return null;
+
+    const sTotal = 0.14;
+    const h_BT_green = k.d_fired_um / (1 - sTotal);
+    const h_Ni_green = k.h_Ni_fired_um / (1 - sTotal);
+    const er = erForKnown(k);
+
+    if (k.A_eff_override_mm2 != null) {
+      // Non-standard active area
+      const A_eff_m2 = k.A_eff_override_mm2 * 1e-6;
+      const d_fired_m = k.d_fired_um * 1e-6;
+      const C_F = er * EPS0 * A_eff_m2 * k.N_a / d_fired_m;
+      return { C_pred_F: C_F, C_pred_uF: C_F * 1e6, er_used: er, override: true };
+    }
+
+    const r = compute({
+      case: k.case, cls: k.cls,
+      hBT: h_BT_green, hNi: h_Ni_green, Ne: k.N_a,
+      cover: 60, coverage: 0.90, sTotal: sTotal, disc: 0.15,
+      tier2: false, vdc: 0, top: 25,
+    });
+    // Apply ε_r override if different from the class default
+    const stockEr = CLASSES.find(x => x.id === k.cls).er;
+    const C_pred_F = r.C_nominal_F * er / stockEr;
+    return { C_pred_F, C_pred_uF: C_pred_F * 1e6, er_used: er };
+  }
+
+  // ============================================================
+  // Inverse predictor (solveRecipe): given specs, derive the recipe
+  // ============================================================
+  //
+  // The forward compute() needs (h_BT, h_Ni, N_e, ...) — a recipe that's
+  // not publicly known for any vendor part. solveRecipe inverts that:
+  // given the four publicly available specs (case, class, V_rated, C_target)
+  // it derives a physically-feasible recipe using MLCC engineering rules.
+  //
+  //   d_fired = V_rated / E_design     # voltage-derate rule per class
+  //   h_Ni    = max(0.5, 0.7 · d_fired) # Ni-paste manufacturability floor
+  //   N_e     = C_target · d_fired / (ε_r · ε_0 · A_eff)   # back-solve
+  //   capped at N_e_max = (H_max - 2·cover) / (d_fired + h_Ni_fired)
+  //
+  // Returns the recipe + a feasibility verdict.
+
+  // E_design (V/µm) — design rule for dielectric voltage-to-thickness scaling.
+  // Empirically calibrated against the 25-part vendor lineup so that
+  // back-solved N_e values land in the 1-500 range with H_stack < 50 % of H_max.
+  function eDesign(cls, V_rated) {
+    let E;
+    if      (V_rated <= 6.3) E = 10;
+    else if (V_rated <= 16)  E = 18;
+    else if (V_rated <= 25)  E = 25;
+    else if (V_rated <= 50)  E = 28;
+    else if (V_rated <= 100) E = 33;
+    else                     E = 35;
+    if (cls === 'C0G') E *= 1.2; // Class I has higher intrinsic breakdown
+    return E;
+  }
+
+  function dFiredFromV(cls, V_rated) {
+    return Math.max(0.5, V_rated / eDesign(cls, V_rated));
+  }
+
+  function hNiFromD(cls, d_fired) {
+    return Math.max(0.5, 0.7 * d_fired);
+  }
+
+  // Given (case, class, V_rated), forward-predict C_max — the upper-bound
+  // capacitance achievable in that case at that V with maximum layer count.
+  function predictCMax(spec) {
+    const c   = CASES.find(x => x.id === spec.case);
+    const cls = CLASSES.find(x => x.id === spec.cls);
+    if (!c)   throw new Error(`Unknown case id: ${spec.case}`);
+    if (!cls) throw new Error(`Unknown class id: ${spec.cls}`);
+
+    const d_fired_um = dFiredFromV(spec.cls, spec.V);
+    const h_Ni_um    = hNiFromD(spec.cls, d_fired_um);
+    const sTotal     = spec.sTotal     != null ? spec.sTotal   : 0.14;
+    const coverage   = spec.coverage   != null ? spec.coverage : 0.90;
+    const disc       = spec.disc       != null ? spec.disc     : 0.15;
+    const cover      = spec.cover      != null ? spec.cover    : 60;
+
+    const h_Ni_fired = h_Ni_um * (1 - sTotal);
+    const A_overlap_um2 = (c.L - 2 * c.em) * (c.W - 2 * c.sm);
+    const A_eff_um2     = A_overlap_um2 * coverage * (1 - disc);
+    const A_eff_m2      = A_eff_um2 * 1e-12;
+
+    const H_active_max = c.Hmax - 2 * cover;
+    const layer_pitch  = d_fired_um + h_Ni_fired;
+    const N_e_max      = Math.floor(H_active_max / layer_pitch);
+
+    const d_fired_m = d_fired_um * 1e-6;
+    const C_max_F   = cls.er * EPS0 * A_eff_m2 * N_e_max / d_fired_m;
+
+    return {
+      caseRec: c, clsRec: cls,
+      d_fired_um, h_Ni_um, h_BT_green: d_fired_um / (1 - sTotal),
+      N_e_max, layer_pitch, C_max_F, C_max_uF: C_max_F * 1e6,
+      A_eff_um2,
+    };
+  }
+
+  // Given (case, class, V_rated, C_target_uF), back-solve the full recipe.
+  function solveRecipe(spec) {
+    if (spec.C_target_uF == null || !isFinite(spec.C_target_uF) || spec.C_target_uF <= 0) {
+      throw new Error('solveRecipe needs spec.C_target_uF (positive number, in µF)');
+    }
+
+    const m = predictCMax(spec);
+    const d_fired_m = m.d_fired_um * 1e-6;
+
+    const C_target_F = spec.C_target_uF * 1e-6;
+    const N_e_needed = (C_target_F * d_fired_m) /
+                       (m.clsRec.er * EPS0 * m.A_eff_um2 * 1e-12);
+    const N_e_actual = Math.min(N_e_needed, m.N_e_max);
+    const overflow   = N_e_needed > m.N_e_max;
+
+    const sTotal   = spec.sTotal   != null ? spec.sTotal   : 0.14;
+    const cover    = spec.cover    != null ? spec.cover    : 60;
+    const H_stack_um = N_e_actual * m.layer_pitch + 2 * cover;
+    const fill_pct = spec.C_target_uF / m.C_max_uF * 100;
+
+    return {
+      caseRec: m.caseRec, clsRec: m.clsRec,
+      d_fired_um: m.d_fired_um,
+      h_BT_green: m.h_BT_green,
+      h_Ni_um:    m.h_Ni_um,
+      N_e_needed: Math.round(N_e_needed),
+      N_e_actual: Math.round(N_e_actual),
+      N_e_max:    m.N_e_max,
+      C_max_uF:   m.C_max_uF,
+      C_target_uF: spec.C_target_uF,
+      H_stack_um, H_max_um: m.caseRec.Hmax,
+      H_pct: H_stack_um / m.caseRec.Hmax * 100,
+      fill_pct,
+      overflow,
     };
   }
 
@@ -314,11 +582,13 @@
   // ============================================================
 
   const api = {
-    CASES, CLASSES, DCBIAS, TCC_RANGES, EPS0, VENDOR_PARTS,
+    CASES, CLASSES, DCBIAS, TCC_RANGES, EPS0, VENDOR_PARTS, KNOWN_PARTS, VENDOR_ER_X7R,
     SEMCO_SIZE_CODES, SEMCO_TCC_CODES, SEMCO_VOLTAGE_CODES, SEMCO_TOL_CODES,
     tccFactor, dcBiasFactor, compute,
     parseSemcoCL, decodeCapCode,
     fmtCap, fmt, defaultInputs,
+    eDesign, dFiredFromV, hNiFromD, predictCMax, solveRecipe,
+    computeFromKnown, erForKnown,
   };
 
   if (typeof module !== 'undefined' && module.exports) {

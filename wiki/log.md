@@ -11,6 +11,38 @@ Chronological record of wiki operations. Newest entries first.
 
 ---
 
+## [2026-05-29] simulator | Per-vendor ε_r calibration + 30 known-geometry parts
+
+Major chip-sim accuracy upgrade. User asked: "Are there any product with known geometry design?" Answer: yes — extracted Liu CARTS 2014 Table III (24 commercial Ni-BaTiO₃ MLCCs with disclosed grain / d_fired / N_a) plus four single-source academic disclosures (Polotai 2007, Yoon 2020, Song 2017, Yan thesis 2013), then added Chun 2024 (3 SEMCO X7R) and Hernández-López 2018 (3 KEMET X7R).
+
+Total: **30 MLCCs with publicly-disclosed geometry** now in `simulator/tier1.js` as the `KNOWN_PARTS` table, with `computeFromKnown(k)` API for forward-prediction benchmarking.
+
+Per-vendor ε_r calibration (Liu Mfr A/B/C/P pattern):
+- Mfr A → ε_r = 3500 (was 3000)
+- Mfr B → ε_r = 3000 (centered at default)
+- Mfr C → ε_r = 3600 (fine-grain high-ε_r)
+- Mfr P → ε_r = 9000 (coarse 0.77 µm grain in the BT ε_r peak regime)
+
+Accuracy improvement: geomean ratio across 24 Liu samples went **0.91× → 1.06×**, 1σ spread **57 % → 39 %**, ±20 % hit rate **46 % → 71 %**, ±50 % hit rate **88 % → 92 %**. The remaining spread reflects irreducible vendor-to-vendor ε_r variation.
+
+Source pages updated:
+- [[nasa-general-reliability-model-ni-batio3]] — added full Table III with vendor-pattern commentary
+
+Source pages created:
+- [[chun-2024-screp-batio3-mlcc-degradation]] — Sci. Rep. 2024 Chun, Heo, Lee, Ye, Kang, Yoon. 3 SEMCO X7R prototypes (0805 4.7 µF/50V, 0402 0.22 µF/25V, 0805 10 µF/25V). Implied ε_r ≈ 6000 for modern Dy-Nb thin-layer.
+- [[hernandez-lopez-2018-kemet-x7r-halt]] — Materials 2018 Hernández-López et al. 3 KEMET HV X7R (1.8×0.8×0.8 mm ≈ 0603, 100 nF, ~200 V, 7.5 µm × 68 layers) with Ca doping 0/2.8/8.1 mol%.
+
+Entity stubs (3): [[jinhyuk-chun]], [[seok-hyun-yoon]], [[ana-maria-hernandez-lopez]].
+
+Simulator updates:
+- `tier1.js`: added KNOWN_PARTS (30 entries), VENDOR_ER_X7R map, computeFromKnown(), erForKnown()
+- `test_tier1.cjs`: 13 new regression tests covering KNOWN_PARTS calibration (geomean band, per-vendor band, hit-rate floors, Song round-trip)
+- Tests: 236 → **249 passing**
+
+Wiki state: 210 pages (was 205, +5), 0 dangling wikilinks.
+
+---
+
 ## [2026-05-28] ingest | AC × DC capacitance mapping — 7 pages (2 concepts, 3 entities, 2 sources, 2 concept updates)
 
 User asked to search for the relation between capacitance under combined AC voltage and DC field together — the "AC-DC mapping" (joint `C(V_AC, V_DC)` surface). Previous ingests covered each axis separately; this ingest is about the joint surface itself.

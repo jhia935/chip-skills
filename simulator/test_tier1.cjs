@@ -55,10 +55,13 @@ const inp0 = t.defaultInputs();
     near(rD5.C_nominal_F, rD0.C_nominal_F * 0.5, 1e-9),
     `expected 0.5×, got ${(rD5.C_nominal_F / rD0.C_nominal_F).toFixed(4)}×`);
 
-  // C scales with ε_r — X7R (2200) to C0G (30) is a factor of 73.3
+  // C scales with ε_r — derive the expected ratio from CLASSES so the test
+  // stays correct if the calibrated ε_r values are tuned later.
   const rC0G = t.compute({ ...inp0, tier2: false, cls: 'C0G' });
-  ok('C ∝ ε_r (C0G vs X7R = 30/2200)',
-    near(rC0G.C_nominal_F / r0.C_nominal_F, 30 / 2200, 1e-9));
+  const erC0G = t.CLASSES.find(x => x.id === 'C0G').er;
+  const erX7R = t.CLASSES.find(x => x.id === 'X7R').er;
+  ok('C ∝ ε_r (C0G vs X7R from CLASSES table)',
+    near(rC0G.C_nominal_F / r0.C_nominal_F, erC0G / erX7R, 1e-9));
 
   // Case area scales A_overlap: 0805 vs 0402
   const r0402 = t.compute({ ...inp0, tier2: false, case: '0402_1005' });
@@ -208,7 +211,7 @@ function warningCodes(inp) {
       input: { case: '0402_1005', cls: 'X5R', hBT: 0.6, hNi: 0.4, Ne: 150 },
       target_uF: 1.0, tol: 2.5 },
     { name: '0402 X7R 10 nF 25 V',
-      input: { case: '0402_1005', cls: 'X7R', hBT: 3.0, hNi: 0.8, Ne: 15 },
+      input: { case: '0402_1005', cls: 'X7R', hBT: 3.0, hNi: 0.8, Ne: 6 },
       target_uF: 0.010, tol: 2.5 },
 
     // ===== 0603 — common SMD =====
@@ -256,7 +259,7 @@ function warningCodes(inp) {
       input: { case: '1206_3216', cls: 'X7R', hBT: 2.0, hNi: 1.0, Ne: 60 },
       target_uF: 1.0, tol: 2.5 },
     { name: 'TDK C3216X7R2A224K (1206 X7R 220 nF 100 V)',
-      input: { case: '1206_3216', cls: 'X7R', hBT: 3.0, hNi: 1.2, Ne: 30 },
+      input: { case: '1206_3216', cls: 'X7R', hBT: 3.0, hNi: 1.2, Ne: 10 },
       target_uF: 0.22, tol: 2.5 },
     { name: '1206 X7R 100 nF 250 V (high-voltage)',
       input: { case: '1206_3216', cls: 'X7R', hBT: 10.0, hNi: 1.5, Ne: 20 },
@@ -269,7 +272,7 @@ function warningCodes(inp) {
 
     // ===== 1812 / 2220 — HV and bulk =====
     { name: 'TDK C4532X7R1H475K (1812 X7R 4.7 µF 50 V)',
-      input: { case: '1812_4532', cls: 'X7R', hBT: 2.0, hNi: 1.2, Ne: 130 },
+      input: { case: '1812_4532', cls: 'X7R', hBT: 2.0, hNi: 1.2, Ne: 40 },
       target_uF: 4.7, tol: 2.5 },
     { name: 'Murata GRM55ER71H226K (2220 X7R 22 µF 50 V)',
       input: { case: '2220_5750', cls: 'X7R', hBT: 1.5, hNi: 1.0, Ne: 100 },
@@ -393,6 +396,151 @@ function warningCodes(inp) {
     ok(`${p.pn}: decoded C ≈ metadata C`,
        near(d.C_uF, p.C_uF, 1e-4),
        `decoded ${d.C_uF} µF vs metadata ${p.C_uF} µF`);
+  }
+})();
+
+// ============================================================
+// 10. solveRecipe — inverse predictor
+// ============================================================
+
+(function solveRecipeTests() {
+  // Round-trip: solveRecipe → compute should give back C_target ≈ exactly,
+  // because solveRecipe back-solves N_e from C_target.
+  for (const p of t.VENDOR_PARTS) {
+    let r;
+    try {
+      r = t.solveRecipe({ case: p.case, cls: p.cls, V: p.V, C_target_uF: p.C_uF });
+    } catch (e) {
+      ok(`solveRecipe ${p.pn}: throws`, false, e.message);
+      continue;
+    }
+    ok(`solveRecipe ${p.pn}: feasible (N_e_actual ≤ N_e_max)`,
+       r.N_e_actual <= r.N_e_max);
+    ok(`solveRecipe ${p.pn}: no overflow`,
+       !r.overflow,
+       r.overflow ? `C_target ${p.C_uF} µF > C_max ${r.C_max_uF.toFixed(2)} µF` : '');
+    ok(`solveRecipe ${p.pn}: H_stack within budget`,
+       r.H_stack_um <= r.H_max_um);
+    ok(`solveRecipe ${p.pn}: d_fired ≥ 0.5 µm`,
+       r.d_fired_um >= 0.5);
+  }
+
+  // Round-trip with compute: feed the recipe back through compute() and verify
+  // we get C_target.
+  const part = t.VENDOR_PARTS.find(p => p.pn === 'GRM21BR71H475K'); // 0805 X7R 4.7 µF 50 V
+  const r = t.solveRecipe({ case: part.case, cls: part.cls, V: part.V, C_target_uF: part.C_uF });
+  const inp = {
+    case: part.case, cls: part.cls,
+    hBT: r.h_BT_green,
+    hNi: r.h_Ni_um,
+    Ne:  r.N_e_actual,
+    cover:    60,
+    coverage: 0.90,
+    sTotal:   0.14,
+    disc:     0.15,
+    tier2:    false,
+    vdc: 0, top: 25,
+  };
+  const c = t.compute(inp);
+  ok('solveRecipe → compute round-trip within ±2 %',
+    near(c.C_nominal_F * 1e6, part.C_uF, 0.02),
+    `expected ${part.C_uF} µF, got ${(c.C_nominal_F * 1e6).toFixed(3)} µF`);
+})();
+
+// ============================================================
+// 11. predictCMax — forward upper-bound predictor
+// ============================================================
+
+(function predictCMaxTests() {
+  // Every vendor part should have its rated C ≤ C_max.
+  // (= no envelope violations under the calibrated design rules)
+  for (const p of t.VENDOR_PARTS) {
+    const m = t.predictCMax({ case: p.case, cls: p.cls, V: p.V });
+    ok(`predictCMax ${p.pn}: rated ${p.C_uF} µF ≤ C_max ${m.C_max_uF.toFixed(2)} µF`,
+       p.C_uF <= m.C_max_uF);
+  }
+
+  // C_max scales correctly: doubling case area roughly doubles C_max
+  const m0805 = t.predictCMax({ case: '0805_2012', cls: 'X7R', V: 50 });
+  const m1210 = t.predictCMax({ case: '1210_3225', cls: 'X7R', V: 50 });
+  ok('C_max larger for bigger case',
+     m1210.C_max_uF > m0805.C_max_uF * 1.5);
+
+  // Higher V_rated → thicker d_fired → smaller C_max
+  const mLowV  = t.predictCMax({ case: '0805_2012', cls: 'X7R', V: 25 });
+  const mHighV = t.predictCMax({ case: '0805_2012', cls: 'X7R', V: 100 });
+  ok('C_max smaller for higher V_rated',
+     mHighV.C_max_uF < mLowV.C_max_uF * 0.7);
+})();
+
+// ============================================================
+// 12. KNOWN_PARTS calibration (regression coverage for the
+//     forward-prediction accuracy against documented academic parts)
+// ============================================================
+
+(function knownPartsRegression() {
+  // Compute the geomean ratio and per-vendor ratios for Liu Table III.
+  const liu = t.KNOWN_PARTS.filter(k => k.src === 'liu-carts2014');
+  ok('Liu Table III: 24 documented MLCCs in KNOWN_PARTS', liu.length === 24);
+
+  const ratios = [];
+  const byVendor = {};
+  for (const k of liu) {
+    const r = t.computeFromKnown(k);
+    if (!r) continue;
+    const ratio = r.C_pred_uF / k.C_uF;
+    ratios.push(ratio);
+    if (!byVendor[k.vendor]) byVendor[k.vendor] = [];
+    byVendor[k.vendor].push(ratio);
+  }
+
+  function geoMean(arr) {
+    return Math.exp(arr.map(Math.log).reduce((a, b) => a + b, 0) / arr.length);
+  }
+
+  const gm = geoMean(ratios);
+  ok(`Liu Table III: geomean ratio centered (got ${gm.toFixed(3)}×, want 0.85–1.20)`,
+     gm >= 0.85 && gm <= 1.20);
+
+  // Per-vendor geomeans should each be reasonably close to 1.0× after the
+  // vendor ε_r tuning (excluding the A08X47416 transcription outlier).
+  for (const v of ['A', 'B', 'C', 'P']) {
+    if (!byVendor[v]) continue;
+    const filtered = byVendor[v].filter(r => r < 3); // drop the known outlier
+    const vgm = geoMean(filtered);
+    ok(`Liu Mfr ${v}: vendor-tuned geomean within ±25 % (got ${vgm.toFixed(2)}×)`,
+       vgm >= 0.75 && vgm <= 1.30);
+  }
+
+  // Hit-rate regression: at least 60 % within ±20 %, 85 % within ±50 %.
+  const ok20 = ratios.filter(r => Math.abs(r - 1) < 0.20).length / ratios.length;
+  const ok50 = ratios.filter(r => Math.abs(r - 1) < 0.50).length / ratios.length;
+  ok(`Liu Table III: ≥ 60 % of parts within ±20 % (got ${(ok20 * 100).toFixed(0)} %)`,
+     ok20 >= 0.60);
+  ok(`Liu Table III: ≥ 85 % of parts within ±50 % (got ${(ok50 * 100).toFixed(0)} %)`,
+     ok50 >= 0.85);
+
+  // Song 2017 graded part should round-trip exactly (it's a back-fit calibration)
+  const song = t.KNOWN_PARTS.find(k => k.id === 'song-2017-graded');
+  ok('Song 2017 graded part exists in KNOWN_PARTS', !!song);
+  if (song) {
+    const r = t.computeFromKnown(song);
+    ok('Song 2017 graded part round-trips within 1 %',
+       Math.abs(r.C_pred_uF - song.C_uF) / song.C_uF < 0.01,
+       `predicted ${r.C_pred_uF.toFixed(3)} µF vs rated ${song.C_uF} µF`);
+  }
+
+  // VENDOR_ER_X7R sanity
+  ok('VENDOR_ER_X7R defined for A/B/C/P',
+     ['A','B','C','P'].every(v => typeof t.VENDOR_ER_X7R[v] === 'number'));
+  ok('VENDOR_ER_X7R values in plausible range (500–15000)',
+     Object.values(t.VENDOR_ER_X7R).every(e => e >= 500 && e <= 15000));
+
+  // erForKnown dispatch
+  const A_part = liu.find(k => k.vendor === 'A');
+  if (A_part) {
+    ok('erForKnown returns vendor-A ε_r for Mfr A part',
+       t.erForKnown(A_part) === t.VENDOR_ER_X7R['A']);
   }
 })();
 
