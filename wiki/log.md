@@ -11,6 +11,22 @@ Chronological record of wiki operations. Newest entries first.
 
 ---
 
+## [2026-05-29] simulator | Critical review fixes: grain-size ε_r, held-out validation, DC-bias benchmark
+
+Critical performance review of the simulator surfaced three problems; all fixed.
+
+1. **Overfit per-vendor ε_r → grain-size physics curve.** The `VENDOR_ER_X7R` lookup (A/B/C/P → ε_r) was 4 params fit to the 24 Liu parts it was scored on, and could never apply to a real part (anonymous vendor bands). Diagnostic: corr(grain, implied-ε_r) = 0.76, R² = 0.57 — the vendor bands were a grain-size proxy. Replaced with `erGrain(grain) = clamp(−600 + 10600·grain_µm, 2000, 9000)`; falls back to class default when grain unknown (the honest real-world path).
+
+2. **Train-on-test → held-out validation + leave-one-out CV.** Old "39 % accuracy" was measured on the calibration set. Now: LOO-CV of the grain curve gives geomean 1.00×, **1σ ≈ 43 %** (the honest out-of-sample number); Hernández/Chun held out (grain unknown → class default). The true generalization spread is ~40 %, dominated by ε_r variation the model can't see without grain data — NOT the overfit 18 %.
+
+3. **DC-bias `f_V` never validated → benchmark vs measured curve.** `simulator/dc_bias_bench.cjs` checks `f_V` against the [[vishay-x7r-cap-drift-dc-bias|Vishay Fig. 2]] curve (plotted in V/µm, no d_fired assumption). The shipped X7R sigmoid (`E₀=4, p=2`) **over-predicted bias loss ~2×** — gave −50 % at 4 V/µm vs measured −25 %; RMS-log-error 0.94 and OUT of the EPCI envelope. Recalibrated to **`E₀=7.6, p=1.45`** (measured fit, ±3 pp, RMS-log-error 0.037, inside EPCI band). [[dc-bias-derating]] updated with a superseded-values warning.
+
+Code: `tier1.js` (erGrain replaces VENDOR_ER_X7R; DCBIAS recalibrated), `test_tier1.cjs` (249→259 tests: held-out split, erGrain sanity, DC-bias-vs-Vishay ground-truth lock), new `dc_bias_bench.cjs`, `known_parts.cjs` (LOO-CV + held-out sections).
+
+Wiki: [[dc-bias-derating]] params corrected + warning; [[capacitance-simulation-from-recipe-and-geometry]] validation-status section (honest ±40 % headline). 210 pages, 0 dangling.
+
+---
+
 ## [2026-05-29] simulator | Per-vendor ε_r calibration + 30 known-geometry parts
 
 Major chip-sim accuracy upgrade. User asked: "Are there any product with known geometry design?" Answer: yes — extracted Liu CARTS 2014 Table III (24 commercial Ni-BaTiO₃ MLCCs with disclosed grain / d_fired / N_a) plus four single-source academic disclosures (Polotai 2007, Yoon 2020, Song 2017, Yan thesis 2013), then added Chun 2024 (3 SEMCO X7R) and Hernández-López 2018 (3 KEMET X7R).

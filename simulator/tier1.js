@@ -38,12 +38,23 @@
 
   // DC-bias sigmoid params: f_V = 1 / (1 + (E/E0)^p), E in V/µm
   // wiki/concepts/dc-bias-derating.md
+  //
+  // RECALIBRATED 2026-05-29 against the Vishay Fig. 2 measured X7R curve
+  // (simulator/dc_bias_bench.cjs). The previous X7R (E0=4, p=2) over-predicted
+  // bias loss ~2×: it gave −50 % at 4 V/µm where the measured curve shows −25 %,
+  // and RMS-log-error 0.935 vs the measured points. The best-fit (E0=7.6, p=1.45)
+  // matches Vishay Fig. 2 to ±3 pp and lands inside the EPCI cross-vendor
+  // envelope (−35…−65 % at rated) for a real 0805 X7R 10 µF 6.3 V part.
+  //
+  // X7R is the only class validated against a measured curve. X5R/X8R/Y5V are
+  // reasoned offsets (X5R worse, X8R better, Y5V much worse) pending per-class
+  // measured C(V_DC) data — they share the validated p = 1.45 shape.
   const DCBIAS = {
-    'C0G': { E0: 1e9, p: 1 },    // effectively none
-    'X5R': { E0: 3.0, p: 2 },
-    'X7R': { E0: 4.0, p: 2 },
-    'X8R': { E0: 5.0, p: 2 },
-    'Y5V': { E0: 1.5, p: 1.5 },
+    'C0G': { E0: 1e9, p: 1 },      // paraelectric — effectively no derating
+    'X5R': { E0: 5.7, p: 1.45 },   // X7R × 0.75 on E0 (thinner/higher-CV → worse)
+    'X7R': { E0: 7.6, p: 1.45 },   // measured fit to Vishay Fig. 2
+    'X8R': { E0: 9.5, p: 1.45 },   // X7R × 1.25 (automotive margin → better)
+    'Y5V': { E0: 2.0, p: 1.30 },   // much worse; rough — no measured curve yet
   };
 
   const EPS0 = 8.854187817e-12; // F/m
@@ -339,19 +350,35 @@
   // d_fired and h_Ni are FIRED dimensions in µm. C_rated is the cap a part of
   // these specs would carry on a datasheet (decoded from the original part ID).
 
-  // Per-vendor ε_r override. Back-fit from Liu CARTS 2014 Table III data so the
-  // forward predictions for that vendor's parts have geomean ratio ≈ 1.0×.
-  // Vendors anonymized in the source as A/B/C/P — these are unidentified but
-  // recurring across the Liu data. Adding `vendor: 'A'` to a KNOWN_PARTS entry
-  // routes it through this override.
-  const VENDOR_ER_X7R = {
-    // Calibrated from Liu CARTS 2014 Table III: ε_r_vendor = 3000 / geomean_at_default
-    'A': 3500,  // Mfr A geomean was 0.87× → ε_r ≈ 3000/0.87 = 3450, round to 3500
-    'B': 3000,  // Mfr B geomean was ~1.02× → default ε_r OK
-    'C': 3600,  // Mfr C geomean was 0.83× → ε_r ≈ 3614, fine-grain high-ε_r
-    'P': 9000,  // Mfr P geomean was 0.30× → ε_r ≈ 10000, coarse 0.77 µm grain
-                // hits the BaTiO3 grain-size ε_r peak (~0.8-1.2 µm regime)
-  };
+  // Grain-size permittivity curve — replaces the earlier per-vendor ε_r lookup.
+  //
+  // WHY: the old VENDOR_ER_X7R lookup (A/B/C/P → ε_r) was overfit — 4 free
+  // parameters fit to the same 24 Liu samples it was scored on, and it could
+  // never be applied to a real part (you don't know which anonymous band a
+  // Murata/TDK/Samsung part falls in). Diagnostic analysis showed the vendor
+  // bands were really a proxy for GRAIN SIZE: corr(grain, implied-ε_r) = 0.755,
+  // R² = 0.57. The "Mfr P → ε_r 9000" patch was just coarse 0.77 µm grain
+  // sitting on the rising limb of the BaTiO₃ grain-size ε_r curve.
+  //
+  // This curve is a least-squares fit of implied-ε_r vs grain over the 24 Liu
+  // X7R parts (excluding the A08X47416 transcription outlier):
+  //     ε_r,X7R(g) ≈ clamp(−600 + 10600·g_µm, 2000, 9000)
+  // Solving ε_r = 3000 gives g ≈ 0.34 µm — consistent with the modern
+  // thin-layer X7R grain used for the class default. See
+  // wiki/concepts/nano-grain-batio3-epsilon-r.md.
+  //
+  // It is a RISING-limb fit only (data spans 0.22–0.79 µm). Beyond ~0.9 µm the
+  // real curve peaks then declines toward bulk; we clamp at 9000 rather than
+  // extrapolate. Grain is unknown for most real parts → callers fall back to
+  // the class-default ε_r, which is honest (no per-vendor magic).
+  function erGrain(cls, grain_um) {
+    const base = CLASSES.find(c => c.id === cls).er;
+    if (cls === 'C0G') return base;          // paraelectric — grain-independent
+    if (grain_um == null) return base;        // no grain info → class default
+    const erX7R = Math.max(2000, Math.min(9000, -600 + 10600 * grain_um));
+    const X7R_DEFAULT = 3000;                 // CLASSES X7R.er
+    return erX7R * base / X7R_DEFAULT;         // scale other classes by their ratio
+  }
 
   const KNOWN_PARTS = [
     // ===== Liu CARTS 2014 Table III — 24 commercial samples =====
@@ -426,14 +453,11 @@
 
   // Resolve the ε_r to use for a KNOWN_PARTS entry. Priority:
   //   1. k.er_override — explicit per-part override (e.g., Song 2017 BTS-BCN back-fit)
-  //   2. VENDOR_ER_<cls>[k.vendor] — per-vendor band (Liu Mfr A/B/C/P)
-  //   3. CLASSES default for k.cls
+  //   2. erGrain(cls, grain_um) — physics curve when grain size is disclosed
+  //   3. CLASSES default for k.cls (when grain unknown — the honest fallback)
   function erForKnown(k) {
     if (k.er_override != null) return k.er_override;
-    if (k.vendor && k.cls === 'X7R' && VENDOR_ER_X7R[k.vendor] != null) {
-      return VENDOR_ER_X7R[k.vendor];
-    }
-    return CLASSES.find(x => x.id === k.cls).er;
+    return erGrain(k.cls, k.grain_um);
   }
 
   // Forward-compute the predicted C for a KNOWN_PARTS entry using its disclosed recipe.
@@ -582,13 +606,13 @@
   // ============================================================
 
   const api = {
-    CASES, CLASSES, DCBIAS, TCC_RANGES, EPS0, VENDOR_PARTS, KNOWN_PARTS, VENDOR_ER_X7R,
+    CASES, CLASSES, DCBIAS, TCC_RANGES, EPS0, VENDOR_PARTS, KNOWN_PARTS,
     SEMCO_SIZE_CODES, SEMCO_TCC_CODES, SEMCO_VOLTAGE_CODES, SEMCO_TOL_CODES,
     tccFactor, dcBiasFactor, compute,
     parseSemcoCL, decodeCapCode,
     fmtCap, fmt, defaultInputs,
     eDesign, dFiredFromV, hNiFromD, predictCMax, solveRecipe,
-    computeFromKnown, erForKnown,
+    computeFromKnown, erForKnown, erGrain,
   };
 
   if (typeof module !== 'undefined' && module.exports) {

@@ -130,9 +130,18 @@ What the wiki cannot do without new ingests:
 - **Predict `ε_r,nominal` from dopant composition alone.** Requires DFT or empirical fit to a specific vendor's data. Currently `ε_r,nominal` is a lookup, not a prediction.
 - **Predict reliability** (TTF, IR drift) from the recipe. The [[bme-reliability-model|Liu BME framework]] is there, but its parameters (`α, n, E_a`) are calibration constants from accelerated life test data — there's no first-principles route.
 
+## Validation status (measured, 2026-05-29)
+
+The Tier-1/2 accuracy targets above are *modeling* accuracy **given the recipe**. The simulator has now been benchmarked against real parts with publicly-disclosed geometry, which is a harder test because `ε_r` must be inferred:
+
+- **Capacitance vs 24 commercial X7R parts** (Liu CARTS 2014, full disclosed geometry): the geometric `C = ε_r·ε₀·A_eff·N/d` core predicts with **geomean ratio ≈ 1.0×** but a **1σ spread of ~43 %** (leave-one-out cross-validated). The spread is dominated by `ε_r` variation the model cannot see without grain data. A grain-size curve `ε_r(grain) = clamp(−600 + 10600·grain_µm, 2000, 9000)` (corr 0.76 with implied ε_r) replaced an earlier overfit per-vendor lookup that *looked* like 18 % but could not generalize. See `simulator/known_parts.cjs`.
+- **DC-bias `f_V` vs the [[vishay-x7r-cap-drift-dc-bias|Vishay Fig. 2]] measured curve**: after recalibration (X7R `E₀ = 7.6, p = 1.45`) the model matches to **±3 pp** (RMS-log-error 0.037, down from 0.94). The earlier `p = 2` code value over-predicted bias loss ~2×. See `simulator/dc_bias_bench.cjs`.
+
+**Honest headline:** capacitance prediction from case/class/V/C alone is **±40 % (1σ)**, not ±10 %, because `ε_r` is the uncontrolled variable. The ±10 % target is reachable only when grain size (or a vendor's actual ε_r) is known.
+
 ## Bottom line
 
-For a **design simulator that ranks recipes and predicts capacitance within ±10 %**, Tiers 1 + 2 are sufficient and entirely covered by the existing wiki. For **physically grounded predictions of process-induced deviations**, Tier 3 is the right framework; the wiki currently has the conceptual scaffolding and the SOVS implementation path published. The bottleneck is calibration measurements (free-tape dilatometry per recipe), not modeling capability.
+For a **design simulator that ranks recipes and predicts capacitance within ±10 %**, Tiers 1 + 2 are sufficient and entirely covered by the existing wiki **when the recipe (including grain size) is known** — see the validation note above for the accuracy when it is not. For **physically grounded predictions of process-induced deviations**, Tier 3 is the right framework; the wiki currently has the conceptual scaffolding and the SOVS implementation path published. The bottleneck is calibration measurements (free-tape dilatometry per recipe), not modeling capability.
 
 ## Open gaps worth ingesting
 

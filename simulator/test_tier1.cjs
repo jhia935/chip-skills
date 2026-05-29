@@ -125,16 +125,18 @@ const inp0 = t.defaultInputs();
   // C0G stays > 0.999 even at 100 V/µm
   ok('C0G DC-bias derating negligible at 100 V/µm', t.dcBiasFactor('C0G', 100) > 0.999);
 
-  // X7R at field = E0 = 4 V/µm → exactly 0.5
+  // X7R at field = E0 → exactly 0.5 (sigmoid midpoint, any E0)
   ok('X7R f_V at E = E0 is exactly 0.5',
     near(t.dcBiasFactor('X7R', t.DCBIAS['X7R'].E0), 0.5, 1e-9));
 
-  // X7R at 2× E0 → 0.2 (1 / (1+4))
-  ok('X7R f_V at 2× E0 ≈ 0.2',
-    near(t.dcBiasFactor('X7R', 2 * t.DCBIAS['X7R'].E0), 0.2, 1e-9));
+  // X7R at 2× E0 → 1/(1+2^p) for whatever p is configured (param-agnostic)
+  const px7r = t.DCBIAS['X7R'].p;
+  ok('X7R f_V at 2× E0 matches sigmoid',
+    near(t.dcBiasFactor('X7R', 2 * t.DCBIAS['X7R'].E0), 1 / (1 + Math.pow(2, px7r)), 1e-9));
 
-  // Y5V derates dramatically at low field — at 5 V/µm should be near 1/(1+(5/1.5)^1.5) ≈ 0.142
-  const expected = 1 / (1 + Math.pow(5 / 1.5, 1.5));
+  // Y5V derates dramatically at low field — compare to its own sigmoid params
+  const y5v = t.DCBIAS['Y5V'];
+  const expected = 1 / (1 + Math.pow(5 / y5v.E0, y5v.p));
   ok('Y5V f_V at 5 V/µm matches sigmoid',
     near(t.dcBiasFactor('Y5V', 5), expected, 1e-9));
 
@@ -479,46 +481,51 @@ function warningCodes(inp) {
 // ============================================================
 
 (function knownPartsRegression() {
-  // Compute the geomean ratio and per-vendor ratios for Liu Table III.
   const liu = t.KNOWN_PARTS.filter(k => k.src === 'liu-carts2014');
   ok('Liu Table III: 24 documented MLCCs in KNOWN_PARTS', liu.length === 24);
-
-  const ratios = [];
-  const byVendor = {};
-  for (const k of liu) {
-    const r = t.computeFromKnown(k);
-    if (!r) continue;
-    const ratio = r.C_pred_uF / k.C_uF;
-    ratios.push(ratio);
-    if (!byVendor[k.vendor]) byVendor[k.vendor] = [];
-    byVendor[k.vendor].push(ratio);
-  }
 
   function geoMean(arr) {
     return Math.exp(arr.map(Math.log).reduce((a, b) => a + b, 0) / arr.length);
   }
 
-  const gm = geoMean(ratios);
-  ok(`Liu Table III: geomean ratio centered (got ${gm.toFixed(3)}×, want 0.85–1.20)`,
-     gm >= 0.85 && gm <= 1.20);
-
-  // Per-vendor geomeans should each be reasonably close to 1.0× after the
-  // vendor ε_r tuning (excluding the A08X47416 transcription outlier).
-  for (const v of ['A', 'B', 'C', 'P']) {
-    if (!byVendor[v]) continue;
-    const filtered = byVendor[v].filter(r => r < 3); // drop the known outlier
-    const vgm = geoMean(filtered);
-    ok(`Liu Mfr ${v}: vendor-tuned geomean within ±25 % (got ${vgm.toFixed(2)}×)`,
-       vgm >= 0.75 && vgm <= 1.30);
+  // --- TRAIN set: Liu parts (the grain curve was fit on these) ---
+  const ratios = [];
+  for (const k of liu) {
+    const r = t.computeFromKnown(k);
+    if (!r) continue;
+    ratios.push(r.C_pred_uF / k.C_uF);
   }
 
-  // Hit-rate regression: at least 60 % within ±20 %, 85 % within ±50 %.
+  const gm = geoMean(ratios);
+  ok(`Liu train set: geomean ratio centered (got ${gm.toFixed(3)}×, want 0.85–1.20)`,
+     gm >= 0.85 && gm <= 1.20);
+
+  // Honest hit-rate floors with the grain curve (no longer the overfit
+  // vendor lookup). The true 1σ spread is ~34 %, so we expect ~40 % within
+  // ±20 % and ~85 % within ±50 %.
   const ok20 = ratios.filter(r => Math.abs(r - 1) < 0.20).length / ratios.length;
   const ok50 = ratios.filter(r => Math.abs(r - 1) < 0.50).length / ratios.length;
-  ok(`Liu Table III: ≥ 60 % of parts within ±20 % (got ${(ok20 * 100).toFixed(0)} %)`,
-     ok20 >= 0.60);
-  ok(`Liu Table III: ≥ 85 % of parts within ±50 % (got ${(ok50 * 100).toFixed(0)} %)`,
-     ok50 >= 0.85);
+  ok(`Liu train set: ≥ 35 % within ±20 % (got ${(ok20 * 100).toFixed(0)} %)`,
+     ok20 >= 0.35);
+  ok(`Liu train set: ≥ 75 % within ±50 % (got ${(ok50 * 100).toFixed(0)} %)`,
+     ok50 >= 0.75);
+
+  // --- HELD-OUT test set: parts the grain curve was NOT fit on. These have
+  //     no disclosed grain → fall through to the class-default ε_r, which is
+  //     exactly how a real (unknown-grain) part is handled. This is the
+  //     honest out-of-sample generalization check. ---
+  const heldOut = t.KNOWN_PARTS.filter(k =>
+    (k.src === 'hernandez-2018' || k.src === 'chun-2024-screp') &&
+    k.N_a != null && k.C_uF != null);
+  ok('Held-out test set is non-empty', heldOut.length >= 1);
+  for (const k of heldOut) {
+    const r = t.computeFromKnown(k);
+    if (!r) continue;
+    const ratio = r.C_pred_uF / k.C_uF;
+    // Held-out parts should still land within the model's honest ±2× band.
+    ok(`Held-out ${k.id}: prediction within 0.5–2.0× (got ${ratio.toFixed(2)}×)`,
+       ratio >= 0.5 && ratio <= 2.0);
+  }
 
   // Song 2017 graded part should round-trip exactly (it's a back-fit calibration)
   const song = t.KNOWN_PARTS.find(k => k.id === 'song-2017-graded');
@@ -530,18 +537,57 @@ function warningCodes(inp) {
        `predicted ${r.C_pred_uF.toFixed(3)} µF vs rated ${song.C_uF} µF`);
   }
 
-  // VENDOR_ER_X7R sanity
-  ok('VENDOR_ER_X7R defined for A/B/C/P',
-     ['A','B','C','P'].every(v => typeof t.VENDOR_ER_X7R[v] === 'number'));
-  ok('VENDOR_ER_X7R values in plausible range (500–15000)',
-     Object.values(t.VENDOR_ER_X7R).every(e => e >= 500 && e <= 15000));
+  // --- erGrain physics curve sanity ---
+  ok('erGrain rises with grain size',
+     t.erGrain('X7R', 0.3) < t.erGrain('X7R', 0.6));
+  ok('erGrain clamps floor at fine grain (≥ 2000)',
+     t.erGrain('X7R', 0.1) >= 2000);
+  ok('erGrain clamps ceiling at coarse grain (≤ 9000)',
+     t.erGrain('X7R', 1.5) <= 9000);
+  ok('erGrain falls back to class default when grain unknown',
+     t.erGrain('X7R', null) === t.CLASSES.find(c => c.id === 'X7R').er);
+  ok('erGrain is grain-independent for C0G (paraelectric)',
+     t.erGrain('C0G', 0.3) === t.erGrain('C0G', 0.8));
 
-  // erForKnown dispatch
-  const A_part = liu.find(k => k.vendor === 'A');
-  if (A_part) {
-    ok('erForKnown returns vendor-A ε_r for Mfr A part',
-       t.erForKnown(A_part) === t.VENDOR_ER_X7R['A']);
+  // erForKnown dispatch: a part with disclosed grain uses the grain curve
+  const grainPart = liu.find(k => k.grain_um != null && !k.er_override);
+  if (grainPart) {
+    ok('erForKnown uses grain curve for parts with disclosed grain',
+       t.erForKnown(grainPart) === t.erGrain(grainPart.cls, grainPart.grain_um));
   }
+})();
+
+// ============================================================
+// 13. Tier-2 DC-bias model validated against Vishay Fig. 2 measured curve
+//     (locks the f_V calibration so it can't silently regress; see
+//      simulator/dc_bias_bench.cjs for the full benchmark)
+// ============================================================
+
+(function dcBiasGroundTruth() {
+  // E (V/µm) → measured f_V from Vishay "Cap Drift of X7R under DC Bias" Fig. 2
+  const measured = [
+    { E: 2,  fV: 0.90 }, { E: 4, fV: 0.75 }, { E: 6, fV: 0.55 },
+    { E: 10, fV: 0.40 }, { E: 20, fV: 0.20 },
+  ];
+  // Each point must be within 8 percentage-points of measured.
+  for (const m of measured) {
+    const pred = t.dcBiasFactor('X7R', m.E);
+    ok(`X7R f_V at ${m.E} V/µm within 8 pp of measured (${(m.fV*100).toFixed(0)} %)`,
+       Math.abs(pred - m.fV) < 0.08,
+       `predicted ${(pred*100).toFixed(0)} %`);
+  }
+  // RMS-log-error guard: must stay well below the old (E0=4,p=2) value of 0.94.
+  const rms = Math.sqrt(measured.reduce((s, m) =>
+    s + Math.log(t.dcBiasFactor('X7R', m.E) / m.fV) ** 2, 0) / measured.length);
+  ok(`X7R DC-bias RMS-log-error < 0.10 (got ${rms.toFixed(3)})`, rms < 0.10);
+
+  // Class ordering: at a fixed field, X8R should retain more C than X7R,
+  // which retains more than X5R, which retains more than Y5V.
+  const E = 5;
+  ok('DC-bias class ordering X8R > X7R > X5R > Y5V at 5 V/µm',
+     t.dcBiasFactor('X8R', E) > t.dcBiasFactor('X7R', E) &&
+     t.dcBiasFactor('X7R', E) > t.dcBiasFactor('X5R', E) &&
+     t.dcBiasFactor('X5R', E) > t.dcBiasFactor('Y5V', E));
 })();
 
 // ============================================================

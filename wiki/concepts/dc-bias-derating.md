@@ -49,9 +49,20 @@ A sigmoid form fits empirical curves well:
 $$
 f_\text{VCC}(E) \;=\; \frac{1}{1 + (E/E_0)^p}
 $$
-- X7R: `E₀ ≈ 5 V/µm`, `p ≈ 1.3`
-- Y5V: `E₀ ≈ 1.5 V/µm`, `p ≈ 1.0` (drops near −90 % at rated V — [[murata-grm-series-tcc-data]])
+- **X7R: `E₀ ≈ 7.6 V/µm`, `p ≈ 1.45`** — *validated 2026-05-29* against the
+  [[vishay-x7r-cap-drift-dc-bias|Vishay Fig. 2]] measured curve (matches to ±3 pp;
+  RMS-log-error 0.037) and confirmed inside the EPCI cross-vendor envelope
+  (−35…−65 % at rated for an 0805 X7R 10 µF 6.3 V). See `simulator/dc_bias_bench.cjs`.
+- X5R: `E₀ ≈ 5.7 V/µm`, `p ≈ 1.45` (thinner/higher-CV → worse than X7R; offset, not measured)
+- X8R: `E₀ ≈ 9.5 V/µm`, `p ≈ 1.45` (automotive margin → better; offset, not measured)
+- Y5V: `E₀ ≈ 2.0 V/µm`, `p ≈ 1.3` (drops near −90 % at rated V — [[murata-grm-series-tcc-data]])
 - C0G: `f_VCC ≈ 1` (paraelectric, no domain effect)
+
+> [!warning] Superseded values
+> Earlier revisions of this page (`E₀ ≈ 5, p ≈ 1.3`) and of the simulator code
+> (`E₀ = 4, p = 2`) **over-predicted** DC-bias loss — the `p = 2` code value gave
+> −50 % at 4 V/µm where the measured Vishay curve shows −25 %. The benchmark in
+> `simulator/dc_bias_bench.cjs` caught this; the values above supersede both.
 
 ## Recipe-specific calibration from academic literature
 
