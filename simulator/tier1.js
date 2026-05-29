@@ -246,7 +246,27 @@
     // case-default size-scaled values from CASES.
     const em = inp.em != null ? inp.em : c.em;
     const sm = inp.sm != null ? inp.sm : c.sm;
-    const A_overlap_um2 = (c.L - 2 * em) * (c.W - 2 * sm);
+
+    // Geometry — two equivalent parameterizations:
+    //   PATTERN mode: caller supplies the print unit-cell active overlap
+    //     (overlapL × overlapW); the chip footprint is DERIVED as
+    //     L_chip = overlapL + 2·em, W_chip = overlapW + 2·sm (the dicing lanes
+    //     run through the margins). This is the manufacturing-native view.
+    //   CASE mode (fallback): no overlap supplied → overlap = case L,W minus
+    //     margins. Used by the calibration/known-parts path and the tests, so
+    //     their results are unchanged.
+    let overlapL_um, overlapW_um;
+    if (inp.overlapL != null && inp.overlapW != null) {
+      overlapL_um = inp.overlapL;
+      overlapW_um = inp.overlapW;
+    } else {
+      overlapL_um = c.L - 2 * em;
+      overlapW_um = c.W - 2 * sm;
+    }
+    const L_chip_um = overlapL_um + 2 * em;
+    const W_chip_um = overlapW_um + 2 * sm;
+
+    const A_overlap_um2 = overlapL_um * overlapW_um;
     const A_eff_um2     = A_overlap_um2 * inp.coverage * (1 - inp.disc);
     const d_fired_um    = inp.hBT * (1 - inp.sTotal);
     const hNi_fired_um  = inp.hNi * (1 - inp.sTotal);
@@ -262,10 +282,18 @@
     const f_V         = dcBiasFactor(inp.cls, E_applied);
     const C_derated_F = inp.tier2 ? (C_nominal_F * f_T * f_V) : C_nominal_F;
 
-    const chip_vol_mm3 = (c.L / 1000) * (c.W / 1000) * (H_stack_um / 1000);
+    const chip_vol_mm3 = (L_chip_um / 1000) * (W_chip_um / 1000) * (H_stack_um / 1000);
     const vol_density  = (C_derated_F * 1e6) / chip_vol_mm3;
 
     const warnings = [];
+    // Pattern footprint vs the selected case envelope (pattern mode only).
+    if (L_chip_um > c.L + 1 || W_chip_um > c.W + 1) {
+      warnings.push({ level: 'error', code: 'PATTERN_OVER',
+        msg: `Pattern footprint ${(L_chip_um/1000).toFixed(2)} × ${(W_chip_um/1000).toFixed(2)} mm exceeds the ${c.label.split('(')[0].trim()} envelope ${(c.L/1000).toFixed(2)} × ${(c.W/1000).toFixed(2)} mm. Shrink the overlap or margins.` });
+    } else if (L_chip_um < c.L - 1 || W_chip_um < c.W - 1) {
+      warnings.push({ level: 'info', code: 'PATTERN_UNDER',
+        msg: `Pattern footprint ${(L_chip_um/1000).toFixed(2)} × ${(W_chip_um/1000).toFixed(2)} mm is smaller than the ${c.label.split('(')[0].trim()} envelope — wasted area; you could enlarge the overlap.` });
+    }
     if (H_stack_um > c.Hmax) {
       warnings.push({ level: 'error', code: 'H_OVER',
         msg: `Stack H = ${(H_stack_um/1000).toFixed(2)} mm exceeds H_max ${(c.Hmax/1000).toFixed(2)} mm for ${c.label.split('(')[0].trim()}. Reduce N_e, h_BT, h_Ni, or cover.` });
@@ -294,6 +322,7 @@
 
     return {
       caseRec: c, clsRec: cls, em, sm,
+      overlapL_um, overlapW_um, L_chip_um, W_chip_um,
       A_overlap_um2, A_eff_um2, d_fired_um, hNi_fired_um, H_active_um, H_stack_um,
       C_nominal_F, C_derated_F, f_T, f_V, E_applied,
       chip_vol_mm3, vol_density, warnings,

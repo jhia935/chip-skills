@@ -138,9 +138,14 @@
   <div class="row"><label>Layer count N<sub>e</sub></label><input type="range" id="Ne" min="10" max="1000" step="1" value="300"><span class="val" id="Ne_val"></span></div>
   <div class="row"><label>Cover (µm/side)</label><input type="range" id="cover" min="20" max="100" step="1" value="40"><span class="val" id="cover_val"></span></div>
 
-  <h2>Margins <span style="text-transform:none;font-weight:400">(default to case size; override here)</span></h2>
+  <h2>Pattern — active overlap <span style="text-transform:none;font-weight:400">(print unit cell)</span></h2>
+  <div class="row"><label>Overlap length (µm)</label><input type="range" id="overlapL" min="100" max="6000" step="5" value="1530"><span class="val" id="overlapL_val"></span></div>
+  <div class="row"><label>Overlap width (µm)</label><input type="range" id="overlapW" min="50" max="5000" step="5" value="1000"><span class="val" id="overlapW_val"></span></div>
+
+  <h2>Margins <span style="text-transform:none;font-weight:400">(set-back per side)</span></h2>
   <div class="row"><label>End margin (µm)</label><input type="range" id="em" min="20" max="400" step="1" value="72"><span class="val" id="em_val"></span></div>
   <div class="row"><label>Side margin (µm)</label><input type="range" id="sm" min="10" max="300" step="1" value="30"><span class="val" id="sm_val"></span></div>
+  <div class="footer" id="chip_readout" style="margin-top:-4px;"></div>
 
   <h2>Process factors</h2>
   <div class="row"><label>Coverage</label><input type="range" id="coverage" min="0.70" max="0.98" step="0.01" value="0.85"><span class="val" id="coverage_val"></span></div>
@@ -220,6 +225,8 @@ function readInputs() {
     hNi:  parseFloat(document.getElementById('hNi').value),
     Ne:   parseInt(document.getElementById('Ne').value, 10),
     cover: parseFloat(document.getElementById('cover').value),
+    overlapL: parseFloat(document.getElementById('overlapL').value),
+    overlapW: parseFloat(document.getElementById('overlapW').value),
     em:   parseFloat(document.getElementById('em').value),
     sm:   parseFloat(document.getElementById('sm').value),
     coverage: parseFloat(document.getElementById('coverage').value),
@@ -236,6 +243,8 @@ function updateInputDisplays(inp) {
   document.getElementById('hNi_val').textContent      = inp.hNi.toFixed(1);
   document.getElementById('Ne_val').textContent       = inp.Ne;
   document.getElementById('cover_val').textContent    = inp.cover;
+  document.getElementById('overlapL_val').textContent = inp.overlapL;
+  document.getElementById('overlapW_val').textContent = inp.overlapW;
   document.getElementById('em_val').textContent       = inp.em;
   document.getElementById('sm_val').textContent       = inp.sm;
   document.getElementById('coverage_val').textContent = inp.coverage.toFixed(2);
@@ -278,9 +287,20 @@ function renderOutputs(r, inp) {
   document.getElementById('out_dfired_sub').textContent =
     `vol ${fmt(r.vol_density, 2)} µF/mm³ · chip ${fmt(r.chip_vol_mm3, 2)} mm³`;
 
+  // Chip footprint readout under the margin sliders (pattern → derived chip).
+  const fits = Math.abs(r.L_chip_um - r.caseRec.L) <= 1 && Math.abs(r.W_chip_um - r.caseRec.W) <= 1;
+  const over = r.L_chip_um > r.caseRec.L + 1 || r.W_chip_um > r.caseRec.W + 1;
+  document.getElementById('chip_readout').innerHTML =
+    `Pattern → chip <b>${r.L_chip_um} × ${r.W_chip_um} µm</b> ` +
+    (fits ? `<span style="color:#2a8a3e">= ${r.caseRec.label.split('(')[0].trim()} ✓</span>`
+          : over ? `<span style="color:var(--err-border)">&gt; case envelope ${r.caseRec.L} × ${r.caseRec.W} ✗</span>`
+                 : `<span style="color:var(--warn-border)">&lt; case envelope ${r.caseRec.L} × ${r.caseRec.W}</span>`);
+
   const rows = [
-    ['Case L × W',           `${r.caseRec.L} × ${r.caseRec.W} µm`],
-    ['End / side margin',    `${r.em} / ${r.sm} µm` + (r.em !== r.caseRec.em || r.sm !== r.caseRec.sm ? ' (override)' : '')],
+    ['Case envelope',        `${r.caseRec.L} × ${r.caseRec.W} µm`],
+    ['Pattern overlap (L×W)',`${r.overlapL_um} × ${r.overlapW_um} µm`],
+    ['Derived chip (L×W)',   `${r.L_chip_um} × ${r.W_chip_um} µm`],
+    ['End / side margin',    `${r.em} / ${r.sm} µm`],
     ['A_overlap',            fmt(r.A_overlap_um2 / 1e6, 3, ' mm²')],
     ['A_eff',                fmt(r.A_eff_um2 / 1e6, 3, ' mm²')],
     ['Active stack height',  fmt(r.H_active_um / 1000, 3, ' mm')],
@@ -481,7 +501,7 @@ function onSolveRecipe() {
   setSlider('sTotal',   0.14);
   setSlider('disc',     0.15);
   // solveRecipe uses the case-default margins internally — sync the sliders.
-  syncMarginsToCase();
+  syncPatternToCase();
   // Set V_DC default to the rated V for a worst-case view (user can dial back)
   setSlider('vdc',      Math.min(V_rated, 50));
 
@@ -501,13 +521,17 @@ function setSlider(id, v) {
   el.value = Math.max(min, Math.min(max, v));
 }
 
-// Reset the margin sliders to the selected case's size-scaled defaults.
-// Called at boot and whenever the case changes; the user can still override.
-function syncMarginsToCase() {
+// Reset the pattern + margin sliders to the selected case's defaults: margins
+// to the case size-scaled values, and the active overlap to fill the case
+// footprint (overlap = case dimension − 2·margin). Called at boot, on case
+// change, and after Solve-recipe; the user can then drive the pattern freely.
+function syncPatternToCase() {
   const c = CASES.find(x => x.id === document.getElementById('caseSize').value);
   if (!c) return;
   setSlider('em', c.em);
   setSlider('sm', c.sm);
+  setSlider('overlapL', c.L - 2 * c.em);
+  setSlider('overlapW', c.W - 2 * c.sm);
 }
 
 // ============================================================
@@ -515,10 +539,10 @@ function syncMarginsToCase() {
 // ============================================================
 
 populateDropdowns();
-syncMarginsToCase();
+syncPatternToCase();
 initCharts();
 document.querySelectorAll('input, select').forEach(el => el.addEventListener('input', update));
-document.getElementById('caseSize').addEventListener('change', () => { syncMarginsToCase(); update(); });
+document.getElementById('caseSize').addEventListener('change', () => { syncPatternToCase(); update(); });
 document.getElementById('solve_btn').addEventListener('click', onSolveRecipe);
 update();
 </script>

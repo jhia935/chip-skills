@@ -71,6 +71,29 @@ const inp0 = t.defaultInputs();
   ok('High shrinkage (0.6) computes finitely and raises C',
     isFinite(rHiS.C_nominal_F) && rHiS.C_nominal_F > r0.C_nominal_F);
 
+  // Pattern mode: supplying overlapL/overlapW == case mode when the pattern
+  // exactly fills the case (overlap = case − 2·margin).
+  const cb = t.CASES.find(x => x.id === inp0.case);
+  const rPat = t.compute({ ...inp0, tier2: false,
+    overlapL: cb.L - 2 * cb.em, overlapW: cb.W - 2 * cb.sm, em: cb.em, sm: cb.sm });
+  ok('Pattern mode filling the case == case mode',
+    near(rPat.C_nominal_F, r0.C_nominal_F, 1e-9));
+  ok('Pattern mode derives chip footprint = case',
+    rPat.L_chip_um === cb.L && rPat.W_chip_um === cb.W);
+
+  // Pattern smaller than the case → less area → less C, and an info warning.
+  const rSmall = t.compute({ ...inp0, tier2: false,
+    overlapL: (cb.L - 2 * cb.em) / 2, overlapW: cb.W - 2 * cb.sm, em: cb.em, sm: cb.sm });
+  ok('Pattern C ∝ overlap area', near(rSmall.C_nominal_F, r0.C_nominal_F / 2, 1e-9));
+  ok('Under-size pattern flags PATTERN_UNDER',
+    rSmall.warnings.some(w => w.code === 'PATTERN_UNDER'));
+
+  // Pattern bigger than the case envelope → PATTERN_OVER error.
+  const rBig = t.compute({ ...inp0, tier2: false,
+    overlapL: cb.L, overlapW: cb.W, em: cb.em, sm: cb.sm });
+  ok('Over-size pattern flags PATTERN_OVER',
+    rBig.warnings.some(w => w.code === 'PATTERN_OVER'));
+
   // C scales with ε_r — derive the expected ratio from CLASSES so the test
   // stays correct if the calibrated ε_r values are tuned later.
   const rC0G = t.compute({ ...inp0, tier2: false, cls: 'C0G' });
