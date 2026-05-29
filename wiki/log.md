@@ -11,6 +11,27 @@ Chronological record of wiki operations. Newest entries first.
 
 ---
 
+## [2026-05-29] simulator+ingest | Dielectric thickness floor — fix C_max envelope for small high-CV parts
+
+Triggered by a real part: Samsung CL03A475 (0201, X5R, 4.7 µF, 6.3 V). The simulator claimed an 0201 "tops ~200 nF" — wrong by ~25×. Root-caused two compounding bugs and a stale assumption, fixed the code, and ingested the underlying manufacturing physics.
+
+Root causes:
+1. **Constant margins don't scale** — `em=125, sm=100 µm` consume 67 % of a 0.3 mm-wide 0201 (vs ~3.3× more active area with realistic ~35–50 µm margins).
+2. **No dielectric thickness floor** — `predictCMax` used `d = V/E_design` (0.63 µm at 6.3 V) with no manufacturing limit; the real driver of thin layers is the grains-per-layer rule + tape-casting rheology, not voltage.
+3. **Stale volumetric ceiling** — the "4 µF/mm³" I cited was ~2012 NASA-era; modern parts hit ~40 µF/mm³.
+
+Code (`tier1.js`): added `cmaxEnvelope()` — the absolute manufacturing ceiling using bleeding-edge geometry: `d = max(D_FLOOR_FRONTIER=0.25 µm, V/E_MAX_FIELD=30)`, size-scaled margins (`em=max(35, 0.06·L)`, `sm=max(25, 0.06·W)`), thin electrode, high coverage. Kept `predictCMax`/`solveRecipe`/`compute` untouched (additive) so the grain-ε_r and held-out validations are unaffected. UI tile switched to `cmaxEnvelope`. Tests 259 → **293**. Now: 0201 X5R 6.3 V envelope ≈ 5.8 µF → CL03A475 (4.7 µF) feasible ✓; KYOCERA 0201 10 µF correctly flagged as beyond-frontier; 0 violations across all VENDOR_PARTS.
+
+Wiki ingest — the manufacturing-physics basis:
+- [[dielectric-layer-thickness-floor]] (new concept) — three coupled constraints: (1) ≥3–5 grains/layer reliability rule → 0.3–0.5 µm with 100 nm grain; (2) powder→binder→solid-loading wall (finer powder needs more binder, lowers castable solids); (3) tape casting tops out ~400 nm production, sub-1 µm only with 20–25 nm nanopowder. Floor: ~0.4–0.5 µm mainstream, ~0.25 µm frontier, **<0.2 µm unreachable in volume**.
+- [[kyocera-thin-mlcc-roadmap]] (new source) — KYOCERA 0201 10 µF (4 V, 0.45 µm electrode, >90 % coverage); bleeding-edge frontier anchor.
+- [[aqueous-tape-casting-ultrathin-batio3-2025]] (new source) — 180–300 nm production powder, 50–55 vol% solids / 35–43 vol% binder, ~400 nm fired floor.
+- [[layer-thickness-and-metal-ceramic-ratio]] updated with the rheology floor + cross-ref.
+
+Honest correction recorded: my "0.15–0.2 µm dielectric" reconciliation of the KYOCERA part was unphysical — the user was right. Real CL03A475 sits at ~0.3 µm; the lever for tiny high-CV is tighter margins + thinner electrodes + more layers down to the floor, not sub-0.2 µm dielectric. Wiki 213 pages, 0 dangling.
+
+---
+
 ## [2026-05-29] simulator | Critical review fixes: grain-size ε_r, held-out validation, DC-bias benchmark
 
 Critical performance review of the simulator surfaced three problems; all fixed.

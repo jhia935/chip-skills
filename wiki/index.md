@@ -115,6 +115,7 @@ A catalog of all pages in this wiki, organized by category. See [[overview]] for
 - [[tetragonality-c-a-ratio]] — c/a lattice ratio; structural parameter that controls DC-bias robustness and T_C shift magnitude.
 - [[class-specific-tc-engineering]] — Why each MLCC class has its own T_C; dopant-slope table (Zr −4.1, Sr −3, Pb +4, BiYbO₃ +10 K at 0.005 mol%) and class-by-class compositional summary.
 - [[bi-lone-pair-doping]] — Bi³⁺ 6s² lone-pair drives local distortion; Pb²⁺-equivalent T_C-up shifter without Pb; foundation of modern X8R/X9R compositions.
+- [[dielectric-layer-thickness-floor]] — Why fired dielectric can't go below ~0.25–0.5 µm: grains-per-layer rule + powder/binder/solid-loading wall + tape-casting limit. 0.15–0.2 µm is unreachable in volume.
 - [[ac-dc-capacitance-mapping]] — Joint `C(V_AC, V_DC)` surface; charge-based Q(V) formulation; three regimes; recipe-aware Tier 3 simulator path.
 - [[three-capacitance-definitions]] — Local `dQ/dV`, total `Q/V`, large-signal `ΔQ/ΔV`; diverge by up to 30 % for non-linear MLCCs; application chooses the right one.
 - [[green-tape-shrinkage-anisotropy]] — Drying + burnout + sintering shrinkage stages; powder shape, tape thickness, binder/metal content trade-offs.
@@ -226,6 +227,8 @@ A catalog of all pages in this wiki, organized by category. See [[overview]] for
 - [[ben-yaakov-2025-nonlinear-capacitance-definition]] — EPCI 2025; three distinct capacitance definitions (local, total, large-signal) for non-linear MLCCs; application chooses.
 - [[chun-2024-screp-batio3-mlcc-degradation]] — Sci. Rep. 2024; three SEMCO X7R prototypes with disclosed case + cap + V + d_fired; implies ε_r ≈ 6000 for modern thin-layer.
 - [[hernandez-lopez-2018-kemet-x7r-halt]] — Materials 2018; KEMET 0603-class HV X7R with full geometry (7.5 µm × 68 layers) + Ca doping variants.
+- [[kyocera-thin-mlcc-roadmap]] — KYOCERA roadmap + 2023 0201 10 µF (4 V, 0.45 µm electrode, > 90 % coverage); bleeding-edge thin-layer frontier.
+- [[aqueous-tape-casting-ultrathin-batio3-2025]] — tape-casting powder/binder/solid-loading limits; 180–300 nm production powder, ~400 nm fired floor, sub-1 µm only with 20–25 nm nanopowder.
 
 ### Patents
 - [[us-4115493-murata-sakabe-1978-bme-foundational]] — Sakabe & Seno 1978; the foundational Ca-doped BaTiO₃ non-reducing dielectric that enabled Ni-electrode MLCC; expired 1997. Composition `{(Ba₁₋ₓCaₓ)O}ₘ(Ti₁₋ᵧZrᵧ)O₂` with m=1.005-1.03, x=0.02-0.22.

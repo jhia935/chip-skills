@@ -202,7 +202,7 @@
 
 <script>
 // DOM glue. All math lives in tier1.js (exposed as window.tier1).
-const { CASES, CLASSES, VENDOR_PARTS, compute, fmtCap, fmt, solveRecipe, predictCMax } = window.tier1;
+const { CASES, CLASSES, VENDOR_PARTS, compute, fmtCap, fmt, solveRecipe, predictCMax, cmaxEnvelope } = window.tier1;
 
 // ============================================================
 // Read / display inputs
@@ -247,10 +247,11 @@ function renderOutputs(r, inp) {
     inp.tier2 ? `at ${inp.top}°C, ${inp.vdc} V (×${(r.f_T*r.f_V).toFixed(2)} from nominal)` : 'Tier 1 only';
   document.getElementById('out_Cnom').textContent   = fmtCap(r.C_nominal_F);
 
-  // C_max envelope for the current (case, class) at the V_rated input
+  // Absolute capacitance envelope (bleeding-edge geometry + grain/casting
+  // d-floor) for the current (case, class) at the V_rated input.
   const V_rated = parseFloat(document.getElementById('V_rated').value) || 50;
   let cmax;
-  try { cmax = predictCMax({ case: inp.case, cls: inp.cls, V: V_rated }); } catch (e) { cmax = null; }
+  try { cmax = cmaxEnvelope({ case: inp.case, cls: inp.cls, V: V_rated }); } catch (e) { cmax = null; }
   const bar = document.getElementById('fill_bar');
   if (cmax) {
     const pct = r.C_nominal_F / cmax.C_max_F * 100;

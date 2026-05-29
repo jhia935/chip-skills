@@ -52,7 +52,7 @@ As `h_BT` decreases at fixed `h_Ni`:
 - Per-layer strain anisotropy `ε_a − ε_r` rises from ~0.07 to ~0.15.
 - Capacitance per layer rises 4×; chip capacitance density rises 4× if `N_e` is held constant, or 16× if `N_e` is also scaled to fill the same chip height.
 
-**There's a floor**: when `h_BT < ~ 4 d_grain`, the dielectric loses Schottky-barrier integrity ([[heywang-jonker-model]]) and reliability degrades catastrophically. Current limit is `h_BT ≈ 0.3 µm` with 50–80 nm BT grains.
+**There's a floor**: when `h_BT < ~ 4 d_grain`, the dielectric loses Schottky-barrier integrity ([[heywang-jonker-model]]) and reliability degrades catastrophically. Current limit is `h_BT ≈ 0.3 µm` with 50–80 nm BT grains. The floor is not just electrical — it is also set by **tape-casting slurry rheology**: finer powder needs more binder, lowering castable solid loading. See [[dielectric-layer-thickness-floor]] for the full grains-per-layer + powder/binder + casting analysis (mainstream floor ~0.4–0.5 µm, bleeding-edge frontier ~0.25 µm, sub-0.2 µm unreachable in volume tape casting).
 
 ## h_Ni (electrode thickness) — DEM-quantified
 

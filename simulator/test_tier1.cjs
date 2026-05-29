@@ -476,6 +476,55 @@ function warningCodes(inp) {
 })();
 
 // ============================================================
+// 11b. cmaxEnvelope — absolute manufacturing ceiling (bleeding-edge geometry
+//      + grain/casting d-floor). Fixes the 0201 high-CV under-prediction.
+// ============================================================
+
+(function cmaxEnvelopeTests() {
+  // Real catalog part: Samsung CL03A475 = 0201 X5R 4.7 µF 6.3 V. The envelope
+  // MUST admit it (the old predictCMax wrongly capped 0201 at ~0.2 µF).
+  const e = t.cmaxEnvelope({ case: '0201_0603', cls: 'X5R', V: 6.3 });
+  ok(`cmaxEnvelope admits CL03A475 (0201 X5R 4.7µF): C_max ${e.C_max_uF.toFixed(2)} µF ≥ 4.7`,
+     e.C_max_uF >= 4.7);
+
+  // Envelope must be ≥ the typical-design predictCMax for the same spec.
+  const typ = t.predictCMax({ case: '0201_0603', cls: 'X5R', V: 6.3 });
+  ok('cmaxEnvelope ≥ predictCMax (frontier ≥ typical)',
+     e.C_max_uF >= typ.C_max_uF);
+
+  // Dielectric never goes below the physical frontier floor.
+  for (const V of [2.5, 4, 6.3, 10]) {
+    const ev = t.cmaxEnvelope({ case: '0402_1005', cls: 'X5R', V });
+    ok(`cmaxEnvelope d_fired ≥ frontier floor at ${V} V (got ${ev.d_fired_um.toFixed(3)} µm)`,
+       ev.d_fired_um >= t.D_FLOOR_FRONTIER - 1e-9);
+  }
+
+  // High voltage is breakdown-field-limited, not floored.
+  const hv = t.cmaxEnvelope({ case: '1206_3216', cls: 'X7R', V: 200 });
+  ok('cmaxEnvelope d_fired tracks V/E_MAX at high voltage (200 V → ~6.7 µm)',
+     Math.abs(hv.d_fired_um - 200 / t.E_MAX_FIELD) < 1e-6);
+
+  // Margins scale with case size (the bug fix): a 0201 has smaller absolute
+  // margins than an 0805.
+  const e0201 = t.cmaxEnvelope({ case: '0201_0603', cls: 'X7R', V: 16 });
+  const e0805 = t.cmaxEnvelope({ case: '0805_2012', cls: 'X7R', V: 16 });
+  ok('cmaxEnvelope margins scale with case (0201 sm < 0805 sm)',
+     e0201.sm < e0805.sm);
+
+  // No real vendor part may exceed its absolute envelope.
+  for (const p of t.VENDOR_PARTS) {
+    const env = t.cmaxEnvelope({ case: p.case, cls: p.cls, V: p.V });
+    ok(`cmaxEnvelope admits ${p.pn} (${p.C_uF} µF ≤ ${env.C_max_uF.toFixed(1)})`,
+       p.C_uF <= env.C_max_uF);
+  }
+
+  // Bigger case → bigger envelope.
+  ok('cmaxEnvelope larger for bigger case',
+     t.cmaxEnvelope({ case: '1210_3225', cls: 'X7R', V: 25 }).C_max_uF >
+     t.cmaxEnvelope({ case: '0805_2012', cls: 'X7R', V: 25 }).C_max_uF);
+})();
+
+// ============================================================
 // 12. KNOWN_PARTS calibration (regression coverage for the
 //     forward-prediction accuracy against documented academic parts)
 // ============================================================

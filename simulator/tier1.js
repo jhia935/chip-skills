@@ -529,8 +529,57 @@
     return Math.max(0.5, 0.7 * d_fired);
   }
 
-  // Given (case, class, V_rated), forward-predict C_max — the upper-bound
-  // capacitance achievable in that case at that V with maximum layer count.
+  // ── Manufacturing limits for the absolute capacitance envelope ──
+  // The thinnest fired dielectric is set NOT by voltage but by the powder /
+  // tape-casting / grains-per-layer floor (see
+  // wiki/concepts/dielectric-layer-thickness-floor.md):
+  //   • reliability needs ≥ 3 grains across a layer;
+  //   • production BaTiO₃ grain is ~100 nm and tape casting can't reliably cast
+  //     finer without the slurry rheology collapsing (finer powder → more
+  //     surface area → more binder → lower solid loading → defects);
+  //   → fired-d frontier ≈ 0.25 µm (KYOCERA 2023-class), mainstream ≈ 0.4–0.5 µm.
+  // Below ~0.3 µm requires deposition beyond tape casting; 0.15–0.2 µm is NOT
+  // reachable in a volume MLCC.
+  const D_FLOOR_FRONTIER = 0.25;  // µm — absolute bleeding-edge fired dielectric
+  const E_MAX_FIELD = 30;          // V/µm — aggressive max-CV working field
+
+  // Absolute capacitance envelope — the MOST capacitance physically achievable
+  // in a case/class/V using best-in-class construction: dielectric thinned to
+  // the frontier floor (or the breakdown-field limit, whichever is thicker),
+  // tight SIZE-SCALED margins, thin electrodes, high coverage. This is the
+  // honest "can a part with this spec exist?" ceiling.
+  //
+  // Distinct from predictCMax() below, which reports the ceiling at a TYPICAL
+  // (conservative) design point and is what solveRecipe() builds against.
+  function cmaxEnvelope(spec) {
+    const c   = CASES.find(x => x.id === spec.case);
+    const cls = CLASSES.find(x => x.id === spec.cls);
+    if (!c)   throw new Error(`Unknown case id: ${spec.case}`);
+    if (!cls) throw new Error(`Unknown class id: ${spec.cls}`);
+
+    // Thinnest manufacturable fired dielectric at rated V.
+    const d_fired_um = Math.max(D_FLOOR_FRONTIER, spec.V / E_MAX_FIELD);
+    const h_Ni_fired = Math.max(0.30, 0.6 * d_fired_um);   // thin frontier electrode
+    // Tight margins that SCALE with case size (the bug fix): constants like the
+    // CASES em/sm consume a tiny 0201 but are fine on an 0805.
+    const em = Math.max(35, 0.06 * c.L);
+    const sm = Math.max(25, 0.06 * c.W);
+    const coverage = 0.92, disc = 0.08, cover = 40;
+
+    const A_eff_um2 = (c.L - 2 * em) * (c.W - 2 * sm) * coverage * (1 - disc);
+    const N_e_max   = Math.floor((c.Hmax - 2 * cover) / (d_fired_um + h_Ni_fired));
+    const C_max_F   = cls.er * EPS0 * A_eff_um2 * 1e-12 * N_e_max / (d_fired_um * 1e-6);
+
+    return {
+      caseRec: c, clsRec: cls,
+      d_fired_um, h_Ni_fired, em, sm, N_e_max,
+      A_eff_um2, C_max_F, C_max_uF: C_max_F * 1e6,
+    };
+  }
+
+  // Given (case, class, V_rated), forward-predict C_max at the part's TYPICAL
+  // design point (conservative per-case margins + eDesign dielectric thickness).
+  // For the absolute "best achievable" ceiling use cmaxEnvelope() instead.
   function predictCMax(spec) {
     const c   = CASES.find(x => x.id === spec.case);
     const cls = CLASSES.find(x => x.id === spec.cls);
@@ -611,8 +660,9 @@
     tccFactor, dcBiasFactor, compute,
     parseSemcoCL, decodeCapCode,
     fmtCap, fmt, defaultInputs,
-    eDesign, dFiredFromV, hNiFromD, predictCMax, solveRecipe,
+    eDesign, dFiredFromV, hNiFromD, predictCMax, cmaxEnvelope, solveRecipe,
     computeFromKnown, erForKnown, erGrain,
+    D_FLOOR_FRONTIER, E_MAX_FIELD,
   };
 
   if (typeof module !== 'undefined' && module.exports) {
