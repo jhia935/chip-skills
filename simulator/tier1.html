@@ -32,8 +32,9 @@
   .container { display: grid; grid-template-columns: 340px 1fr; gap: 16px; max-width: 1400px; margin: 0 auto; }
   .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
   .inputs { position: sticky; top: 16px; align-self: start; max-height: calc(100vh - 32px); overflow-y: auto; }
-  .row { display: grid; grid-template-columns: 110px 1fr 60px; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .row { display: grid; grid-template-columns: 100px 1fr 46px 26px; gap: 8px; align-items: center; margin-bottom: 10px; }
   .row label { font-size: 12px; color: var(--muted); }
+  .row .unit { font-size: 11px; color: var(--muted); text-align: left; }
   .row input[type=range] { width: 100%; }
   .row .val { font-variant-numeric: tabular-nums; text-align: right; font-size: 12px; }
   .row input.numin {
@@ -140,36 +141,36 @@
   </div>
 
   <h2>Layer dimensions</h2>
-  <div class="row"><label>h_BT green (µm)</label><input type="range" id="hBT" min="0.3" max="10" step="0.1" value="2.0"><input type="number" class="numin" id="hBT_num"></div>
-  <div class="row"><label>h_Ni green (µm)</label><input type="range" id="hNi" min="0.2" max="3" step="0.1" value="1.0"><input type="number" class="numin" id="hNi_num"></div>
-  <div class="row"><label>Layer count N<sub>e</sub></label><input type="range" id="Ne" min="10" max="1000" step="1" value="300"><input type="number" class="numin" id="Ne_num"></div>
-  <div class="row"><label>Cover (µm/side)</label><input type="range" id="cover" min="20" max="100" step="1" value="40"><input type="number" class="numin" id="cover_num"></div>
+  <div class="row"><label>h_BT green</label><input type="range" id="hBT" min="0.3" max="10" step="0.1" value="2.0"><input type="number" class="numin" id="hBT_num"><span class="unit">µm</span></div>
+  <div class="row"><label>h_Ni green</label><input type="range" id="hNi" min="0.2" max="3" step="0.1" value="1.0"><input type="number" class="numin" id="hNi_num"><span class="unit">µm</span></div>
+  <div class="row"><label>Layer count N<sub>e</sub></label><input type="range" id="Ne" min="10" max="1000" step="1" value="300"><input type="number" class="numin" id="Ne_num"><span class="unit"></span></div>
+  <div class="row"><label>Cover /side</label><input type="range" id="cover" min="20" max="100" step="1" value="40"><input type="number" class="numin" id="cover_num"><span class="unit">µm</span></div>
 
   <h2>Pattern — active overlap <span style="text-transform:none;font-weight:400">(as-printed / green)</span></h2>
-  <div class="row"><label>Overlap length green (µm)</label><input type="range" id="overlapL" min="100" max="7000" step="5" value="1779"><input type="number" class="numin" id="overlapL_num"></div>
-  <div class="row"><label>Overlap width green (µm)</label><input type="range" id="overlapW" min="50" max="6000" step="5" value="1163"><input type="number" class="numin" id="overlapW_num"></div>
+  <div class="row"><label>Overlap L green</label><input type="range" id="overlapL" min="100" max="7000" step="5" value="1779"><input type="number" class="numin" id="overlapL_num"><span class="unit">µm</span></div>
+  <div class="row"><label>Overlap W green</label><input type="range" id="overlapW" min="50" max="6000" step="5" value="1163"><input type="number" class="numin" id="overlapW_num"><span class="unit">µm</span></div>
 
   <h2>Margins <span style="text-transform:none;font-weight:400">(set-back per side)</span></h2>
-  <div class="row"><label>End margin (µm)</label><input type="range" id="em" min="20" max="400" step="1" value="72"><input type="number" class="numin" id="em_num"></div>
-  <div class="row"><label>Side margin (µm)</label><input type="range" id="sm" min="10" max="300" step="1" value="30"><input type="number" class="numin" id="sm_num"></div>
+  <div class="row"><label>End margin</label><input type="range" id="em" min="20" max="400" step="1" value="72"><input type="number" class="numin" id="em_num"><span class="unit">µm</span></div>
+  <div class="row"><label>Side margin</label><input type="range" id="sm" min="10" max="300" step="1" value="30"><input type="number" class="numin" id="sm_num"><span class="unit">µm</span></div>
 
   <h2>Size tolerance <span style="text-transform:none;font-weight:400">(± over nominal, µm)</span></h2>
-  <div class="row"><label>L tolerance ±</label><input type="range" id="Ltol" min="0" max="500" step="5" value="50"><input type="number" class="numin" id="Ltol_num"></div>
-  <div class="row"><label>W tolerance ±</label><input type="range" id="Wtol" min="0" max="500" step="5" value="50"><input type="number" class="numin" id="Wtol_num"></div>
+  <div class="row"><label>L tolerance ±</label><input type="range" id="Ltol" min="0" max="500" step="5" value="50"><input type="number" class="numin" id="Ltol_num"><span class="unit">µm</span></div>
+  <div class="row"><label>W tolerance ±</label><input type="range" id="Wtol" min="0" max="500" step="5" value="50"><input type="number" class="numin" id="Wtol_num"><span class="unit">µm</span></div>
   <div class="footer" id="chip_readout" style="margin-top:-4px;"></div>
 
   <h2>Process factors</h2>
-  <div class="row"><label>Coverage</label><input type="range" id="coverage" min="0.70" max="0.98" step="0.01" value="0.85"><input type="number" class="numin" id="coverage_num"></div>
-  <div class="row"><label>Shrinkage s</label><input type="range" id="sTotal" min="0.05" max="0.70" step="0.01" value="0.14"><input type="number" class="numin" id="sTotal_num"></div>
-  <div class="row"><label>Discontinuity</label><input type="range" id="disc" min="0.00" max="0.40" step="0.01" value="0.20"><input type="number" class="numin" id="disc_num"></div>
+  <div class="row"><label>Coverage</label><input type="range" id="coverage" min="0.70" max="0.98" step="0.01" value="0.85"><input type="number" class="numin" id="coverage_num"><span class="unit"></span></div>
+  <div class="row"><label>Shrinkage s</label><input type="range" id="sTotal" min="0.05" max="0.70" step="0.01" value="0.14"><input type="number" class="numin" id="sTotal_num"><span class="unit"></span></div>
+  <div class="row"><label>Discontinuity</label><input type="range" id="disc" min="0.00" max="0.40" step="0.01" value="0.20"><input type="number" class="numin" id="disc_num"><span class="unit"></span></div>
 
   <h2>Operating point (Tier 2 overlay)</h2>
   <div class="toggle-row">
     <input type="checkbox" id="tier2on" checked>
     <label for="tier2on">Apply DC bias + TCC corrections</label>
   </div>
-  <div class="row"><label>V_DC (V)</label><input type="range" id="vdc" min="0" max="50" step="0.5" value="0"><input type="number" class="numin" id="vdc_num"></div>
-  <div class="row"><label>T_op (°C)</label><input type="range" id="top" min="-55" max="150" step="1" value="25"><input type="number" class="numin" id="top_num"></div>
+  <div class="row"><label>V_DC</label><input type="range" id="vdc" min="0" max="50" step="0.5" value="0"><input type="number" class="numin" id="vdc_num"><span class="unit">V</span></div>
+  <div class="row"><label>T_op</label><input type="range" id="top" min="-55" max="150" step="1" value="25"><input type="number" class="numin" id="top_num"><span class="unit">°C</span></div>
 </aside>
 
 <main class="panel">
