@@ -302,7 +302,8 @@
     // Pattern footprint vs the selected case TOLERANCE band [nominal ± tol].
     // Real parts run oversized within tolerance, so the ceiling is the MAX
     // (nominal + tol), not the nominal value.
-    const Ltol = c.Ltol || 0, Wtol = c.Wtol || 0;
+    const Ltol = inp.Ltol != null ? inp.Ltol : (c.Ltol || 0);
+    const Wtol = inp.Wtol != null ? inp.Wtol : (c.Wtol || 0);
     const Lmax = c.L + Ltol, Wmax = c.W + Wtol, Lmin = c.L - Ltol, Wmin = c.W - Wtol;
     if (L_chip_um > Lmax + 1 || W_chip_um > Wmax + 1) {
       warnings.push({ level: 'error', code: 'PATTERN_OVER',
@@ -621,7 +622,10 @@
     const h_Ni_fired = Math.max(0.30, 0.6 * d_fired_um);   // thin frontier electrode
     // Build to the MAX footprint (nominal + dimensional tolerance): a high-CV
     // part legitimately ships oversized to capture the extra electrode area.
-    const Lmax = c.L + (c.Ltol || 0), Wmax = c.W + (c.Wtol || 0);
+    // Tolerance can be overridden per-call (UI), else uses the case default.
+    const Ltol = spec.Ltol != null ? spec.Ltol : (c.Ltol || 0);
+    const Wtol = spec.Wtol != null ? spec.Wtol : (c.Wtol || 0);
+    const Lmax = c.L + Ltol, Wmax = c.W + Wtol;
     // Tight margins that SCALE with case size (the bug fix): constants like the
     // CASES em/sm consume a tiny 0201 but are fine on an 0805.
     const em = Math.max(35, 0.06 * Lmax);

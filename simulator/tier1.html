@@ -145,6 +145,10 @@
   <h2>Margins <span style="text-transform:none;font-weight:400">(set-back per side)</span></h2>
   <div class="row"><label>End margin (µm)</label><input type="range" id="em" min="20" max="400" step="1" value="72"><span class="val" id="em_val"></span></div>
   <div class="row"><label>Side margin (µm)</label><input type="range" id="sm" min="10" max="300" step="1" value="30"><span class="val" id="sm_val"></span></div>
+
+  <h2>Size tolerance <span style="text-transform:none;font-weight:400">(± over nominal, µm)</span></h2>
+  <div class="row"><label>L tolerance ±</label><input type="range" id="Ltol" min="0" max="500" step="5" value="50"><span class="val" id="Ltol_val"></span></div>
+  <div class="row"><label>W tolerance ±</label><input type="range" id="Wtol" min="0" max="500" step="5" value="50"><span class="val" id="Wtol_val"></span></div>
   <div class="footer" id="chip_readout" style="margin-top:-4px;"></div>
 
   <h2>Process factors</h2>
@@ -229,6 +233,8 @@ function readInputs() {
     overlapW: parseFloat(document.getElementById('overlapW').value),
     em:   parseFloat(document.getElementById('em').value),
     sm:   parseFloat(document.getElementById('sm').value),
+    Ltol: parseFloat(document.getElementById('Ltol').value),
+    Wtol: parseFloat(document.getElementById('Wtol').value),
     coverage: parseFloat(document.getElementById('coverage').value),
     sTotal:   parseFloat(document.getElementById('sTotal').value),
     disc:     parseFloat(document.getElementById('disc').value),
@@ -247,6 +253,8 @@ function updateInputDisplays(inp) {
   document.getElementById('overlapW_val').textContent = inp.overlapW;
   document.getElementById('em_val').textContent       = inp.em;
   document.getElementById('sm_val').textContent       = inp.sm;
+  document.getElementById('Ltol_val').textContent     = inp.Ltol;
+  document.getElementById('Wtol_val').textContent     = inp.Wtol;
   document.getElementById('coverage_val').textContent = inp.coverage.toFixed(2);
   document.getElementById('sTotal_val').textContent   = inp.sTotal.toFixed(2);
   document.getElementById('disc_val').textContent     = inp.disc.toFixed(2);
@@ -268,7 +276,7 @@ function renderOutputs(r, inp) {
   // d-floor) for the current (case, class) at the V_rated input.
   const V_rated = parseFloat(document.getElementById('V_rated').value) || 50;
   let cmax;
-  try { cmax = cmaxEnvelope({ case: inp.case, cls: inp.cls, V: V_rated }); } catch (e) { cmax = null; }
+  try { cmax = cmaxEnvelope({ case: inp.case, cls: inp.cls, V: V_rated, Ltol: inp.Ltol, Wtol: inp.Wtol }); } catch (e) { cmax = null; }
   const bar = document.getElementById('fill_bar');
   if (cmax) {
     const pct = r.C_nominal_F / cmax.C_max_F * 100;
@@ -290,7 +298,7 @@ function renderOutputs(r, inp) {
   // Chip footprint readout: green pattern → fired (after in-plane shrinkage) →
   // chip, checked against the case TOLERANCE band [nominal ± tol].
   const Lc = Math.round(r.L_chip_um), Wc = Math.round(r.W_chip_um);
-  const Ltol = r.caseRec.Ltol || 0, Wtol = r.caseRec.Wtol || 0;
+  const Ltol = inp.Ltol, Wtol = inp.Wtol;
   const Lmax = r.caseRec.L + Ltol, Wmax = r.caseRec.W + Wtol;
   const Lmin = r.caseRec.L - Ltol, Wmin = r.caseRec.W - Wtol;
   const over = Lc > Lmax + 2 || Wc > Wmax + 2;
@@ -537,6 +545,8 @@ function syncPatternToCase() {
   if (!c) return;
   setSlider('em', c.em);
   setSlider('sm', c.sm);
+  setSlider('Ltol', c.Ltol || 0);
+  setSlider('Wtol', c.Wtol || 0);
   // Set the GREEN overlap so the FIRED overlap fills the case footprint:
   // green = (case − 2·margin) / (1 − s). Uses the current shrinkage value.
   const s = parseFloat(document.getElementById('sTotal').value) || 0;
