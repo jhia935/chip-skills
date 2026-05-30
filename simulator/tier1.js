@@ -12,21 +12,25 @@
 
   // Case dimensions in µm — wiki/concepts/case-size-geometry.md
   //
+  // L, W are the NOMINAL footprint. Real MLCCs ship oversized within a
+  // dimensional tolerance (Ltol/Wtol = ± from nominal); a high-CV part is built
+  // to the MAX footprint (nominal + tol) to capture the extra electrode area —
+  // e.g. a "0603 metric" (0.6 × 0.3) part legitimately measures up to ~0.65 ×
+  // 0.35 mm. The capacitance envelope and the pattern-fit check use the MAX;
+  // the calibration/known-parts path keeps using nominal. Tolerances below are
+  // datasheet-typical (IEC 60384 / vendor) — larger-tolerance series exist.
+  //
   // Margins (em = end set-back, sm = side margin) are SIZE-SCALED:
   //   em ≈ 0.12·L (cap 350 µm, floor 40),  sm ≈ 0.10·W (cap 250 µm, floor 25).
-  // The earlier table used near-constant absolute margins (em=125, sm=100) that
-  // were fine for 0805+ but consumed a 0201 — on a 0.3 mm-wide chip, sm=100 left
-  // only 100 µm of overlap (15 % active area), under-predicting small high-CV
-  // parts by ~3×. These values come from the rule above (see case-size-geometry).
   const CASES = [
-    { id: '0201_0603', label: 'EIA 0201 / metric 0603 (0.6 × 0.3 mm)', L: 600,  W: 300,  em: 72,  sm: 30,  Hmax: 330 },
-    { id: '0402_1005', label: 'EIA 0402 / metric 1005 (1.0 × 0.5 mm)', L: 1000, W: 500,  em: 120, sm: 50,  Hmax: 550 },
-    { id: '0603_1608', label: 'EIA 0603 / metric 1608 (1.6 × 0.8 mm)', L: 1600, W: 810,  em: 192, sm: 81,  Hmax: 900 },
-    { id: '0805_2012', label: 'EIA 0805 / metric 2012 (2.0 × 1.25 mm)', L: 2010, W: 1250, em: 240, sm: 125, Hmax: 1350 },
-    { id: '1206_3216', label: 'EIA 1206 / metric 3216 (3.2 × 1.6 mm)', L: 3200, W: 1600, em: 350, sm: 160, Hmax: 1800 },
-    { id: '1210_3225', label: 'EIA 1210 / metric 3225 (3.2 × 2.5 mm)', L: 3200, W: 2500, em: 350, sm: 250, Hmax: 2800 },
-    { id: '1812_4532', label: 'EIA 1812 / metric 4532 (4.5 × 3.2 mm)', L: 4500, W: 3200, em: 350, sm: 250, Hmax: 3500 },
-    { id: '2220_5750', label: 'EIA 2220 / metric 5750 (5.7 × 5.0 mm)', L: 5700, W: 5000, em: 350, sm: 250, Hmax: 3500 },
+    { id: '0201_0603', label: 'EIA 0201 / metric 0603 (0.6 × 0.3 mm)', L: 600,  W: 300,  em: 72,  sm: 30,  Hmax: 330,  Ltol: 50,  Wtol: 50 },
+    { id: '0402_1005', label: 'EIA 0402 / metric 1005 (1.0 × 0.5 mm)', L: 1000, W: 500,  em: 120, sm: 50,  Hmax: 550,  Ltol: 50,  Wtol: 50 },
+    { id: '0603_1608', label: 'EIA 0603 / metric 1608 (1.6 × 0.8 mm)', L: 1600, W: 810,  em: 192, sm: 81,  Hmax: 900,  Ltol: 100, Wtol: 90 },
+    { id: '0805_2012', label: 'EIA 0805 / metric 2012 (2.0 × 1.25 mm)', L: 2010, W: 1250, em: 240, sm: 125, Hmax: 1350, Ltol: 200, Wtol: 200 },
+    { id: '1206_3216', label: 'EIA 1206 / metric 3216 (3.2 × 1.6 mm)', L: 3200, W: 1600, em: 350, sm: 160, Hmax: 1800, Ltol: 200, Wtol: 200 },
+    { id: '1210_3225', label: 'EIA 1210 / metric 3225 (3.2 × 2.5 mm)', L: 3200, W: 2500, em: 350, sm: 250, Hmax: 2800, Ltol: 300, Wtol: 300 },
+    { id: '1812_4532', label: 'EIA 1812 / metric 4532 (4.5 × 3.2 mm)', L: 4500, W: 3200, em: 350, sm: 250, Hmax: 3500, Ltol: 300, Wtol: 300 },
+    { id: '2220_5750', label: 'EIA 2220 / metric 5750 (5.7 × 5.0 mm)', L: 5700, W: 5000, em: 350, sm: 250, Hmax: 3500, Ltol: 400, Wtol: 400 },
   ];
 
   // ε_r,nominal — wiki/concepts/eia-rs-198-dielectric-classes.md
@@ -247,29 +251,38 @@
     const em = inp.em != null ? inp.em : c.em;
     const sm = inp.sm != null ? inp.sm : c.sm;
 
-    // Geometry — two equivalent parameterizations:
-    //   PATTERN mode: caller supplies the print unit-cell active overlap
-    //     (overlapL × overlapW); the chip footprint is DERIVED as
-    //     L_chip = overlapL + 2·em, W_chip = overlapW + 2·sm (the dicing lanes
-    //     run through the margins). This is the manufacturing-native view.
-    //   CASE mode (fallback): no overlap supplied → overlap = case L,W minus
-    //     margins. Used by the calibration/known-parts path and the tests, so
-    //     their results are unchanged.
-    let overlapL_um, overlapW_um;
+    // Geometry — two equivalent parameterizations. Shrinkage (s) applies to
+    // BOTH the in-plane print pattern and the thickness: the printed (green)
+    // electrode shrinks in x-y during sintering, just as the green tape shrinks
+    // in z. (Tier-1 treats shrinkage as isotropic; constrained-sintering makes
+    // the in-plane component slightly smaller than thickness — see
+    // wiki/concepts/constrained-sintering-mlcc.md.)
+    //   PATTERN mode: caller supplies the AS-PRINTED (green) overlap; it shrinks
+    //     to fired = green·(1−s). Margins are treated as final (fired) keep-outs.
+    //     Chip footprint (fired) = overlap_fired + 2·margin.
+    //   CASE mode (fallback): no overlap supplied → the fired overlap is the
+    //     case L,W minus margins (case dims are datasheet/fired). Unchanged, so
+    //     the calibration/known-parts path and all tests are byte-identical.
+    const s = inp.sTotal;
+    let overlapL_fired_um, overlapW_fired_um, overlapL_green_um, overlapW_green_um;
     if (inp.overlapL != null && inp.overlapW != null) {
-      overlapL_um = inp.overlapL;
-      overlapW_um = inp.overlapW;
+      overlapL_green_um = inp.overlapL;
+      overlapW_green_um = inp.overlapW;
+      overlapL_fired_um = overlapL_green_um * (1 - s);
+      overlapW_fired_um = overlapW_green_um * (1 - s);
     } else {
-      overlapL_um = c.L - 2 * em;
-      overlapW_um = c.W - 2 * sm;
+      overlapL_fired_um = c.L - 2 * em;
+      overlapW_fired_um = c.W - 2 * sm;
+      overlapL_green_um = overlapL_fired_um / (1 - s);   // implied green pattern
+      overlapW_green_um = overlapW_fired_um / (1 - s);
     }
-    const L_chip_um = overlapL_um + 2 * em;
-    const W_chip_um = overlapW_um + 2 * sm;
+    const L_chip_um = overlapL_fired_um + 2 * em;   // fired chip footprint
+    const W_chip_um = overlapW_fired_um + 2 * sm;
 
-    const A_overlap_um2 = overlapL_um * overlapW_um;
+    const A_overlap_um2 = overlapL_fired_um * overlapW_fired_um;   // fired area
     const A_eff_um2     = A_overlap_um2 * inp.coverage * (1 - inp.disc);
-    const d_fired_um    = inp.hBT * (1 - inp.sTotal);
-    const hNi_fired_um  = inp.hNi * (1 - inp.sTotal);
+    const d_fired_um    = inp.hBT * (1 - s);
+    const hNi_fired_um  = inp.hNi * (1 - s);
     const H_active_um   = inp.Ne * (d_fired_um + hNi_fired_um);
     const H_stack_um    = H_active_um + 2 * inp.cover;
 
@@ -286,13 +299,17 @@
     const vol_density  = (C_derated_F * 1e6) / chip_vol_mm3;
 
     const warnings = [];
-    // Pattern footprint vs the selected case envelope (pattern mode only).
-    if (L_chip_um > c.L + 1 || W_chip_um > c.W + 1) {
+    // Pattern footprint vs the selected case TOLERANCE band [nominal ± tol].
+    // Real parts run oversized within tolerance, so the ceiling is the MAX
+    // (nominal + tol), not the nominal value.
+    const Ltol = c.Ltol || 0, Wtol = c.Wtol || 0;
+    const Lmax = c.L + Ltol, Wmax = c.W + Wtol, Lmin = c.L - Ltol, Wmin = c.W - Wtol;
+    if (L_chip_um > Lmax + 1 || W_chip_um > Wmax + 1) {
       warnings.push({ level: 'error', code: 'PATTERN_OVER',
-        msg: `Pattern footprint ${(L_chip_um/1000).toFixed(2)} × ${(W_chip_um/1000).toFixed(2)} mm exceeds the ${c.label.split('(')[0].trim()} envelope ${(c.L/1000).toFixed(2)} × ${(c.W/1000).toFixed(2)} mm. Shrink the overlap or margins.` });
-    } else if (L_chip_um < c.L - 1 || W_chip_um < c.W - 1) {
+        msg: `Pattern footprint ${(L_chip_um/1000).toFixed(2)} × ${(W_chip_um/1000).toFixed(2)} mm exceeds the ${c.label.split('(')[0].trim()} max tolerance ${(Lmax/1000).toFixed(2)} × ${(Wmax/1000).toFixed(2)} mm. Shrink the overlap or margins.` });
+    } else if (L_chip_um < Lmin - 1 || W_chip_um < Wmin - 1) {
       warnings.push({ level: 'info', code: 'PATTERN_UNDER',
-        msg: `Pattern footprint ${(L_chip_um/1000).toFixed(2)} × ${(W_chip_um/1000).toFixed(2)} mm is smaller than the ${c.label.split('(')[0].trim()} envelope — wasted area; you could enlarge the overlap.` });
+        msg: `Pattern footprint ${(L_chip_um/1000).toFixed(2)} × ${(W_chip_um/1000).toFixed(2)} mm is below the ${c.label.split('(')[0].trim()} min ${(Lmin/1000).toFixed(2)} × ${(Wmin/1000).toFixed(2)} mm — wasted area; enlarge the overlap.` });
     }
     if (H_stack_um > c.Hmax) {
       warnings.push({ level: 'error', code: 'H_OVER',
@@ -322,7 +339,8 @@
 
     return {
       caseRec: c, clsRec: cls, em, sm,
-      overlapL_um, overlapW_um, L_chip_um, W_chip_um,
+      overlapL_fired_um, overlapW_fired_um, overlapL_green_um, overlapW_green_um,
+      L_chip_um, W_chip_um,
       A_overlap_um2, A_eff_um2, d_fired_um, hNi_fired_um, H_active_um, H_stack_um,
       C_nominal_F, C_derated_F, f_T, f_V, E_applied,
       chip_vol_mm3, vol_density, warnings,
@@ -601,13 +619,16 @@
     // Thinnest manufacturable fired dielectric at rated V.
     const d_fired_um = Math.max(D_FLOOR_FRONTIER, spec.V / E_MAX_FIELD);
     const h_Ni_fired = Math.max(0.30, 0.6 * d_fired_um);   // thin frontier electrode
+    // Build to the MAX footprint (nominal + dimensional tolerance): a high-CV
+    // part legitimately ships oversized to capture the extra electrode area.
+    const Lmax = c.L + (c.Ltol || 0), Wmax = c.W + (c.Wtol || 0);
     // Tight margins that SCALE with case size (the bug fix): constants like the
     // CASES em/sm consume a tiny 0201 but are fine on an 0805.
-    const em = Math.max(35, 0.06 * c.L);
-    const sm = Math.max(25, 0.06 * c.W);
+    const em = Math.max(35, 0.06 * Lmax);
+    const sm = Math.max(25, 0.06 * Wmax);
     const coverage = 0.92, disc = 0.08, cover = 40;
 
-    const A_eff_um2 = (c.L - 2 * em) * (c.W - 2 * sm) * coverage * (1 - disc);
+    const A_eff_um2 = (Lmax - 2 * em) * (Wmax - 2 * sm) * coverage * (1 - disc);
     const N_e_max   = Math.floor((c.Hmax - 2 * cover) / (d_fired_um + h_Ni_fired));
     const C_max_F   = cls.er * EPS0 * A_eff_um2 * 1e-12 * N_e_max / (d_fired_um * 1e-6);
 

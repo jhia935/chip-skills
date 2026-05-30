@@ -138,9 +138,9 @@
   <div class="row"><label>Layer count N<sub>e</sub></label><input type="range" id="Ne" min="10" max="1000" step="1" value="300"><span class="val" id="Ne_val"></span></div>
   <div class="row"><label>Cover (µm/side)</label><input type="range" id="cover" min="20" max="100" step="1" value="40"><span class="val" id="cover_val"></span></div>
 
-  <h2>Pattern — active overlap <span style="text-transform:none;font-weight:400">(print unit cell)</span></h2>
-  <div class="row"><label>Overlap length (µm)</label><input type="range" id="overlapL" min="100" max="6000" step="5" value="1530"><span class="val" id="overlapL_val"></span></div>
-  <div class="row"><label>Overlap width (µm)</label><input type="range" id="overlapW" min="50" max="5000" step="5" value="1000"><span class="val" id="overlapW_val"></span></div>
+  <h2>Pattern — active overlap <span style="text-transform:none;font-weight:400">(as-printed / green)</span></h2>
+  <div class="row"><label>Overlap length green (µm)</label><input type="range" id="overlapL" min="100" max="7000" step="5" value="1779"><span class="val" id="overlapL_val"></span></div>
+  <div class="row"><label>Overlap width green (µm)</label><input type="range" id="overlapW" min="50" max="6000" step="5" value="1163"><span class="val" id="overlapW_val"></span></div>
 
   <h2>Margins <span style="text-transform:none;font-weight:400">(set-back per side)</span></h2>
   <div class="row"><label>End margin (µm)</label><input type="range" id="em" min="20" max="400" step="1" value="72"><span class="val" id="em_val"></span></div>
@@ -287,21 +287,28 @@ function renderOutputs(r, inp) {
   document.getElementById('out_dfired_sub').textContent =
     `vol ${fmt(r.vol_density, 2)} µF/mm³ · chip ${fmt(r.chip_vol_mm3, 2)} mm³`;
 
-  // Chip footprint readout under the margin sliders (pattern → derived chip).
-  const fits = Math.abs(r.L_chip_um - r.caseRec.L) <= 1 && Math.abs(r.W_chip_um - r.caseRec.W) <= 1;
-  const over = r.L_chip_um > r.caseRec.L + 1 || r.W_chip_um > r.caseRec.W + 1;
+  // Chip footprint readout: green pattern → fired (after in-plane shrinkage) →
+  // chip, checked against the case TOLERANCE band [nominal ± tol].
+  const Lc = Math.round(r.L_chip_um), Wc = Math.round(r.W_chip_um);
+  const Ltol = r.caseRec.Ltol || 0, Wtol = r.caseRec.Wtol || 0;
+  const Lmax = r.caseRec.L + Ltol, Wmax = r.caseRec.W + Wtol;
+  const Lmin = r.caseRec.L - Ltol, Wmin = r.caseRec.W - Wtol;
+  const over = Lc > Lmax + 2 || Wc > Wmax + 2;
+  const under = Lc < Lmin - 2 || Wc < Wmin - 2;
   document.getElementById('chip_readout').innerHTML =
-    `Pattern → chip <b>${r.L_chip_um} × ${r.W_chip_um} µm</b> ` +
-    (fits ? `<span style="color:#2a8a3e">= ${r.caseRec.label.split('(')[0].trim()} ✓</span>`
-          : over ? `<span style="color:var(--err-border)">&gt; case envelope ${r.caseRec.L} × ${r.caseRec.W} ✗</span>`
-                 : `<span style="color:var(--warn-border)">&lt; case envelope ${r.caseRec.L} × ${r.caseRec.W}</span>`);
+    `green → fired ×${(1 - inp.sTotal).toFixed(2)} → chip <b>${Lc} × ${Wc} µm</b> ` +
+    (!over && !under ? `<span style="color:#2a8a3e">within ${r.caseRec.label.split('(')[0].trim()} tol ✓</span>`
+          : over ? `<span style="color:var(--err-border)">&gt; max ${Lmax} × ${Wmax} ✗</span>`
+                 : `<span style="color:var(--warn-border)">&lt; min ${Lmin} × ${Wmin}</span>`);
 
   const rows = [
-    ['Case envelope',        `${r.caseRec.L} × ${r.caseRec.W} µm`],
-    ['Pattern overlap (L×W)',`${r.overlapL_um} × ${r.overlapW_um} µm`],
-    ['Derived chip (L×W)',   `${r.L_chip_um} × ${r.W_chip_um} µm`],
+    ['Case (nom · tol)',     `${r.caseRec.L}±${Ltol} × ${r.caseRec.W}±${Wtol} µm`],
+    ['Case max footprint',   `${Lmax} × ${Wmax} µm`],
+    ['Overlap green (L×W)',  `${Math.round(r.overlapL_green_um)} × ${Math.round(r.overlapW_green_um)} µm`],
+    ['Overlap fired (L×W)',  `${Math.round(r.overlapL_fired_um)} × ${Math.round(r.overlapW_fired_um)} µm`],
+    ['Derived chip (L×W)',   `${Lc} × ${Wc} µm (fired)`],
     ['End / side margin',    `${r.em} / ${r.sm} µm`],
-    ['A_overlap',            fmt(r.A_overlap_um2 / 1e6, 3, ' mm²')],
+    ['A_overlap (fired)',    fmt(r.A_overlap_um2 / 1e6, 3, ' mm²')],
     ['A_eff',                fmt(r.A_eff_um2 / 1e6, 3, ' mm²')],
     ['Active stack height',  fmt(r.H_active_um / 1000, 3, ' mm')],
     ['Total stack height',   fmt(r.H_stack_um / 1000, 3, ' mm')],
@@ -530,8 +537,11 @@ function syncPatternToCase() {
   if (!c) return;
   setSlider('em', c.em);
   setSlider('sm', c.sm);
-  setSlider('overlapL', c.L - 2 * c.em);
-  setSlider('overlapW', c.W - 2 * c.sm);
+  // Set the GREEN overlap so the FIRED overlap fills the case footprint:
+  // green = (case − 2·margin) / (1 − s). Uses the current shrinkage value.
+  const s = parseFloat(document.getElementById('sTotal').value) || 0;
+  setSlider('overlapL', Math.round((c.L - 2 * c.em) / (1 - s)));
+  setSlider('overlapW', Math.round((c.W - 2 * c.sm) / (1 - s)));
 }
 
 // ============================================================

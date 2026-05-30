@@ -71,28 +71,64 @@ const inp0 = t.defaultInputs();
   ok('High shrinkage (0.6) computes finitely and raises C',
     isFinite(rHiS.C_nominal_F) && rHiS.C_nominal_F > r0.C_nominal_F);
 
-  // Pattern mode: supplying overlapL/overlapW == case mode when the pattern
-  // exactly fills the case (overlap = case − 2·margin).
+  // Pattern overlap is GREEN and shrinks in-plane by (1−s). A green pattern
+  // sized so the FIRED overlap fills the case must equal case mode exactly:
+  //   green = (case − 2·margin) / (1 − s)  →  fired = case − 2·margin.
   const cb = t.CASES.find(x => x.id === inp0.case);
+  const s = inp0.sTotal;
   const rPat = t.compute({ ...inp0, tier2: false,
-    overlapL: cb.L - 2 * cb.em, overlapW: cb.W - 2 * cb.sm, em: cb.em, sm: cb.sm });
-  ok('Pattern mode filling the case == case mode',
+    overlapL: (cb.L - 2 * cb.em) / (1 - s), overlapW: (cb.W - 2 * cb.sm) / (1 - s),
+    em: cb.em, sm: cb.sm });
+  ok('Pattern mode (green→fired fills case) == case mode',
     near(rPat.C_nominal_F, r0.C_nominal_F, 1e-9));
-  ok('Pattern mode derives chip footprint = case',
-    rPat.L_chip_um === cb.L && rPat.W_chip_um === cb.W);
+  ok('Pattern mode derives fired chip footprint = case',
+    near(rPat.L_chip_um, cb.L, 1e-6) && near(rPat.W_chip_um, cb.W, 1e-6));
+  ok('Pattern in-plane shrinkage applied (fired < green overlap)',
+    rPat.overlapL_fired_um < rPat.overlapL_green_um);
 
-  // Pattern smaller than the case → less area → less C, and an info warning.
-  const rSmall = t.compute({ ...inp0, tier2: false,
-    overlapL: (cb.L - 2 * cb.em) / 2, overlapW: cb.W - 2 * cb.sm, em: cb.em, sm: cb.sm });
-  ok('Pattern C ∝ overlap area', near(rSmall.C_nominal_F, r0.C_nominal_F / 2, 1e-9));
-  ok('Under-size pattern flags PATTERN_UNDER',
-    rSmall.warnings.some(w => w.code === 'PATTERN_UNDER'));
+  // C scales with green overlap area (fired area ∝ green area).
+  const rHalf = t.compute({ ...rPat_inputs(cb, s, inp0), overlapL: (cb.L - 2*cb.em) / (1 - s) / 2 });
+  ok('Pattern C ∝ overlap area', near(rHalf.C_nominal_F, rPat.C_nominal_F / 2, 1e-9));
 
-  // Pattern bigger than the case envelope → PATTERN_OVER error.
+  function rPat_inputs(cb, s, base) {
+    return { ...base, tier2: false,
+      overlapL: (cb.L - 2*cb.em) / (1 - s), overlapW: (cb.W - 2*cb.sm) / (1 - s),
+      em: cb.em, sm: cb.sm };
+  }
+
+  // Higher shrinkage with a FIXED green pattern → smaller fired part → less C
+  // (in-plane area loss ∝ (1−s)² beats the thickness gain ∝ 1/(1−s); net ∝ (1−s)).
+  const rLoS = t.compute(rPat_inputs(cb, s, { ...inp0, sTotal: 0.10 }));
+  const rHiS2 = t.compute(rPat_inputs(cb, s, { ...inp0, sTotal: 0.25 }));
+  ok('Pattern mode: higher shrinkage → lower C (fixed green pattern)',
+    rHiS2.C_nominal_F < rLoS.C_nominal_F);
+
+  // Green pattern bigger than case/(1−s) → fired chip exceeds envelope → PATTERN_OVER.
   const rBig = t.compute({ ...inp0, tier2: false,
-    overlapL: cb.L, overlapW: cb.W, em: cb.em, sm: cb.sm });
+    overlapL: cb.L / (1 - s), overlapW: cb.W / (1 - s), em: cb.em, sm: cb.sm });
   ok('Over-size pattern flags PATTERN_OVER',
     rBig.warnings.some(w => w.code === 'PATTERN_OVER'));
+
+  // Dimensional tolerance: a fired chip at the MAX footprint (nominal + tol) is
+  // allowed — no PATTERN_OVER. Design green so fired chip = exactly max.
+  const tol = t.CASES.find(x => x.id === '0201_0603');
+  const grnL = (tol.L + tol.Ltol - 2 * tol.em) / (1 - s);
+  const grnW = (tol.W + tol.Wtol - 2 * tol.sm) / (1 - s);
+  const rTolMax = t.compute({ ...inp0, tier2: false, case: '0201_0603',
+    em: tol.em, sm: tol.sm, overlapL: grnL, overlapW: grnW });
+  ok('Fired chip at max tolerance is within spec (no PATTERN_OVER)',
+    !rTolMax.warnings.some(w => w.code === 'PATTERN_OVER') &&
+    near(rTolMax.L_chip_um, tol.L + tol.Ltol, 1e-6));
+  // Just beyond max → PATTERN_OVER.
+  const rTolOver = t.compute({ ...inp0, tier2: false, case: '0201_0603',
+    em: tol.em, sm: tol.sm, overlapL: grnL + 200, overlapW: grnW });
+  ok('Fired chip beyond max tolerance flags PATTERN_OVER',
+    rTolOver.warnings.some(w => w.code === 'PATTERN_OVER'));
+
+  // cmaxEnvelope uses the max footprint → strictly larger than a nominal-only
+  // envelope would be (more area available).
+  ok('cmaxEnvelope reflects max-footprint area gain',
+    t.cmaxEnvelope({ case: '0201_0603', cls: 'X5R', V: 6.3 }).C_max_uF > 6.0);
 
   // C scales with ε_r — derive the expected ratio from CLASSES so the test
   // stays correct if the calibrated ε_r values are tuned later.
