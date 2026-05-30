@@ -157,6 +157,7 @@
   <h2>Size tolerance <span style="text-transform:none;font-weight:400">(± over nominal, µm)</span></h2>
   <div class="row"><label>L tolerance ±</label><input type="range" id="Ltol" min="0" max="500" step="5" value="50"><input type="number" class="numin" id="Ltol_num"><span class="unit">µm</span></div>
   <div class="row"><label>W tolerance ±</label><input type="range" id="Wtol" min="0" max="500" step="5" value="50"><input type="number" class="numin" id="Wtol_num"><span class="unit">µm</span></div>
+  <div class="row"><label>T tolerance ±</label><input type="range" id="Ttol" min="0" max="600" step="5" value="150"><input type="number" class="numin" id="Ttol_num"><span class="unit">µm</span></div>
   <div class="footer" id="chip_readout" style="margin-top:-4px;"></div>
 
   <h2>Process factors</h2>
@@ -243,6 +244,7 @@ function readInputs() {
     sm:   parseFloat(document.getElementById('sm').value),
     Ltol: parseFloat(document.getElementById('Ltol').value),
     Wtol: parseFloat(document.getElementById('Wtol').value),
+    Ttol: parseFloat(document.getElementById('Ttol').value),
     coverage: parseFloat(document.getElementById('coverage').value),
     sTotal:   parseFloat(document.getElementById('sTotal').value),
     disc:     parseFloat(document.getElementById('disc').value),
@@ -255,7 +257,7 @@ function readInputs() {
 // The slider-backed numeric controls and their display precision.
 const SLIDER_IDS = {
   hBT: 1, hNi: 1, Ne: 0, cover: 0, overlapL: 0, overlapW: 0,
-  em: 0, sm: 0, Ltol: 0, Wtol: 0, coverage: 2, sTotal: 2, disc: 2, vdc: 1, top: 0,
+  em: 0, sm: 0, Ltol: 0, Wtol: 0, Ttol: 0, coverage: 2, sTotal: 2, disc: 2, vdc: 1, top: 0,
 };
 
 // Mirror the resolved values into the number boxes — but never overwrite the
@@ -283,7 +285,7 @@ function renderOutputs(r, inp) {
   // d-floor) for the current (case, class) at the V_rated input.
   const V_rated = parseFloat(document.getElementById('V_rated').value) || 50;
   let cmax;
-  try { cmax = cmaxEnvelope({ case: inp.case, cls: inp.cls, V: V_rated, Ltol: inp.Ltol, Wtol: inp.Wtol }); } catch (e) { cmax = null; }
+  try { cmax = cmaxEnvelope({ case: inp.case, cls: inp.cls, V: V_rated, Ltol: inp.Ltol, Wtol: inp.Wtol, Ttol: inp.Ttol }); } catch (e) { cmax = null; }
   const bar = document.getElementById('fill_bar');
   if (cmax) {
     const pct = r.C_nominal_F / cmax.C_max_F * 100;
@@ -327,7 +329,7 @@ function renderOutputs(r, inp) {
     ['A_eff',                fmt(r.A_eff_um2 / 1e6, 3, ' mm²')],
     ['Active stack height',  fmt(r.H_active_um / 1000, 3, ' mm')],
     ['Total stack height',   fmt(r.H_stack_um / 1000, 3, ' mm')],
-    ['Headroom vs H_max',    fmt(100 * (1 - r.H_stack_um / r.caseRec.Hmax), 1, ' %')],
+    ['Headroom vs H_max',    fmt(100 * (1 - r.H_stack_um / r.Hmax_eff), 1, ' %') + (r.Hmax_eff !== r.caseRec.Hmax ? ` (H_max ${(r.Hmax_eff/1000).toFixed(2)} mm)` : '')],
     ['ε_r,nominal',          `${r.clsRec.er}`],
     ['TCC factor f_T',       inp.tier2 ? fmt(r.f_T, 3) : '—'],
     ['DC bias factor f_V',   inp.tier2 ? fmt(r.f_V, 3) : '—'],
@@ -388,7 +390,7 @@ function renderStack(r, inp) {
   }
   svg.innerHTML = parts.join('');
   document.getElementById('stack_sub').textContent =
-    `BT (light) ${r.d_fired_um.toFixed(2)} µm fired · Ni (dark) ${r.hNi_fired_um.toFixed(2)} µm fired · cover ${inp.cover} µm · total ${(r.H_stack_um/1000).toFixed(2)} mm (H_max ${(r.caseRec.Hmax/1000).toFixed(2)} mm).`;
+    `BT (light) ${r.d_fired_um.toFixed(2)} µm fired · Ni (dark) ${r.hNi_fired_um.toFixed(2)} µm fired · cover ${inp.cover} µm · total ${(r.H_stack_um/1000).toFixed(2)} mm (H_max ${(r.Hmax_eff/1000).toFixed(2)} mm).`;
 }
 
 // ============================================================
@@ -560,6 +562,7 @@ function syncPatternToCase() {
   setSlider('sm', c.sm);
   setSlider('Ltol', c.Ltol || 0);
   setSlider('Wtol', c.Wtol || 0);
+  setSlider('Ttol', c.Ttol || 0);
   // Set the GREEN overlap so the FIRED overlap fills the case footprint:
   // green = (case − 2·margin) / (1 − s). Uses the current shrinkage value.
   const s = parseFloat(document.getElementById('sTotal').value) || 0;

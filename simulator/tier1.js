@@ -23,15 +23,19 @@
   // Margins (em = end set-back, sm = side margin) are SIZE-SCALED:
   //   em ≈ 0.12·L (cap 350 µm, floor 40),  sm ≈ 0.10·W (cap 250 µm, floor 25).
   const CASES = [
-    { id: '0201_0603', label: 'EIA 0201 / metric 0603 (0.6 × 0.3 mm)', L: 600,  W: 300,  em: 72,  sm: 30,  Hmax: 330,  Ltol: 50,  Wtol: 50 },
-    { id: '0402_1005', label: 'EIA 0402 / metric 1005 (1.0 × 0.5 mm)', L: 1000, W: 500,  em: 120, sm: 50,  Hmax: 550,  Ltol: 50,  Wtol: 50 },
-    { id: '0603_1608', label: 'EIA 0603 / metric 1608 (1.6 × 0.8 mm)', L: 1600, W: 810,  em: 192, sm: 81,  Hmax: 900,  Ltol: 100, Wtol: 90 },
-    { id: '0805_2012', label: 'EIA 0805 / metric 2012 (2.0 × 1.25 mm)', L: 2010, W: 1250, em: 240, sm: 125, Hmax: 1350, Ltol: 200, Wtol: 200 },
-    { id: '1206_3216', label: 'EIA 1206 / metric 3216 (3.2 × 1.6 mm)', L: 3200, W: 1600, em: 350, sm: 160, Hmax: 1800, Ltol: 200, Wtol: 200 },
-    { id: '1210_3225', label: 'EIA 1210 / metric 3225 (3.2 × 2.5 mm)', L: 3200, W: 2500, em: 350, sm: 250, Hmax: 2800, Ltol: 300, Wtol: 300 },
-    { id: '1812_4532', label: 'EIA 1812 / metric 4532 (4.5 × 3.2 mm)', L: 4500, W: 3200, em: 350, sm: 250, Hmax: 3500, Ltol: 300, Wtol: 300 },
-    { id: '2220_5750', label: 'EIA 2220 / metric 5750 (5.7 × 5.0 mm)', L: 5700, W: 5000, em: 350, sm: 250, Hmax: 3500, Ltol: 400, Wtol: 400 },
+    { id: '0201_0603', label: 'EIA 0201 / metric 0603 (0.6 × 0.3 mm)', L: 600,  W: 300,  em: 72,  sm: 30,  Hmax: 330,  Ltol: 50,  Wtol: 50,  Ttol: 30 },
+    { id: '0402_1005', label: 'EIA 0402 / metric 1005 (1.0 × 0.5 mm)', L: 1000, W: 500,  em: 120, sm: 50,  Hmax: 550,  Ltol: 50,  Wtol: 50,  Ttol: 50 },
+    { id: '0603_1608', label: 'EIA 0603 / metric 1608 (1.6 × 0.8 mm)', L: 1600, W: 810,  em: 192, sm: 81,  Hmax: 900,  Ltol: 100, Wtol: 90,  Ttol: 100 },
+    { id: '0805_2012', label: 'EIA 0805 / metric 2012 (2.0 × 1.25 mm)', L: 2010, W: 1250, em: 240, sm: 125, Hmax: 1350, Ltol: 200, Wtol: 200, Ttol: 150 },
+    { id: '1206_3216', label: 'EIA 1206 / metric 3216 (3.2 × 1.6 mm)', L: 3200, W: 1600, em: 350, sm: 160, Hmax: 1800, Ltol: 200, Wtol: 200, Ttol: 200 },
+    { id: '1210_3225', label: 'EIA 1210 / metric 3225 (3.2 × 2.5 mm)', L: 3200, W: 2500, em: 350, sm: 250, Hmax: 2800, Ltol: 300, Wtol: 300, Ttol: 300 },
+    { id: '1812_4532', label: 'EIA 1812 / metric 4532 (4.5 × 3.2 mm)', L: 4500, W: 3200, em: 350, sm: 250, Hmax: 3500, Ltol: 300, Wtol: 300, Ttol: 300 },
+    { id: '2220_5750', label: 'EIA 2220 / metric 5750 (5.7 × 5.0 mm)', L: 5700, W: 5000, em: 350, sm: 250, Hmax: 3500, Ltol: 400, Wtol: 400, Ttol: 400 },
   ];
+  // Ttol = thickness (T) tolerance; the buildable max height is Hmax + (Ttol −
+  // Ttol_default), so the shipped Ttol just reproduces Hmax. Thickness is the
+  // loosest MLCC dimension and its tolerance often differs from L/W — exposing
+  // it lets a looser-spec part stack more layers (taller part → more C).
 
   // ε_r,nominal — wiki/concepts/eia-rs-198-dielectric-classes.md
   // Calibrated 2026-05-28 against the 25-part vendor lineup. Original conservative
@@ -250,6 +254,10 @@
     // case-default size-scaled values from CASES.
     const em = inp.em != null ? inp.em : c.em;
     const sm = inp.sm != null ? inp.sm : c.sm;
+    // Thickness tolerance shifts the buildable height ceiling: at the default
+    // Ttol the ceiling equals the nominal Hmax; a looser spec raises it.
+    const TtolUsed = inp.Ttol != null ? inp.Ttol : (c.Ttol || 0);
+    const Hmax_eff = c.Hmax + (TtolUsed - (c.Ttol || 0));
 
     // Geometry — two equivalent parameterizations. Shrinkage (s) applies to
     // BOTH the in-plane print pattern and the thickness: the printed (green)
@@ -312,9 +320,9 @@
       warnings.push({ level: 'info', code: 'PATTERN_UNDER',
         msg: `Pattern footprint ${(L_chip_um/1000).toFixed(2)} × ${(W_chip_um/1000).toFixed(2)} mm is below the ${c.label.split('(')[0].trim()} min ${(Lmin/1000).toFixed(2)} × ${(Wmin/1000).toFixed(2)} mm — wasted area; enlarge the overlap.` });
     }
-    if (H_stack_um > c.Hmax) {
+    if (H_stack_um > Hmax_eff) {
       warnings.push({ level: 'error', code: 'H_OVER',
-        msg: `Stack H = ${(H_stack_um/1000).toFixed(2)} mm exceeds H_max ${(c.Hmax/1000).toFixed(2)} mm for ${c.label.split('(')[0].trim()}. Reduce N_e, h_BT, h_Ni, or cover.` });
+        msg: `Stack H = ${(H_stack_um/1000).toFixed(2)} mm exceeds H_max ${(Hmax_eff/1000).toFixed(2)} mm for ${c.label.split('(')[0].trim()}. Reduce N_e, h_BT, h_Ni, or cover.` });
     }
     if (d_fired_um < 0.3) {
       warnings.push({ level: 'warn', code: 'D_GRAIN_FLOOR',
@@ -339,7 +347,7 @@
     }
 
     return {
-      caseRec: c, clsRec: cls, em, sm,
+      caseRec: c, clsRec: cls, em, sm, Hmax_eff,
       overlapL_fired_um, overlapW_fired_um, overlapL_green_um, overlapW_green_um,
       L_chip_um, W_chip_um,
       A_overlap_um2, A_eff_um2, d_fired_um, hNi_fired_um, H_active_um, H_stack_um,
@@ -626,6 +634,9 @@
     const Ltol = spec.Ltol != null ? spec.Ltol : (c.Ltol || 0);
     const Wtol = spec.Wtol != null ? spec.Wtol : (c.Wtol || 0);
     const Lmax = c.L + Ltol, Wmax = c.W + Wtol;
+    // Build to the max thickness too (Ttol shifts the height ceiling).
+    const TtolUsed = spec.Ttol != null ? spec.Ttol : (c.Ttol || 0);
+    const Hmax_eff = c.Hmax + (TtolUsed - (c.Ttol || 0));
     // Tight margins that SCALE with case size (the bug fix): constants like the
     // CASES em/sm consume a tiny 0201 but are fine on an 0805.
     const em = Math.max(35, 0.06 * Lmax);
@@ -633,7 +644,7 @@
     const coverage = 0.92, disc = 0.08, cover = 40;
 
     const A_eff_um2 = (Lmax - 2 * em) * (Wmax - 2 * sm) * coverage * (1 - disc);
-    const N_e_max   = Math.floor((c.Hmax - 2 * cover) / (d_fired_um + h_Ni_fired));
+    const N_e_max   = Math.floor((Hmax_eff - 2 * cover) / (d_fired_um + h_Ni_fired));
     const C_max_F   = cls.er * EPS0 * A_eff_um2 * 1e-12 * N_e_max / (d_fired_um * 1e-6);
 
     return {
