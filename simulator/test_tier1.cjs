@@ -506,23 +506,26 @@ function warningCodes(inp) {
        r.overflow ? `C_target ${p.C_uF} µF > C_max ${r.C_max_uF.toFixed(2)} µF` : '');
     ok(`solveRecipe ${p.pn}: H_stack within budget`,
        r.H_stack_um <= r.H_max_um);
-    ok(`solveRecipe ${p.pn}: d_fired ≥ 0.5 µm`,
-       r.d_fired_um >= 0.5);
+    ok(`solveRecipe ${p.pn}: d_fired ≥ frontier floor`,
+       r.d_fired_um >= t.D_FLOOR_FRONTIER - 1e-9);
   }
 
   // Round-trip with compute: feed the recipe back through compute() and verify
   // we get C_target.
   const part = t.VENDOR_PARTS.find(p => p.pn === 'GRM21BR71H475K'); // 0805 X7R 4.7 µF 50 V
   const r = t.solveRecipe({ case: part.case, cls: part.cls, V: part.V, C_target_uF: part.C_uF });
+  // Feed the recipe back with the SAME grade geometry solveRecipe used (margins,
+  // coverage, disc, cover) so the round-trip is exact.
   const inp = {
     case: part.case, cls: part.cls,
     hBT: r.h_BT_green,
     hNi: r.h_Ni_um,
     Ne:  r.N_e_actual,
-    cover:    60,
-    coverage: 0.90,
+    em:  r.em, sm: r.sm,
+    cover:    r.cover,
+    coverage: r.coverage,
     sTotal:   0.14,
-    disc:     0.15,
+    disc:     r.disc,
     tier2:    false,
     vdc: 0, top: 25,
   };
@@ -530,6 +533,55 @@ function warningCodes(inp) {
   ok('solveRecipe → compute round-trip within ±2 %',
     near(c.C_nominal_F * 1e6, part.C_uF, 0.02),
     `expected ${part.C_uF} µF, got ${(c.C_nominal_F * 1e6).toFixed(3)} µF`);
+})();
+
+// ============================================================
+// 10b. suggestDesign — grade-aware recipe suggester
+// ============================================================
+
+(function suggestDesignTests() {
+  // The conservatism fix: the real Samsung CL03A475 (0201 X5R 4.7µF 6.3V) exists,
+  // so the suggester must NOT false-negative it at the commercial (frontier) grade.
+  const cl = t.suggestDesign({ case: '0201_0603', cls: 'X5R', V: 6.3, C_target_uF: 4.7, grade: 'commercial' });
+  ok('suggestDesign admits CL03A475 (0201 X5R 4.7µF) at commercial grade',
+    cl.feasible, `N_needed ${cl.N_e_needed} vs N_max ${cl.N_e_max}`);
+  ok('suggestDesign reports a feasibility band (typical ≤ frontier)',
+    cl.C_typical_uF <= cl.C_frontier_uF + 1e-9);
+  ok('suggestDesign completes the recipe (grain, ε_r, margins present)',
+    cl.grain_um > 0 && cl.er_class > 0 && cl.em > 0 && cl.sm > 0 && cl.cover > 0);
+
+  // Round-trip: feed the suggested recipe + its geometry through compute().
+  const rt = t.compute({
+    case: '0201_0603', cls: 'X5R', hBT: cl.h_BT_green, hNi: cl.h_Ni_um, Ne: cl.N_e_actual,
+    em: cl.em, sm: cl.sm, cover: cl.cover, coverage: cl.coverage, disc: cl.disc,
+    sTotal: 0.14, tier2: false, vdc: 0, top: 25,
+  });
+  ok('suggestDesign → compute round-trip within ±3 %',
+    near(rt.C_nominal_F * 1e6, Math.min(4.7, cl.C_grade_max_uF), 0.03),
+    `got ${(rt.C_nominal_F * 1e6).toFixed(3)} µF`);
+
+  // Grade monotonicity for the same spec (0805 X7R 50 V):
+  const spec = { case: '0805_2012', cls: 'X7R', V: 50, C_target_uF: 1.0 };
+  const com = t.suggestDesign({ ...spec, grade: 'commercial' });
+  const aut = t.suggestDesign({ ...spec, grade: 'automotive' });
+  const spc = t.suggestDesign({ ...spec, grade: 'space' });
+  ok('grade d_fired: space ≫ automotive ≥ commercial',
+    spc.d_fired_um > aut.d_fired_um && aut.d_fired_um >= com.d_fired_um);
+  ok('grade layer cap: space ≤ automotive ≤ commercial',
+    spc.N_e_max <= aut.N_e_max && aut.N_e_max <= com.N_e_max);
+  ok('grade margins: automotive side ≥ commercial side',
+    aut.sm >= com.sm);
+  ok('unknown grade falls back to commercial',
+    t.suggestDesign({ ...spec, grade: 'bogus' }).grade === 'commercial');
+
+  // Space grade honors the S-311-P-838 minimum fired thickness (7.1 µm ≤25 V).
+  const spLowV = t.suggestDesign({ case: '0603_1608', cls: 'X7R', V: 16, C_target_uF: 0.1, grade: 'space' });
+  ok('space grade d_fired ≥ 7.1 µm at ≤25 V (S-311-P-838)',
+    spLowV.d_fired_um >= 7.1 - 1e-9);
+
+  // solveRecipe (default grade) likewise stops false-negativing the 0201 part.
+  const sr = t.solveRecipe({ case: '0201_0603', cls: 'X5R', V: 6.3, C_target_uF: 4.7 });
+  ok('solveRecipe no longer overflows on CL03A475', !sr.overflow);
 })();
 
 // ============================================================

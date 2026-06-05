@@ -697,40 +697,133 @@
     };
   }
 
-  // Given (case, class, V_rated, C_target_uF), back-solve the full recipe.
+  // ============================================================
+  // Grade-aware design suggester (suggestDesign / solveRecipe)
+  // ============================================================
+  //
+  // Design-rule grades grounded in the wiki ingest:
+  //   • commercial — consumer high-CV, thin-layer frontier
+  //       (dielectric-layer-thickness-floor: fired-d → ~0.25 µm)
+  //   • automotive — AEC-Q200, robust margins 100–125 µm
+  //       (avx-automotive-mlcc-kam-kaf, mlcc-margin-cover-design-rules)
+  //   • space — NASA S-311-P-838 / MIL-PRF-32535: spec-min fired d, ≤300 layers,
+  //       voltage-scaled margins (gsfc-mlcc-space-specs, mil-prf-32535-spec)
+  //
+  // Each grade fixes the design point; suggestDesign() back-solves the layer
+  // count for a target C and reports a feasibility BAND (typical → frontier).
+  const GRADES = {
+    commercial: { label: 'commercial (consumer high-CV, thin-layer)', eField: 30, dFloor: 0.25, eRatio: 0.6, coverage: 0.92, disc: 0.08, cover: 40, Nmax: 1000, gpl: 3,  emK: 0.06, smK: 0.06, emFloor: 35,  smFloor: 25 },
+    automotive: { label: 'automotive (AEC-Q200, robust margins)',     eField: 22, dFloor: 0.45, eRatio: 0.7, coverage: 0.90, disc: 0.12, cover: 60, Nmax: 600,  gpl: 4,  emK: 0.10, smK: 0.10, emFloor: 100, smFloor: 100 },
+    space:      { label: 'space (NASA S-311-P-838 / MIL-PRF-32535)',              eRatio: 0.7, coverage: 0.85, disc: 0.15, cover: 75, Nmax: 300,  gpl: 12, specMinD: true, milMargin: true },
+  };
+
+  // Minimum fired dielectric thickness (µm) the grade allows at rated V.
+  function gradeDMin(g, V) {
+    if (g.specMinD) { if (V <= 25) return 7.1; if (V <= 50) return 8.4; return 15.2; } // S-311-P-838
+    return Math.max(g.dFloor, V / g.eField);    // manufacturing floor vs breakdown-field
+  }
+  // Minimum margin (µm). MIL grades are voltage-scaled; others scale with the dimension.
+  function gradeMargin(g, V, dim, which) {
+    if (g.milMargin) {                          // MIL-PRF-32535 Tables VIII (side) / IX (end)
+      if (which === 'side') { if (V <= 6.3) return 15; if (V <= 16) return 20; if (V <= 25) return 25; if (V <= 50) return 40; return 50; }
+      if (V <= 6.3) return 25; if (V <= 16) return 36; if (V <= 25) return 40; if (V <= 50) return 50; return 75;
+    }
+    const k = which === 'end' ? g.emK : g.smK;
+    const f = which === 'end' ? g.emFloor : g.smFloor;
+    return Math.max(f, k * dim);
+  }
+
+  // The grade's design point for (case, class, V): geometry + grain/ε_r targets.
+  function gradeDesignPoint(spec) {
+    const g   = GRADES[spec.grade] || GRADES.commercial;
+    const c   = CASES.find(x => x.id === spec.case);
+    const cls = CLASSES.find(x => x.id === spec.cls);
+    if (!c)   throw new Error(`Unknown case id: ${spec.case}`);
+    if (!cls) throw new Error(`Unknown class id: ${spec.cls}`);
+    const sTotal = spec.sTotal != null ? spec.sTotal : 0.14;
+
+    const d_fired_um = gradeDMin(g, spec.V);
+    const h_Ni_fired = Math.max(0.30, g.eRatio * d_fired_um);
+    // Nominal footprint keeps the compute() round-trip exact; the max-footprint
+    // (build-to-tolerance) gain is reported separately via cmaxEnvelope.
+    const Leff = c.L, Weff = c.W;
+    const em = Math.min(gradeMargin(g, spec.V, Leff, 'end'),  0.45 * Leff);
+    const sm = Math.min(gradeMargin(g, spec.V, Weff, 'side'), 0.45 * Weff);
+    const A_overlap_um2 = (Leff - 2 * em) * (Weff - 2 * sm);
+    const A_eff_um2     = A_overlap_um2 * g.coverage * (1 - g.disc);
+    // Grain target from the grains-per-layer reliability rule, bounded by the
+    // powder floor (~0.10 µm) and the ε_r-optimum (~0.8 µm).
+    const grain_um  = Math.max(0.10, Math.min(0.80, d_fired_um / g.gpl));
+    const er_grain  = erGrain(spec.cls, grain_um);
+    const layer_pitch = d_fired_um + h_Ni_fired;
+    const Hmax_eff  = c.Hmax + ((spec.Ttol != null ? spec.Ttol : (c.Ttol || 0)) - (c.Ttol || 0));
+    const N_e_max   = Math.min(g.Nmax, Math.floor((Hmax_eff - 2 * g.cover) / layer_pitch));
+    return {
+      g, c, cls, sTotal, d_fired_um, h_Ni_fired,
+      h_Ni_green: h_Ni_fired / (1 - sTotal), h_BT_green: d_fired_um / (1 - sTotal),
+      em, sm, coverage: g.coverage, disc: g.disc, cover: g.cover,
+      A_overlap_um2, A_eff_um2, grain_um, er_grain, er_class: cls.er,
+      layer_pitch, Hmax_eff, N_e_max,
+    };
+  }
+
+  // Given (case, class, V, C_target_uF, grade?), suggest a full design recipe.
+  // Returns the recipe (d, green h_BT, h_Ni, N, grain, ε_r, margins, cover) plus
+  // a feasibility band: typical (predictCMax) → frontier (cmaxEnvelope) ceilings.
+  function suggestDesign(spec) {
+    if (spec.C_target_uF == null || !isFinite(spec.C_target_uF) || spec.C_target_uF <= 0) {
+      throw new Error('suggestDesign needs spec.C_target_uF (positive number, in µF)');
+    }
+    const dp = gradeDesignPoint(spec);
+    const d_m = dp.d_fired_um * 1e-6;
+    const A_m = dp.A_eff_um2 * 1e-12;
+    const C_target_F = spec.C_target_uF * 1e-6;
+    // Back-solve N with the CLASS ε_r (the value compute() applies) so the recipe
+    // round-trips exactly; er_grain is the realistic-dielectric advisory.
+    const N_needed = (C_target_F * d_m) / (dp.er_class * EPS0 * A_m);
+    const N_actual = Math.min(N_needed, dp.N_e_max);
+    const feasible = N_needed <= dp.N_e_max;
+    const C_grade_max_uF = dp.er_class * EPS0 * A_m * dp.N_e_max / d_m * 1e6;
+    const H_stack_um = N_actual * dp.layer_pitch + 2 * dp.cover;
+    const grade = GRADES[spec.grade] ? spec.grade : 'commercial';
+    const C_typical_uF  = predictCMax({ case: spec.case, cls: spec.cls, V: spec.V }).C_max_uF;
+    const C_frontier_uF = cmaxEnvelope({ case: spec.case, cls: spec.cls, V: spec.V,
+      Ltol: spec.Ltol, Wtol: spec.Wtol, Ttol: spec.Ttol }).C_max_uF;
+    return {
+      grade, gradeLabel: dp.g.label, caseRec: dp.c, clsRec: dp.cls,
+      d_fired_um: dp.d_fired_um, h_BT_green: dp.h_BT_green,
+      h_Ni_um: dp.h_Ni_green, h_Ni_fired_um: dp.h_Ni_fired,
+      grain_um: dp.grain_um, er_class: dp.er_class, er_grain: dp.er_grain,
+      em: dp.em, sm: dp.sm, coverage: dp.coverage, disc: dp.disc, cover: dp.cover,
+      N_e_needed: Math.round(N_needed), N_e_actual: Math.round(N_actual), N_e_max: dp.N_e_max,
+      H_stack_um, H_max_um: dp.Hmax_eff, H_pct: H_stack_um / dp.Hmax_eff * 100,
+      C_target_uF: spec.C_target_uF, C_grade_max_uF, C_typical_uF, C_frontier_uF,
+      fill_grade_pct: spec.C_target_uF / C_grade_max_uF * 100,
+      feasible, overflow: !feasible,
+      needs_engineered_dielectric: (dp.er_grain / dp.er_class) < 0.85,
+    };
+  }
+
+  // Given (case, class, V_rated, C_target_uF, grade?), back-solve the recipe.
+  // Thin wrapper over suggestDesign that keeps the legacy field names the UI and
+  // tests use, and exposes the grade geometry so a compute() round-trip is exact.
   function solveRecipe(spec) {
     if (spec.C_target_uF == null || !isFinite(spec.C_target_uF) || spec.C_target_uF <= 0) {
       throw new Error('solveRecipe needs spec.C_target_uF (positive number, in µF)');
     }
-
-    const m = predictCMax(spec);
-    const d_fired_m = m.d_fired_um * 1e-6;
-
-    const C_target_F = spec.C_target_uF * 1e-6;
-    const N_e_needed = (C_target_F * d_fired_m) /
-                       (m.clsRec.er * EPS0 * m.A_eff_um2 * 1e-12);
-    const N_e_actual = Math.min(N_e_needed, m.N_e_max);
-    const overflow   = N_e_needed > m.N_e_max;
-
-    const sTotal   = spec.sTotal   != null ? spec.sTotal   : 0.14;
-    const cover    = spec.cover    != null ? spec.cover    : 60;
-    const H_stack_um = N_e_actual * m.layer_pitch + 2 * cover;
-    const fill_pct = spec.C_target_uF / m.C_max_uF * 100;
-
+    const s = suggestDesign(spec);
     return {
-      caseRec: m.caseRec, clsRec: m.clsRec,
-      d_fired_um: m.d_fired_um,
-      h_BT_green: m.h_BT_green,
-      h_Ni_um:    m.h_Ni_um,
-      N_e_needed: Math.round(N_e_needed),
-      N_e_actual: Math.round(N_e_actual),
-      N_e_max:    m.N_e_max,
-      C_max_uF:   m.C_max_uF,
+      caseRec: s.caseRec, clsRec: s.clsRec, grade: s.grade,
+      d_fired_um: s.d_fired_um, h_BT_green: s.h_BT_green, h_Ni_um: s.h_Ni_um,
+      grain_um: s.grain_um, er_class: s.er_class, er_grain: s.er_grain,
+      em: s.em, sm: s.sm, coverage: s.coverage, disc: s.disc, cover: s.cover,
+      N_e_needed: s.N_e_needed, N_e_actual: s.N_e_actual, N_e_max: s.N_e_max,
+      C_max_uF: s.C_grade_max_uF, C_typical_uF: s.C_typical_uF, C_frontier_uF: s.C_frontier_uF,
       C_target_uF: spec.C_target_uF,
-      H_stack_um, H_max_um: m.caseRec.Hmax,
-      H_pct: H_stack_um / m.caseRec.Hmax * 100,
-      fill_pct,
-      overflow,
+      H_stack_um: s.H_stack_um, H_max_um: s.H_max_um, H_pct: s.H_pct,
+      fill_pct: spec.C_target_uF / s.C_grade_max_uF * 100,
+      overflow: s.overflow,
+      needs_engineered_dielectric: s.needs_engineered_dielectric,
     };
   }
 
@@ -745,6 +838,7 @@
     parseSemcoCL, decodeCapCode,
     fmtCap, fmt, defaultInputs,
     eDesign, dFiredFromV, hNiFromD, predictCMax, cmaxEnvelope, solveRecipe,
+    suggestDesign, gradeDesignPoint, GRADES,
     computeFromKnown, erForKnown, erGrain,
     D_FLOOR_FRONTIER, E_MAX_FIELD,
   };

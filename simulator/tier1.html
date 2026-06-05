@@ -136,8 +136,18 @@
         <select id="C_unit"><option value="1">µF</option><option value="0.001">nF</option><option value="0.000001">pF</option></select>
       </div>
     </div>
+    <div class="row">
+      <label>Grade</label>
+      <div class="row-inline">
+        <select id="grade">
+          <option value="commercial">commercial (thin-layer high-CV)</option>
+          <option value="automotive">automotive (AEC-Q200)</option>
+          <option value="space">space (S-311-P-838 / MIL)</option>
+        </select>
+      </div>
+    </div>
     <button id="solve_btn">Solve recipe →</button>
-    <div class="hint" id="solve_hint">Auto-populates h_BT, h_Ni, N_e from design rules for the chosen V_rated and C_target.</div>
+    <div class="hint" id="solve_hint">Suggests d_bt, h_Ni, N_e, margins, cover, grain & ε_r from the chosen grade's design rules for V_rated and C_target.</div>
   </div>
 
   <h2>Layer dimensions</h2>
@@ -499,9 +509,10 @@ function onSolveRecipe() {
     return;
   }
 
+  const grade = document.getElementById('grade').value;
   let r;
   try {
-    r = solveRecipe({ case: inp.case, cls: inp.cls, V: V_rated, C_target_uF });
+    r = solveRecipe({ case: inp.case, cls: inp.cls, V: V_rated, C_target_uF, grade });
   } catch (e) {
     hint.textContent = 'solveRecipe error: ' + e.message; hint.style.color = '#d63030';
     return;
@@ -509,30 +520,36 @@ function onSolveRecipe() {
 
   if (r.overflow) {
     hint.textContent =
-      `⚠ Cannot fit ${C_target_uF} µF: max is ${r.C_max_uF.toFixed(3)} µF for this case at ${V_rated} V. ` +
-      `Try a bigger case, lower V_rated, or different class.`;
+      `⚠ ${C_target_uF} µF exceeds the ${r.grade} ceiling (${r.C_max_uF.toFixed(3)} µF) for this case at ${V_rated} V. ` +
+      `Frontier max ≈ ${r.C_frontier_uF.toFixed(2)} µF — try a lower grade, bigger case, or lower V_rated.`;
     hint.style.color = '#d63030';
     return;
   }
 
-  // Apply the recipe to the sliders
+  // Apply the recipe AND the grade geometry it was solved with, so the sliders
+  // reproduce the solved C exactly. Green overlap is set so the FIRED footprint
+  // = nominal case − margins (the nominal-footprint design solveRecipe assumes).
+  const sT = 0.14;
+  const cc = CASES.find(x => x.id === inp.case);
   setSlider('hBT',      r.h_BT_green);
   setSlider('hNi',      r.h_Ni_um);
   setSlider('Ne',       r.N_e_actual);
-  // The defaults baked into solveRecipe (cover=60, coverage=0.90, sTotal=0.14, disc=0.15)
-  setSlider('cover',    60);
-  setSlider('coverage', 0.90);
-  setSlider('sTotal',   0.14);
-  setSlider('disc',     0.15);
-  // solveRecipe uses the case-default margins internally — sync the sliders.
-  syncPatternToCase();
-  // Set V_DC default to the rated V for a worst-case view (user can dial back)
+  setSlider('cover',    r.cover);
+  setSlider('coverage', r.coverage);
+  setSlider('sTotal',   sT);
+  setSlider('disc',     r.disc);
+  setSlider('em',       r.em);
+  setSlider('sm',       r.sm);
+  setSlider('overlapL', Math.round((cc.L - 2 * r.em) / (1 - sT)));
+  setSlider('overlapW', Math.round((cc.W - 2 * r.sm) / (1 - sT)));
   setSlider('vdc',      Math.min(V_rated, 50));
 
   hint.style.color = '';
   hint.textContent =
-    `Solved: d_fired ${r.d_fired_um.toFixed(2)} µm · N_e ${r.N_e_actual} of ${r.N_e_max} · ` +
-    `H_stack ${r.H_pct.toFixed(0)}% of H_max · fill ${r.fill_pct.toFixed(1)}%`;
+    `[${r.grade}] d_fired ${r.d_fired_um.toFixed(2)} µm · N_e ${r.N_e_actual}/${r.N_e_max} · ` +
+    `margins ${Math.round(r.em)}/${Math.round(r.sm)} µm · grain ${r.grain_um.toFixed(2)} µm · ` +
+    `H ${r.H_pct.toFixed(0)}% · fill ${r.fill_pct.toFixed(0)}%` +
+    (r.needs_engineered_dielectric ? ' · ⚠ needs engineered high-ε_r (core-shell)' : '');
 
   update();
 }
