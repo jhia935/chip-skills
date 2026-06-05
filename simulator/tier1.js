@@ -288,7 +288,13 @@
     const W_chip_um = overlapW_fired_um + 2 * sm;
 
     const A_overlap_um2 = overlapL_fired_um * overlapW_fired_um;   // fired area
-    const A_eff_um2     = A_overlap_um2 * inp.coverage * (1 - inp.disc);
+    // Coverage is now an OPTIONAL de-rating. The overlap (above) is the primary,
+    // default geometry input — when it is the real active-electrode overlap, the
+    // active area is fully accounted for and coverage = 1.0 (no extra haircut).
+    // Supply coverage < 1 only to model extra print-fidelity / partial-fill loss
+    // on top of `disc`. Omitted → 1.0.
+    const coverage      = inp.coverage != null ? inp.coverage : 1.0;
+    const A_eff_um2     = A_overlap_um2 * coverage * (1 - inp.disc);
     const d_fired_um    = inp.hBT * (1 - s);
     const hNi_fired_um  = inp.hNi * (1 - s);
     const H_active_um   = inp.Ne * (d_fired_um + hNi_fired_um);
@@ -341,10 +347,6 @@
       warnings.push({ level: 'info', code: 'THICK_NI',
         msg: `h_Ni/h_BT = ${ratio.toFixed(2)} (electrode-dominated) — metal volume fraction high; check stack stiffness assumptions.` });
     }
-    if (inp.coverage > 0.95) {
-      warnings.push({ level: 'warn', code: 'COVERAGE_HIGH',
-        msg: `Coverage ${(inp.coverage*100).toFixed(0)} % leaves very little margin — production-risky shorting between opposing electrodes.` });
-    }
 
     return {
       caseRec: c, clsRec: cls, em, sm, Hmax_eff,
@@ -378,6 +380,12 @@
   // Calibrated 2026-05-28 to match modern thin-layer vendor parts. Old defaults
   // (cover=40, coverage=0.85, disc=0.20) were pessimistic vs current production
   // margins; updated to match the vendor lineup.
+  //
+  // Geometry is OVERLAP-primary: with no overlapL/overlapW the fired overlap is
+  // derived from the case (case − 2·margin), so switching `case` re-scales the
+  // active area automatically. `coverage` is OPTIONAL and omitted here → it
+  // defaults to 1.0 in compute() (the overlap is the active area); add it back
+  // only to model extra print-fidelity loss.
   function defaultInputs() {
     return {
       case: '0805_2012',
@@ -386,7 +394,6 @@
       hNi:  1.0,
       Ne:   300,
       cover:    60,
-      coverage: 0.90,
       sTotal:   0.14,
       disc:     0.15,
       tier2:    true,

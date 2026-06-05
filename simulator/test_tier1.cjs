@@ -44,9 +44,13 @@ const inp0 = t.defaultInputs();
     near(rHBT2.C_nominal_F, r0.C_nominal_F / 2, 1e-9),
     `expected 0.5× C, got ${(rHBT2.C_nominal_F / r0.C_nominal_F).toFixed(4)}×`);
 
-  // C scales with coverage
-  const rCov2 = t.compute({ ...inp0, tier2: false, coverage: inp0.coverage / 2 });
-  ok('C ∝ coverage', near(rCov2.C_nominal_F, r0.C_nominal_F / 2, 1e-9));
+  // Coverage is now OPTIONAL: omitted → 1.0 (overlap is the active area).
+  const rCovDefault = t.compute({ ...inp0, tier2: false });            // no coverage
+  const rCov1 = t.compute({ ...inp0, tier2: false, coverage: 1.0 });
+  ok('coverage omitted defaults to 1.0', near(rCovDefault.C_nominal_F, rCov1.C_nominal_F, 1e-12));
+  // C still scales linearly with coverage when supplied.
+  const rCovHalf = t.compute({ ...inp0, tier2: false, coverage: 0.5 });
+  ok('C ∝ coverage (when supplied)', near(rCovHalf.C_nominal_F, rCov1.C_nominal_F / 2, 1e-9));
 
   // C scales with (1 - discontinuity)
   const rD0 = t.compute({ ...inp0, tier2: false, disc: 0 });
@@ -256,9 +260,11 @@ function warningCodes(inp) {
   const thickNi = warningCodes({ ...inp0, hNi: 2.5, hBT: 1.0 });
   ok('h_Ni/h_BT = 2.5 fires THICK_NI info', thickNi.includes('THICK_NI'));
 
-  // Coverage > 0.95 → margin warning
+  // Coverage is now an optional efficiency de-rating (default 1.0); high
+  // coverage is normal and no longer emits a warning. Shorting risk is governed
+  // by the footprint-vs-tolerance (PATTERN_OVER) and margin geometry instead.
   const cov96 = warningCodes({ ...inp0, coverage: 0.96 });
-  ok('Coverage 0.96 fires COVERAGE_HIGH warning', cov96.includes('COVERAGE_HIGH'));
+  ok('Coverage 0.96 emits no COVERAGE_HIGH warning', !cov96.includes('COVERAGE_HIGH'));
 })();
 
 // ============================================================
@@ -357,7 +363,9 @@ function warningCodes(inp) {
   ];
 
   for (const s of scenarios) {
-    const r = t.compute({ ...t.defaultInputs(), tier2: false, ...s.input });
+    // Real manufactured parts have partial electrode coverage; supply a realistic
+    // 0.90 here (coverage now defaults to 1.0 = "overlap is the active area").
+    const r = t.compute({ ...t.defaultInputs(), tier2: false, coverage: 0.90, ...s.input });
     const got_uF = r.C_nominal_F * 1e6;
     const ratio  = got_uF / s.target_uF;
     const pass   = ratio >= 1 / s.tol && ratio <= s.tol;
