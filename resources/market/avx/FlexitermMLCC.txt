@@ -1,0 +1,345 @@
+MLCC with FLEXITERM®
+General Specifications
+                                                GENERAL DESCRIPTION
+                                                With increased requirements from the automotive industry for additional component robustness, KYOCERA AVX
+                                                recognized the need to produce a MLCC with enhanced mechanical strength. It was noted that many components
+                                                may be subject to severe flexing and vibration when used in various under the hood automotive and other harsh
+                                                environment applications.
+                                                To satisfy the requirement for enhanced mechanical strength, KYOCERA AVX had to find a way of ensuring
+                                                electrical integrity is maintained whilst external forces are being applied to the component. It was found that
+                                                the structure of the termination needed to be flexible and after much research and development, KYOCERA AVX
+                                                launched FLEXITERM®. FLEXITERM® is designed to enhance the mechanical flexure and temperature cycling
+                                                performance of a standard ceramic capacitor with an X7R dielectric. The industry standard for flexure is 2mm
+                                                minimum. Using FLEXITERM®, KYOCERA AVX provides up to 5mm of flexure without internal cracks. Beyond 5mm,
+                                                the capacitor will generally fail “open”.
+                                                As well as for automotive applications FLEXITERM® will provide Design Engineers with a satisfactory solution
+                                                when designing PCB’s which may be subject to high levels of board flexure.
+
+PRODUCT ADVANTAGES                                                        APPLICATIONS
+• High mechanical performance able to withstand,                          High Flexure Stress Circuit Boards
+  5mm bend test guaranteed
+• Increased temperature cycling performance, 3000                         • e.g. Depanelization: Components near edges of board.
+  cycles and beyond                                                       Variable Temperature Applications
+• Flexible termination system                                             • Soft termination offers improved reliability performance in
+• Reduction in circuit board flex failures                                  applications where there is temperature variation.
+• Base metal electrode system                                             • e.g. All kind of engine sensors: Direct connection to battery rail.
+• Automotive or commercial grade products available
+• AECQ200 Qualified                                                       Automotive Applications
+• Approved to VW 80808 Specification                                      • Improved reliability.
+                                                                          • Excellent mechanical performance and thermo mechanical
+                                                                            performance.
+
+
+
+HOW TO ORDER
+       0805                5              C                  104                        K                       A                        Z                     2              A
+
+       Style           Voltage       Dielectric      Capacitance                 Capacitance                 Failure             Terminations           Packaging       Special Code
+       0603           6 = 6.3V        C = X7R        Code (In pF)                 Tolerance                   Rate                Z = FLEXITERM®        2 = 7" Reel    A = Std.Product
+       0805           Z = 10V         F = X8R        2 Sig Digits +                J = ±5%*              A=Commercial             For FLEXITERM®        4 = 13" Reel
+       1206           Y = 16V                      Number of Zeros                 K = ±10%              4 = Automotive             with Tin/Lead
+       1210           3 = 25V                      e.g., 104 = 100nF
+       1812                                                                       M = ±20%                                         termination see
+       2220           5 = 50V                                                                                                         LD Series
+                      1 = 100V                                                     *≤1μF only
+                      2 = 200V
+
+
+       NOTE: Contact factory for availability of Tolerance Options for Specific Part Numbers.
+
+
+
+
+                                              The Important Information/Disclaimer is incorporated in the catalog where these specifications came from or available
+66                                            online at www.kyocera-avx.com/disclaimer/ by reference and should be reviewed in full before placing any order.
+                                                                                TDS-SMDMLCC-0016 | Rev 1
+                                                                 – surface mount ceramic capacitor products –
+MLCC with FLEXITERM®
+Specifications and Test Methods
+PERFORMANCE TESTING                                                                                                                    BOARD BEND TEST PROCEDURE
+                                                                                                                                       According to AEC-Q200
+AEC-Q200 Qualification:                                                                                                                 Test Procedure as per AEC-Q200:
+• Created by the Automotive Electronics                                                                                                 Sample size:      20 components
+  Council                                                                                                                               Span: 90mm        Minimum deflection spec: 2 mm
+• Specification defining stress
+                                                                                                                                                                                                                 LOADING
+                                                                                                                                                                                                                 KNIFE
+
+  test qualification for passive                                                                                                        • Components soldered onto FR4 PCB (Figure 1)
+  components                                                                                                                            • Board connected electrically to the test equipment                     MOUNTING
+                                                                                                                                                                                                                 ASSEMBLY
+
+                                                                                                                                          (Figure 2)
+Testing:
+                                                                                                                                                                                               DIGITAL
+Key tests used to compare                                                                                                                                                                      CALIPER
+
+soft termination to AEC-Q200                                                                                                                               BEND TESTPLATE
+
+
+qualification:
+                                                                                                                                                                                   CONNECTOR
+• Bend Test                                                                                                                                                                                                      CONTROL
+• Temperature Cycle Test                                                                                                                                                                                         PANEL
+
+
+                                                                                                                                                                             CONTROL PANEL
+                                                                                                                                                                                               Fig 2 - Board Bend test
+                                                                                                                                        Fig 1 - PCB layout with electrical connections                equipment
+BOARD BEND TEST RESULTS
+AEC-Q200 Vrs FLEXITERM® Bend Test
+                                         0603                                                                 0805
+                          12                                                                                                                         ENHANCED SOFT TERMINATION BEND
+
+
+    Substrate Bend (mm)
+                                                                                             12
+
+
+
+
+                                                                       Substrate Bend (mm)
+                          10                                                                 10
+                           8                                                                  8
+                                                                                                                                                     TEST PROCEDURE
+                           6                                                                  6
+                           4                                                                  4                                                      Bend Test
+                           2                                                                  2
+                                                                                                                                                     The capacitor is soldered to the printed circuit board as
+                           0                                                                  0
+                               NPO        X7R      X7R soft term                                   NPO         X7R     X7R soft term                 shown and is bent up to 10mm at 1mm per second:
+
+                                                                                                              1210
+                                         1206
+
+
+
+
+                                                                       Substrate Bend (mm)
+                          12                                                                 12
+
+
+
+
+    Substrate Bend (mm)
+                          10                                                                 10
+                           8                                                                  8
+                           6                                                                  6
+                           4                                                                  4
+                           2                                                                  2
+                           0                                                                  0
+                               NPO        X7R      X7R soft term                                   NPO         X7R     X7R soft term                                                             Max. = 10mm
+
+
+TABLE SUMMARY
+Typical bend test results are shown below:                                                                                                                                  90mm
+
+Style                          Conventional Termination                                           FLEXITERM    ®
+
+
+0603                           >2mm                                                               >5mm
+                                                                                                                                                     • The board is placed on 2 supports 90mm apart
+0805                           >2mm                                                               >5mm                                                 (capacitor side down)
+1206                           >2mm                                                               >5mm                                               • The row of capacitors is aligned with the load
+TEMPERATURE CYCLE TEST PROCEDURE                                                                                                                       stressing knife
+Test Procedure as per AEC-Q200:
+The test is conducted to determine the resistance of the component when it
+is exposed to extremes of alternating high and low temperatures.                                                                                                                                  Max. = 10mm
+
+•   Sample lot size quantity 77 pieces
+•   TC chamber cycle from -55ºC to +125ºC for 1000 cycles
+•   Interim electrical measurements at 250, 500, 1000 cycles
+•   Measure parameter capacitance dissipation factor, insulation
+    resistance
+                                                                                                                                                     • The load is applied and the deflection where the
+                                                                                                                                                       part starts to crack is recorded (Note: Equipment
+                                                                                                                                                       detects the start of the crack using a highly
+                                                                                                                                                       sensitive current detection circuit)
+                                      Test Temperature Profile (1 cycle)                                                                             • The maximum deflection capability is 10mm
+
+
+
+
+                                                                    The Important Information/Disclaimer is incorporated in the catalog where these specifications came from or available
+                                                                    online at www.kyocera-avx.com/disclaimer/ by reference and should be reviewed in full before placing any order.                                         67
+                                                                                                                     TDS-SMDMLCC-0016 | Rev 1
+                                                                                                         – surface mount ceramic capacitor products –
+MLCC with FLEXITERM®
+Specifications and Test Methods
+BEYOND 1000 CYCLES: TEMPERATURE CYCLE TEST RESULTS
+
+                                             0603                                                                                                  0805
+                   10                                                                                                 10
+                    8                                                                                                  8
+
+
+       % Failure                                                                                          % Failure
+                    6                                                                                                  6
+                    4                                                                                                  4
+                    2                                                                                                  2
+                    0                                                                                                  0
+                        0   500 1000 1500 2000 2500 3000                                                                   0     500 1000 1500 2000 2500 3000
+
+                                             1206                                                                                                  1210
+                   10                                                                                                 10
+                    8                                                                                                  8
+
+
+       % Failure                                                                                          % Failure
+                    6                                                                                                  6
+                    4                                                                                                  4
+                    2                                                                                                  2
+                    0                                                                                                  0
+                        0   500 1000 1500 2000 2500 3000                                                                   0     500 1000 1500 2000 2500 3000
+                                                                              Green = Soft Term MLCC (Flexiterm)
+                                                                              Red = Standard MLCC
+
+
+                                                                                                                                              AEC-Q200 specification states
+                        Soft Term - No Defects up to 3000 cycles                                                                              1000 cycles compared to 3000
+                                                                                                                                              temperature cycles.
+FLEXITERM® TEST SUMMARY
+     • Qualified to AEC-Q200 test/specification with the exception                                   • Board bend test improvement by a factor of 2 to 4 times.
+       of using 3000 temperature cycles (up to +150°C bend test                                      • Temperature Cycling:
+       guaranteed greater than 5mm).                                                                   – 0% Failure up to 3000 cycles
+     • FLEXITERM® provides improved performance compared to                                            – No ESR change up to 3000 cycle
+       standard termination systems.
+
+            WITHOUT SOFT TERMINATION                                                                       WITH SOFT TERMINATION
+
+
+
+
+                    Major fear is of latent board flex failures.
+                                                                                                                               Far superior mechanical performance.
+                                                                                                                                Generally open failure mode beyond
+                                                                                                                                            5mm flexure
+
+                                                 The Important Information/Disclaimer is incorporated in the catalog where these specifications came from or available
+68                                               online at www.kyocera-avx.com/disclaimer/ by reference and should be reviewed in full before placing any order.
+                                                                                   TDS-SMDMLCC-0016 | Rev 1
+                                                                    – surface mount ceramic capacitor products –
+MLCC with FLEXITERM®
+Capacitance Range X8R Dielectric
+
+          SIZE                    0603                        0805                       1206
+      Soldering
+          WVDC              25V          50V         25V             50V           25V          50V
+    271   Cap     270       G            G
+    331   (pF)    330       G            G           J              J
+    471            470       G            G           J              J
+    681            680       G            G           J              J
+    102          1000        G            G           J              J             J            J
+    152          1500        G            G           J              J             J            J
+    182          1800        G            G           J              J             J            J
+    222          2200        G            G           J              J             J            J
+    272          2700        G            G           J              J             J            J
+    332          3300        G            G           J              J             J            J
+    392          3900        G            G           J              J             J            J
+    472          4700        G            G           J              J             J            J
+    562          5600        G            G           J              J             J            J
+    682          6800        G            G           J              J             J            J
+    822          8200        G            G           J              J             J            J
+    103   Cap0.01           G            G           J              J             J            J
+    123   (μF)  0.012       G            G           J              J             J            J
+    153          0.015       G            G           J              J             J            J
+    183          0.018       G            G           J              J             J            J
+    223          0.022       G            G           J              J             J            J
+    273          0.027       G            G           J              J             J            J
+    333          0.033       G            G           J              J             J            J
+    393          0.039       G            G           J              J             J            J
+    473          0.047       G            G           J              J             J            J
+    563          0.056       G                        N              N             M            M
+    683          0.068       G                        N              N             M            M
+    823          0.082                                N              N             M            M
+    104             0.1                               N              N             M            M
+    124           0.12                                N              N             M            M
+    154           0.15                                N              N             M            M
+    184           0.18                                N                            M            M
+    224           0.22                                N                            M            M
+    274           0.27                                                             M            M
+    334           0.33                                                             M            M
+    394           0.39                                                             M
+    474           0.47
+    684           0.68
+    824           0.82
+    105               1
+
+          SIZE                    0603                        0805                       1206
+
+     Letter         A             C            E          G              J          K           M         N            P           Q           X            Y              Z
+     Max.           0.33       0.56        0.71        0.90            0.94         1.02       1.27      1.40         1.52        1.78        2.29         2.54        2.79
+   Thickness      (0.013)    (0.022)     (0.028)     (0.035)         (0.037)      (0.040)    (0.050)   (0.055)      (0.060)     (0.070)     (0.090)      (0.100)     (0.110)
+                                          PAPER                                                                        EMBOSSED
+
+
+   TS 16949, ISO 9001Certified
+
+
+
+
+                                                   The Important Information/Disclaimer is incorporated in the catalog where these specifications came from or available
+                                                   online at www.kyocera-avx.com/disclaimer/ by reference and should be reviewed in full before placing any order.             69
+                                                                                         TDS-SMDMLCC-0016 | Rev 1
+                                                                             – surface mount ceramic capacitor products –
+MLCC with FLEXITERM®
+Capacitance Range X7R Dielectric
+      Size             0402                 0603                          0805                          1206                      1210           1812                   2220
+    Soldering
+     WVDC          16V 25V 50V 10V 16V 25V 50V 100 V 200V 250V 16V 25V 50V 100 V 200V 250V 16V 25V 50V 100 V 200V 250V 500V 16V 25V 50V 100V 50V 100 V 25V              50V 100 V
+221 Cap       220 C     C   C                                                C
+271 (pF)      270 C     C   C
+331           330 C     C   C
+391           390 C     C   C
+471           470 C     C   C
+561           560 C     C   C
+681           680 C     C   C
+821           820 C     C   C
+102         1000 C      C   C       G   G   G    G    G    G    J   J   J    J     J    J   J   J   J    J     J    J    J   K   K    K   K    N      N
+182         1800 C      C   C       G   G   G    G    G    G    J   J   J    J     J    J   J   J   J    J     J    J    J   K   K    K   K    N      N
+222         2200 C      C   C       G   G   G    G    G    G    J   J   J    J     J    J   J   J   J    J     J    J    J   K   K    K   K    N      N
+332         3300 C      C   C       G   G   G    G    G    G    J   J   J    J     J    J   J   J   J    J     J    J    J   K   K    K   K    N      N
+472         4700 C      C   C       G   G   G    G    G    G    J   J   J    J     J    J   J   J   J    J     J    J    J   K   K    K   K    N      N
+103 Cap      0.01 C                 G   G   G    G    G    G    J   J   J    J     J    J   J   J   J    J     J    J    J   K   K    K   K    N      N
+123 (μF) 0.012 C                    G   G   G                   J   J   J    N    N    N    J   J   J    J     J    J        K   K    K   K    N      N
+153         0.015 C                 G   G   G                   J   J   J    N    N    N    J   J   J    J     J    J        K   K    K   K    N      N
+183         0.018 C                 G   G   G                   J   J   J    N    N    N    J   J   J    J     J    J        K   K    K   K    N      N
+223         0.022 C                 G   G   G                   J   J   J    N    N    N    J   J   J    J     J    J        K   K    K   K    N      N
+273         0.027 C                 G   G   G                   J   J   J    N    N    N    J   J   J    J     J    J        K   K    K   K    N      N
+333         0.033 C                 G   G   G                   J   J   J    N    N    N    J   J   J    J     J    J        K   K    K   K    N      N
+473         0.047                   G   G   G                   J   J   J    N    N    N    J   J   J    M     J    J        K   K    K   K    N      N
+563         0.056                   G   G   G                   J   J   J    N              J   J   J    M     J    J        K   K    K  M     N      N
+683         0.068                   G   G   G                   J   J   J    N              J   J   J    M     J    J        K   K    K  M     N      N
+823         0.082                   G   G   G                   J   J   J    N              J   J   J    M     J    J        K   K    K  M     N      N
+104            0.1 C                G   G   G                   J   J   J    N              J   J   J    M     J    J        K   K    K  M     N      N
+124          0.12                                               J   J   N    N              J   J   M    M                   K   K    K   P    N      N
+154          0.15                                               M   N   N    N              J   J   M    M                   K   K    K   P    N      N
+224          0.22               G   J   J   J                   M   N   N    N              J   M M      Q                   M   M    M   P    N      N
+334          0.33                                               N   N   N    N              J   M   P    Q                   P   P    P   Q    X      X
+474          0.47               J   J   J                       N   N   N    N              M   M   P    Q                   P   P    P   Q    X      X
+684          0.68                                               N   N   N    N              M   Q   Q    Q                   P   P    Q   X    X      X
+105              1                                              N   N   N    N              M   Q   Q    Q                   P   Q    Q   Z    X      X
+155            1.5                                              N   N                       Q   Q   Q                        P   Q    Z   Z    X      X
+225            2.2                                              N   N                       Q   Q   Q                        X   Z    Z   Z    Z      Z
+335            3.3                                                                          Q   Q                            X   Z    Z   Z    Z
+475            4.7                                                                          Q   Q                            X   Z    Z   Z    Z                               7
+106            10                                                                                                            Z   Z    Z                                  7     7
+226            22                                                                                                                                        7
+     WVDC          16V 25V 50V 10V 16V 25V 50V 100 V 200V 250V 16V 25V 50V 100 V 200V 250V 16V 25V 50V 100 V 200V 250V 500V 16V 25V 50V 100 V 50V 100 V 25V             50V 100 V
+      Size             0402                 0603                          0805                          1206                      1210           1812                   2220
+
+
+
+    Letter       A         C         E         G          J        K          M          N           P          Q       X             Y          Z          7
+    Max.        0.33      0.56      0.71      0.90      0.94      1.02       1.27       1.40        1.52       1.78    2.29          2.54       2.79       3.30
+  Thickness   (0.013)   (0.022)   (0.028)   (0.035)   (0.037)   (0.040)    (0.050)    (0.055)     (0.060)    (0.070) (0.090)       (0.100)    (0.110)    (0.130)
+                                  PAPER                                                                     EMBOSSED
+
+
+
+
+                                                The Important Information/Disclaimer is incorporated in the catalog where these specifications came from or available
+70                                              online at www.kyocera-avx.com/disclaimer/ by reference and should be reviewed in full before placing any order.
+                                                                                  TDS-SMDMLCC-0016 | Rev 1
+                                                                   – surface mount ceramic capacitor products –
+

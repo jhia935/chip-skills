@@ -1,0 +1,305 @@
+Automotive MLCC
+General Specifications
+                                            GENERAL DESCRIPTION
+                                            KYOCERA AVX has supported the Automotive Industry requirements for Multilayer Ceramic Capacitors consistently
+                                            for more than 25 years. Products have been developed and tested specifically for automotive applications and all
+                                            manufacturing facilities are QS9000 and VDA 6.4 approved.
+                                            KYOCERA AVX is using AECQ200 as the qualification vehicle for this transition. A detailed qualification package is
+                                            available on request and contains results on a range of part numbers.
+
+
+
+
+HOW TO ORDER
+         0805           5              A                 104                           K                       4                      T                        2              A
+
+          Size     Voltage        Dielectric    Capacitance                     Capacitance                Failure            Terminations         Packaging            Special Code
+          0402     6.3V = 6        NP0 = A       Code (In pF)                    Tolerance                  Rate            T = Plated Ni and Sn 2 = 7" Reel           A = Std.Product
+          0603     10V = Z         X7R = C      2 Sig. Digits +           B = ± 0.1pF (<10pF)*                              Z = FLEXITERM®** 4 = 13" Reel
+          0805                                                                                          4=Automotive
+                   16V = Y         X8R = F     Number of Zeros            C = ± 0.25pF (<10pF)*                             U = Conductive Epo
+          1206     25V = 3                      e.g. 10 F = 106
+          1210                                                            D = ± 0.5pF (<10pF)*
+                   35V = D                                                F = ± 1%*                                         **X7R         X8R only
+          1812
+                   50V = 5                                                G = ± 2%*
+                   100V = 1                                               J = ± 5% (<=1µF)             Contact factory for availability of Tolerance Options for Specific Part Numbers.
+                   200V = 2                                               K = ± 10%
+                   500V = 7                                               M = ± 20%                    NOTE:       Contact factory for non-specified capacitance values
+                                                                                                                   0402 case size available in T termination only.
+                                                                          *NPO only
+
+
+
+
+COMMERCIAL VS AUTOMOTIVE MLCC PROCESS COMPARISON
+                                                                  Commercial                                                                           Automotive
+                                        Standard Part Numbers.                                                      Specific Automotive Part Number. sed to control supply of
+          Administrative
+                                        No restriction on who purchases these parts.                                product to Automotive customers.
+
+ Lot Qualification (Destructive
+                                        As per EIA RS469                                                            Increased sample plan stricter criteria.
+   Physical Analysis - DPA)
+
+    Visual/Cosmetic Quality             Standard process and inspection                                             100% inspection
+                                        Standard sampling for accelerated wave solder on                            Increased sampling for accelerated wave solder on X7R and
+     Application Robustness
+                                        X7R dielectrics                                                             NP0 followed by lot by lot reliability testing.
+All Tests have Accept/Reject Criteria 0/1
+
+
+
+
+                                               The Important Information/Disclaimer is incorporated in the catalog where these specifications came from or available
+                                               online at www.kyocera-avx.com/disclaimer/ by reference and should be reviewed in full before placing any order.                            57
+                                                                                 TDS-SMDMLCC-0005 | Rev 4
+                                                                  – surface mount ceramic capacitor products –
+Automotive MLCC
+NP0/X7R Dielectric
+FLEXITERM FEATURES
+ a) Bend Test
+    The capacitor is soldered to the PC Board as shown:
+
+
+
+
+     Typical bend test results are shown below:
+
+        Style        Conventional               Soft Term
+        0603           >2mm                        >5
+        0805           >2mm                        >5
+        1206           >2mm                        >5
+
+ a) Temperature Cycle testing
+    FLEXITERM® has the ability to withstand at least 1000 cycles
+    between -55°C and +125°C
+
+
+
+
+                                        The Important Information/Disclaimer is incorporated in the catalog where these specifications came from or available
+58                                      online at www.kyocera-avx.com/disclaimer/ by reference and should be reviewed in full before placing any order.
+                                                                          TDS-SMDMLCC-0005 | Rev 4
+                                                           – surface mount ceramic capacitor products –
+Automotive MLCC-NP0
+Capacitance Range
+        Case Size                0402                                   0603                                                 0805                                                               1206                                                            1210
+                mm             1.00 ± 0.10                            1.60 ± 0.15                                         2.01 ± 0.20                                                       3.20 ± 0.20                                                       3.20 ± 0.20
+Length (L)
+                (in.)        (0.040 ± 0.004)                        (0.063 ± 0.006)                                      0.079 ± 0.008                                                    (0.126 ± 0.008)                                                   (0.126 ± 0.008)
+                mm             0.50 ± 0.10                            0.81 ± 0.15                                          1.25 ± 0.20                                                      1.60 ± 0.20                                                       2.50 ± 0.20
+Width (W)
+                (in.)        (0.020 ± 0.004)                        (0.032 ± 0.006)                                      (0.049 ± 0.008)                                                  (0.063 ± 0.008)                                                   (0.098 ± 0.008)
+Terminal        mm             0.25 ± 0.15                            0.35 ± 0.15                                          0.50 ± 0.25                                                      0.50 ± 0.25                                                       0.50 ± 0.25
+   (t)          (in.)        (0.010 ± 0.006)                        (0.014 ± 0.006)                                      (0.020 ± 0.010)                                                  (0.020 ± 0.010)                                                   (0.020 ± 0.010)
+               CAP
+  CAP                   25          50         100     25      50        100          200   250        25   50     100        200          250       500   630        25   50     100     200          250      500   630       1000   50      100    200        250          500   630       1000
+               Code
+   0.5          0R5     C           C          C       G       G          G           G      G         J    J       J          J            J         J     J         J    J       J        J           J        J    Q          Q     J          J    J          J            J     J         J
+    1           1R0     C           C          C       G       G          G           G      G         J    J      J           J           J         J     J          J    J       J        J          J        J     Q          Q     J          J   J           J           J      J         J
+    5           5R0     C           C          C       G       G          G           G      G         J    J      J           J           J         J     J          J    J       J        J          J        J     Q          Q     J          J   J           J           J      J         J
+   10           100     C           C          C       G       G          G           G      G         J    J      J           J           J         J     J          J    J       J        J          J        J     Q          Q     J          J   J           J           J      J         J
+   12           120     C           C          C       G       G          G           G     G          J    J      J           J           J                          J    J       J        J          J        J     Q          Q     J          J   J           J           J      J         J
+   15           150     C           C          C       G       G          G           G     G          J    J      J           J           J                          J    J       J       J           J        J     Q          Q     J          J   J           J           J      J         J
+   18           180     C           C          C       G       G          G           G     G          J    J      J           J           J                          J    J       J       J           J        J     Q          Q     J        J     J           J           J      J         J
+   22           220     C           C          C       G       G          G           G     G          J    J      J           J           J                          J    J       J       J           J        J     Q          Q     J        J     J           J           J      J         J
+   27           270     C           C          C       G       G          G           G     G          J    J      J           J           J                          J    J       J       J           J        J     Q          Q     J        J     J           J           J      J         J
+   33           330     C           C          C       G       G          G           G     G          J    J      J           J           J                          J    J       J       J           J        J     Q          Q     J        J     J           J           J      J         J
+   39           390     C           C          C       G       G          G           G      G         J    J       J          J            J                         J    J       J        J           J        J    Q          Q     J          J    J          J            J     J         J
+   47           470     C           C                  G       G          G           G      G         J    J      J           J           J                          J    J       J        J          J        J     Q          Q     J          J   J           J           J      J         J
+   56           560     C           C                  G       G          G           G                J    J      J           J           N                          J    J       J        J          J        J     Q          Q     J          J   J           J           J      J         J
+   68           680     C           C                  G       G          G           G                J    J      J           J           N                          J    J       J        J          J        J     Q          Q     J          J   J           J           J      J         J
+   82           820     C           C                  G       G          G           G                J    J      J           J           N                          J    J       J        J          J        J     Q          Q     N        N     N           N           N      N         N
+   100          101     C           C                  G       G          G           G                J    J      J           J           N                          J    J       J       J           J        J     Q          Q     N        N     N           N           N      N         N
+   120          121                                    G       G          G                            J    J      J           J           N                          J    J       J       J           J        J     Q          Q     N        N     N           P           P      P         X
+  150           151                                    G       G          G                            J    J      J           J           N                          J    J       J       J           J        J     Q          Q     N        N     N           P           P      P         X
+  180           181                                    G       G          G                            J    J      J           J           N                          J    J       J       J           J        J     Q          Q     N        N     N           P           P      P         X
+  220           221                                    G       G          G                            J    J      J           J           N                          J    J       J       J           J        J     Q          Q     N        N     N           P           P      P         X
+  270           271                                    G       G          G                            J    J      J           J           N                          J    J       J       J           J        J     Q                N        N     N           P           P      P         X
+  330           331                                    G       G          G                            J    J      J           J           N                          J    J       J       J           J        J     Q                N        N     N           P           P      P         X
+  390           391                                    G       G          G                            J    J      J           J                                      J    J       J        J           J        J    Q                N        N     N           P           P      P         X
+   430          431                                    G       G                                       J    J       J          J                                      J    J       J        J           J        J    Q                N        N     N           P           P      P         X
+   470          471                                    G       G                                       J    J      J           J                                      J    J       J        J          J        J     Q                N        N     N           P           P      P         X
+   560          561                                    G       G                                       J    J      J                                                  J    J       J        J          M        Q     Q                N        N     N           P           P      P
+  680           681                                    G       G                                       J    J      J                                                  J    J       J        J          M        Q     Q                N        N     N           P           P      P
+  1,000         102                                    G       G                                       J    J      J                                                  J    J       J        J          M        Q     Q                N        N     N           P           P      X
+  1,200         122                                    G       G                                       J    J                                                         N    N       N       N                                           N        N     N           P           P
+  1,500         152                                    G       G                                       J    J                                                         N    N       N       N                                           N        N     N           P           P
+  2,200         222                                    G                                               J    J                                                         J    J       J       J           J        J     J                N        N     N           P           K      K
+  2,700         272                                    G                                                                                                              J    J       J       J           J        J     J                                                       K      K
+ 3,300          332                                    G                                                                                                              M    M       M       M           M        M     M                                                       K      K
+  3,900         392                                    G                                                                                                              M    M       M       M           M        M     M                                                       M     M
+ 4,700          472                                    G                                                                                                              P    P       P       P           P        P     P                                                       M     M
+ 5,600          562                                    G                                                                                                                                                                                                                      M     M
+ 6,800          682                                    G                                                                                                                                                                                                                      N      N
+ 8,200          822                                    G                                                                                                                                                                                                                      P      P
+ 10,000         103                                    G                                                                                                                                                                                                          X           X      X
+ 12,000         123                                                                                                                                                                                                                                               X
+ 15,000         153                                                                                                                                                                                                                                               X
+ 18,000         183                                                                                                                                                                                                                                               X
+ 22,000         223                                                                                                                                                                                                                                               X
+ 27,000         273                                                                                                                                                                                                                                               X
+ 33,000         333                                                                                                                                                                                                                                               X
+ 39,000         393
+ 47,000         473
+ 56,000         563
+ 68,000         683
+ 82,000         823
+100,000         104
+               CAP
+  CAP                   25          50     100         25      50        100       200      250     25      50    100         200        250         500   630        25   50     100     200          250      500   630       1000   50      100    200        250          500   630       1000
+               Code
+        Case Size                0402                                   0603                                                 0805                                                               1206                                                            1210
+
+
+
+
+    Letter                      A                      C                       E                   G                J                            K                M               N                         P               Q                 X                    Y                      Z
+  Max.                       0.33                     0.56                 0.71                   0.90            0.94                      1.02                 1.27            1.40                  1.52               1.78               2.29               2.54                 2.79
+Thickness                (0.013)                     (0.022)            (0.028)                 (0.035)          (0.037)                 (0.040)            (0.050)             (0.055)           (0.060)             (0.070)               (0.090)          (0.100)                (0.110)
+                                                                         PAPER                                                                                                                               EMBOSSED
+
+
+
+
+                                                                                   The Important Information/Disclaimer is incorporated in the catalog where these specifications came from or available
+                                                                                   online at www.kyocera-avx.com/disclaimer/ by reference and should be reviewed in full before placing any order.                                                                                            59
+                                                                                                                               TDS-SMDMLCC-0005 | Rev 4
+                                                                                                            – surface mount ceramic capacitor products –
+Automotive MLCC - X7R
+Capacitance Range
+           Size                              0402                                  0603                                                       0805                                                     1206                                              1210                           1812                         2220
+        Soldering                      Reflow/Wave                             Reflow/Wave                                              Reflow/Wave                                                Reflow/Wave                                      Reflow Only                    Reflow Only                  Reflow Only
+                                                                                                                                                                                                                                                                                    4.5 ± 0.3
+  (L)             mm                       1 ± 0.1                                1.6 ± 0.15                                               2.01 ± 0.2                                                  3.2 ± 0.2                                       3.2 ± 0.2                                                  5.7 ± 0.5
+                                                                                                                                                                                                                                                                                    (0.177 ±
+Length            (in.)                (0.04 ± 0.004)                          (0.063 ± 0.006)                                          (0.079 ± 0.008)                                            (0.126 ± 0.008)                                 (0.126 ± 0.008)                                             (0.224 ± 0.02)
+                                                                                                                                                                                                                                                                                     0.012)
+                                                                                                                                                                                                                                                                                    3.2 ± 0.2
+  (W)             mm                      0.5 ± 0.1                              0.81 ± 0.15                                               1.25 ± 0.2                                                  1.6 ± 0.2                                       2.5 ± 0.2                                                   5 ± 0.4
+                                                                                                                                                                                                                                                                                    (0.126 ±
+ Width            (in.)                (0.02 ± 0.004)                          (0.032 ± 0.006)                                          (0.049 ± 0.008)                                            (0.063 ± 0.008)                                 (0.098 ± 0.008)                                             (0.197 ± 0.016)
+                                                                                                                                                                                                                                                                                     0.008)
+                                                                                                                                                                                                                                                                                   0.61 ± 0.36
+   (t)            mm                     0.25 ± 0.15                             0.35 ± 0.15                                               0.5 ± 0.25                                                 0.5 ± 0.25                                      0.5 ± 0.25                                                 0.64 ± 0.39
+                                                                                                                                                                                                                                                                                    (0.024 ±
+Terminal          (in.)                (0.01 ± 0.006)                          (0.014 ± 0.006)                                           (0.02 ± 0.01)                                              (0.02 ± 0.01)                                   (0.02 ± 0.01)                                              (0.025 ± 0.015)
+                                                                                                                                                                                                                                                                                     0.014)
+         WVDC                   6.3V   16V      25V     50V   10V   16V   25V       50V     100V       200V   250V   6.3V   10V   16V    25V     50V        100V    200V   250V   16V   25V   50V      100V     200V     250V   500V   16V   25V    50V     100V     200V   250V   50V     100V    25V   50V   100V     200V     250V   500V
+  101                 100                                                                                                                                                                                                                                             M      Q
+  221                 220                C          C   C     G     G     G          G       G          G                                                                                                                                                             M      Q
+  271                 270                C          C   C     G     G     G          G       G          G                                                                                                                                                             M      Q
+  331                 330                C          C   C     G     G     G          G       G          G                                                                                                                                                             M      Q
+  391                 390                C          C   C     G     G     G          G       G          G                                                                                                                                                             M      Q
+  471                 470                C          C   C     G     G     G          G           G      G                                                                                                                                                             M      Q
+  561                 560                C          C   C     G     G     G          G           G      G                                                                                                                                                             M      Q
+  681                 680                C          C   C     G     G     G          G           G      G                                                                                                                                                             M      Q
+  821                 820                C          C   C     G     G     G          G           G      G                                                                                                                                                             M      Q
+  102                1000                C          C   C     G     G     G          G           G      G      G                   J      J          J          J    J      J      J     J     J         J           J    J       J    K      K      K          K     M      Q      K          K
+  122                1220                C          C   C     G     G     G          G           G      G      G                   J      J          J          J    J      J      J     J     J         J           J    J       J    K      K      K          K     M      Q      K          K
+  152                1500                C          C    C    G     G     G          G           G      G      G                   J      J          J          J    J      J      J     J     J         J           J    J       J     K     K      K          K     M      Q      K          K
+  182                1800                C          C    C    G     G     G          G           G      G      G                   J      J          J          J    J      J      J     J     J         J           J    J       J     K     K      K          K     M      Q      K          K
+  222                2200                C          C    C    G     G     G          G           G      G      G                   J      J          J          J    J      J      J     J     J         J           J    J       J     K     K      K          K     M      Q      K          K
+  272                2700                C          C    C    G     G     G          G           G      G      G                   J      J          J          J    J      J      J     J     J         J           J    J       J    K     K       K          K     M      Q     K           K
+  332                3300                C          C   C     G     G     G          G       G          G      G                   J      J          J          J    J      J      J     J     J         J           J    J       J    K     K       K          K     M      Q     K           K
+  392                3900                C          C   C     G     G     G          G       G          G      G                   J      J          J          J    J      J      J     J     J         J           J    J       J    K      K      K          K     M      Q     K           K
+  472                4700                C          C   C     G     G     G          G       G          G      G                   J      J          J          J    J      J      J     J     J         J           J    J       J    K      K      K          K     M      Q      K          K
+  562                5600                C          C   C     G     G     G          G           G      G      G                   J      J          J          J    J      J      J     J     J         J           J    J       J    K      K      K          K     M      Q      K          K
+  682                6800                C          C   C     G     G     G          G           G      G      G                   J      J          J          J    J      J      J     J     J         J           J    J       J    K      K      K          K     M      Q      K          K
+  822                8200                C          C   C     G     G     G          G           G      G      G                   J      J          J          J    J      J      J     J     J         J           J    J       J    K      K      K          K     M      Q      K          K
+  103      Cap        0.01               C          C    C    G     G     G          G           G      G      G                   J      J          J          J    J      J      J     J     J         J           J    J       J     K     K      K          K     M      Q      K          K
+  123      (uF)     0.012                C                    G     G     G          G           G                                 J      J          J          J    J      N      J     J     J         J           J    J             K     K      K          K     M      Q      K          K
+  153               0.015                C                    G     G     G          G           G                                 J      J          J          J    J      N      J     J     J         J           J    J             K     K      K          K     M      Q      K          K
+  183               0.018                C                    G     G     G          G           G                                 J      J          J          J    N      N      J     J     J         J           J    J             K     K      K          K     M      Q      K          K
+  223               0.022                C                    G     G     G          G           G                                 J      J          J          J    N      N      J     J     J         J           Q    Q             K     K      K          K     M      Q      K          K
+  273               0.027                C                    G     G     G          G           J                                 J      J          J          J    N      N      J     J     J         J           Q    Q             K     K      K          K     M      Q      K          K
+  333               0.033                C                    G     G     G          G           J                                 J      J          J          N    N      N      J     J     J         J          Q     Q            K     K       K          K     M      Q     K           K
+  393               0.039                                     G     G     G          G           J                                 J      J          J          N    N      N      J     J     J         J          Q     Q            K     K       K          K     M      Q     K           K
+  473               0.047                                     G     G     G          G           J                                 J      J          J          N    N      N      J     J     J         M          Q     Q            K     K       K          K     M      Q     K           K
+  563               0.056                                     G     G     G          G           J                                 J      J          J          N                  J     J     J         M          Q     Q            K     K       K          M     M      Q     K           K
+  683               0.068                                     G     G     G          G           J                                 J      J          J          N                  J     J     J         M          Q     Q            K      K      K          M     M      Q     K           K
+  823               0.082                                     G     G     G          G           J                                 J      J          J          N                  J     J     J         M          Q     Q            K      K      K          M     Q      Q      K          K
+  104                     0.1                                 G     G     G          G           J                                 J      J          J          N                  J     J     J         M          Q     Q            K      K      K          M     Q      Q      K          K                                         X
+  124                 0.12                                    G      J     J                                                       J      J          N          N                  J     J    M          M          Q     Q            K      K      K          P     Q      Q      K          K
+  154                 0.15                                    G      J     J                                                      M       N          N          N                  J     J    M          M           Q    Q            K      K      K          P     Q      Q      K          K
+  224                 0.22                                    G      J     J                                                      M       N          N          N                  J    M     M          Q           Q    Q            M     M       M          P     Q      Q     M           M
+  334                 0.33                                                                                                        N       N          N          N                  J    M      P         Q                             P      P      P          Q     Z      Z      X          X
+  474                 0.47                                                                                                        N       N          N          N                 M     M      P         Q                             P      P      P          Q                   X          X
+  684                 0.68                                                                                                        N       N          N          N                 M     Q     Q          Q                             P      P      Q          X                   X          X
+  105                      1     C                                                                                                N       N          N          N                 M     Q     Q          Q                              P    Q       Q          Z                   X          X          Z      Z          X     X
+  155                     1.5                                                                                                     N       N          N                            Q     Q     Q          Q                              P    Q       Z          Z                   X          X          Z      Z          Z     Z
+  225                     2.2                                                                                                     N       N          N                            Q     Q     Q          Q                              Z     Z      Z          Z                   Z          Z          Z      Z
+  335                     3.3                                                                                                                                                     Q     Q     Q                                         X     Z      Z          Z                   Z                     Z      Z
+  475                     4.7                                                                                                                                                     Q     Q     Q                                         X     Z      Z          Z                   Z                     Z      Z
+  106                     10                                                                                          P      P                                                    Q                                                     Z     Z      Z                              Z               Z     Z      Z
+  226                     22                                                                                                                                                                                                                                                                        Z
+         WVDC                   6.3V   16V      25V     50V   10V   16V   25V       50V     100V       200V   250V   6.3V   10V   16V    25V     50V        100V    200V   250V   16V   25V   50V      100V     200V     250V   500V   16V   25V    50V     100V     200V   250V   50V     100V    25V   50V   100V     200V     250V   500V
+           Size                                 0402                               0603                                                                  0805                                          1206                                              1210                           1812                         2220
+
+
+
+
+   Letter                          A                   C           E               G                       J            K            M                  N                   P       Q                    X                  Y             Z
+   Max.                           0.33                0.56        0.71            0.90                   0.94          1.02         1.27               1.40                1.52    1.78                 2.29              2.54           2.79
+ Thickness                      (0.013)             (0.022)     (0.028)         (0.035)                (0.037)        (0.04)       (0.05)            (0.055)             (0.060)  (0.07)               (0.09)             (0.1)         (0.11)
+                                                                PAPER                                                                                                        EMBOSSED
+
+
+
+
+                                                                                                     The Important Information/Disclaimer is incorporated in the catalog where these specifications came from or available
+60                                                                                                   online at www.kyocera-avx.com/disclaimer/ by reference and should be reviewed in full before placing any order.
+                                                                                                                                                     TDS-SMDMLCC-0005 | Rev 4
+                                                                                                                             – surface mount ceramic capacitor products –
+Automotive MLCC - X8R
+Capacitance Range
+
+          SIZE                                     0603                                                           0805                                              1206
+        Soldering                              Reflow/Wave                                                    Reflow/Wave                                       Reflow/Wave
+ WVDC          WVDC               25V               50V                  100V                  25V                 50V                   100V                25V          50V
+  472    pF         4700           G                 G                    G                     J                   J                      J                  J             J
+  562               5600           G                 G                    G                     J                   J                      J                  J             J
+  682               6800           G                 G                    G                     J                   J                      J                  J             J
+  822               8200           G                 G                    G                     J                   J                      J                  J             J
+  103      uF        0.01          G                 G                    G                     J                   J                      J                  J             J
+  123              0.012           G                 G                                          J                   J                     N                   J             J
+  153              0.015           G                 G                                          J                   J                     N                   J             J
+  183              0.018           G                 G                                          J                   J                     N                   J             J
+  223              0.022           G                 G                                          J                   J                     N                   J             J
+  273              0.027           G                 G                                          J                   J                                         J             J
+  333              0.033           G                 G                                          J                   J                                         J             J
+  393              0.039           G                 G                                          J                   J                                         J             J
+  473              0.047           G                 G                                          J                   J                                         J             J
+  563              0.056           G                                                            N                   N                                         M             M
+  683              0.068           G                                                            N                   N                                         M             M
+  823              0.082                                                                        N                   N                                         M             M
+  104                 0.1                                                                       N                   N                                         M             M
+  124                0.12                                                                       N                   N                                         M             M
+  154                0.15                                                                       N                   N                                         M             M
+  184                0.18                                                                       N                                                             M             M
+  224                0.22                                                                       N                                                             M             M
+  274                0.27                                                                                                                                     M             M
+  334                0.33                                                                                                                                     M             M
+  394                0.39                                                                                                                                     M             M
+  474                0.47                                                                                                                                     M             Q
+  684                0.68                                                                                                                                     Q             Q
+  824                0.82                                                                                                                                     Q             Q
+  105                   1                                                                                                                                     Q             Q
+ WVDC         WVDC                25V               50V                  100V                  25V                  50V                  100V                25V          50V
+          SIZE                                      0603                                                            0805                                            1206
+
+
+  Letter       A         C       E       G        J      K       M       N       P       Q       X       Y       Z
+  Max.        0.33      0.56    0.71    0.90    0.94    1.02    1.27    1.40    1.52    1.78    2.29    2.54    2.79
+Thickness   (0.013)   (0.022) (0.028) (0.035) (0.037) (0.040) (0.050) (0.055) (0.060) (0.070) (0.090) (0.100) (0.110)
+                              PAPER                                              EMBOSSED
+
+
+
+
+                                     The Important Information/Disclaimer is incorporated in the catalog where these specifications came from or available
+                                     online at www.kyocera-avx.com/disclaimer/ by reference and should be reviewed in full before placing any order.                            61
+                                                                       TDS-SMDMLCC-0005 | Rev 4
+                                                        – surface mount ceramic capacitor products –
+

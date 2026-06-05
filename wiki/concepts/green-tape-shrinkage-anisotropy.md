@@ -6,6 +6,7 @@ updated: 2026-05-20
 sources:
   - heunisch-2010-tape-cast-anisotropic-shrinkage.md
   - yan-thesis-2013-mlcc-sintering-nanotomography.md
+  - okuma-2021-mlcc-electrode-nanoct.md
 tags:
   - paper
 status: complete
@@ -120,6 +121,9 @@ LTCC measurements quantify this directly: [[hagymasi-ltcc-ferrite-dielectric-cof
 
 This redistribution is predicted directly by the [[skorohod-olevsky-viscous-sintering|SOVS continuum model]] via the viscous Poisson ratio `ν_v`. See [[zero-shrinkage-ltcc]] for the most extreme constrained case (lateral ~0.2 %).
 
+### Direct 3-D confirmation by nano-CT
+[[okuma-2021-mlcc-electrode-nanoct|Okuma et al. (2021, *Acta Materialia* 206)]] imaged a real co-fired Ni-BaTiO₃ MLCC by synchrotron X-ray nano-CT and found that **both the electrode and the pore structure carry an in-plane anisotropy tied to the tape-casting direction** — direct 3-D evidence that the in-plane shrinkage (not just the thickness) is directional and that the casting step leaves a lasting signature in the fired part. This grounds the in-plane (x-y) shrinkage of the printed electrode overlap that the simulator applies to the active area (see [[electrode-overlap-and-registration]]).
+
 ## Implications for the simulator
 
 The simulator's [[case-size-geometry|green→fired shrinkage]] logic should:
@@ -134,6 +138,7 @@ The simulator's [[case-size-geometry|green→fired shrinkage]] logic should:
 - [[heunisch-2010-tape-cast-anisotropic-shrinkage]]
 - [[hagymasi-ltcc-ferrite-dielectric-cofiring]]
 - [[yan-thesis-2013-mlcc-sintering-nanotomography]]
+- [[okuma-2021-mlcc-electrode-nanoct]]
 - [[shi-2023-jecs-sovs-bilayer-modeling]]
 - [[mistler-twiname-tape-casting-textbook]]
 - [[rahaman-ceramic-processing-sintering-textbook]]

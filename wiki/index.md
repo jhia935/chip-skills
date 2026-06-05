@@ -2,7 +2,7 @@
 title: Wiki Index
 type: index
 created: 2026-05-19
-updated: 2026-05-20
+updated: 2026-06-05
 ---
 
 # Wiki Index
@@ -57,6 +57,10 @@ A catalog of all pages in this wiki, organized by category. See [[overview]] for
 - [[seok-hyun-yoon]] — SEMCO MLCC research lead; author on Yoon 2020 + Chun 2024.
 - [[jinhyuk-chun]] — SEMCO researcher; first author Chun 2024.
 - [[ana-maria-hernandez-lopez]] — KEMET Charged; first author Hernández-López 2018.
+- [[gaku-okuma]] — TDK / Tokyo Tech; nano-CT of MLCC electrode sintering; first author Okuma 2021.
+- [[fumihiro-wakai]] — Tokyo Tech; continuum sintering-mechanics theorist; senior author Okuma 2021.
+- [[michael-sampson]] — NASA GSFC parts engineer; co-author of the 2011 BME MLCC construction/DPA database.
+- [[alexander-teverovsky]] — NASA GSFC/NEPP; most prolific author of the MLCC characterization corpus (rating, leakage, breakdown, cracking, mechanics).
 
 ### Organizations
 - [[nasa-nepp]] — NASA Electronic Parts and Packaging program; primary public sponsor of BME reliability research.
@@ -73,6 +77,9 @@ A catalog of all pages in this wiki, organized by category. See [[overview]] for
 - [[bme-vs-pme]] — Base-metal vs precious-metal electrode trade-offs.
 - [[bme-reliability-model]] — Liu's three-factor model: structure × acceleration × Weibull.
 - [[case-size-geometry]] — EIA case codes, margins, overlap area, height/N budget.
+- [[electrode-overlap-and-registration]] — Print-pattern unit cell; active overlap = footprint − margins; registration tolerance; in-plane shrinkage & electrode discontinuity (simulator pattern parameterization).
+- [[mlcc-dimensional-tolerance]] — L/W/T case tolerances (EIA/IEC/JIS); why T is a layer-count-dependent "max"; build-to-max-footprint adds ~+25–50 % active area on small cases.
+- [[mlcc-margin-cover-design-rules]] — quantitative side/end-margin & cover-plate minimums (MIL-PRF-32535 voltage-scaled tables, GSFC, EIA-469) vs measured as-built values.
 - [[esr-esl-srf]] — Parasitics, equivalent-circuit impedance, decoupling rules.
 - [[failure-modes-mlcc]] — Cracks (mechanical/thermal/flex), arcing, mitigation hierarchy.
 - [[core-shell-batio3]] — Rare-earth-doped microstructure that makes thin-layer BME work.
@@ -196,6 +203,12 @@ A catalog of all pages in this wiki, organized by category. See [[overview]] for
 - [[epj-in-situ-xray-tomography-dem]] — Yan/Martin/Bouvard et al. EPJ Web Conf 2017; coupling in-situ synchrotron tomography with DEM for high-T sintering of Cu + Ni-BaTiO₃ MLCC.
 - [[yan-thesis-2013-mlcc-sintering-nanotomography]] — Full Yan PhD thesis (TU Darmstadt / Grenoble 2013, 235 pp); chip-scale 12% shrinkage, Ni-vs-BT 450 °C onset gap, DEM retardation factor table.
 - [[heunisch-2010-tape-cast-anisotropic-shrinkage]] — Heunisch/Dellert/Roosen JECS 2010; particle shape dominates green-tape shrinkage anisotropy (K_xy 1.9–12.7).
+- [[okuma-2021-mlcc-electrode-nanoct]] — Okuma et al. Acta Mater. 2021 (TDK/Tokyo Tech, SPring-8 nano-CT); in-plane shrinkage anisotropy tied to casting direction + sub-µm Ni electrode discontinuity.
+- [[nasa-gsfc-liu-construction-database-2011]] — Liu & Sampson CARTS 2011; measured DPA construction table for 30 BME/PME parts (d, electrode, N, cover, margins) + grain-stacking.
+- [[mil-prf-123-spec]] — DoD PME high-rel MLCC spec; fixed min dielectric (0.8/1.0 mil), K ≤ 3000, Ni prohibited.
+- [[mil-prf-32535-spec]] — DoD BME high-rel MLCC spec; no fixed d, voltage-scaled margin/cover tables, VBR ≥ 6×VR, cube-law life.
+- [[gsfc-mlcc-space-specs]] — NASA GSFC S-311-P-838 (BME) / S-311-P-829 (PME) / EEE-INST-002 derating; ≤300 layers + grains-per-layer gate.
+- [[avx-automotive-mlcc-kam-kaf]] — KYOCERA AVX KAM/KAF automotive MLCC; chip L×W×T dimension tables, 150 °C dielectrics, FLEXITERM.
 - [[mistler-twiname-tape-casting-textbook]] — Mistler & Twiname (ACerS/Wiley 2000); standard practitioner reference for tape casting.
 - [[rahaman-ceramic-processing-sintering-textbook]] — Rahaman textbooks; canonical graduate sintering science incl. constrained-sintering chapters.
 - [[shi-2023-jecs-sovs-bilayer-modeling]] — Shi/Giuntini et al. JECS 2023; efficient FE-implementation of SOVS model with solid-like shell elements and Aquilanti-Mundim viscosity; bilayer warpage benchmarks at 4-8% error.

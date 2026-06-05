@@ -2,7 +2,7 @@
 title: MLCC Case Sizes & Internal Geometry
 type: concept
 created: 2026-05-19
-updated: 2026-05-20
+updated: 2026-06-05
 status: complete
 importance: high
 sources:
@@ -100,6 +100,13 @@ Margins are **size-scaled**, not constant: `end margin em ≈ 0.12·L` (floor 40
 
 The **end margin** is the keep-out between the buried internal electrode tip and the termination of opposite polarity (anti-arcing distance). The **side margin** is the keep-out between the electrode edge and the chip side wall (anti-delamination, mechanical robustness). Both have an absolute floor (handling/insulation) and saturate for large cases — hence the fractional-with-cap rule rather than a pure percentage. See [[dielectric-layer-thickness-floor]] for the companion limit on layer count.
 
+The margin must also cover **print-registration tolerance** — layer-to-layer misregistration of the screen-printed electrode plus the dicing-position tolerance. This sets a floor on how small margins can shrink: a fixed registration budget is a larger fraction of a tiny chip, which is one reason small cases historically carried disproportionately large margins. See [[electrode-overlap-and-registration]] for the print-pattern / overlap parameterization the simulator uses (it can be driven by case-minus-margins *or* by the print pattern directly).
+
+## Dimensional tolerance & build-to-max-footprint
+The case code names a **nominal** footprint; the real part ships within a per-series **dimensional tolerance** on `L`, `W`, and `T` (EIA RS-198 / IEC 60384-1 / JIS C 5101). The fired dimensions are what the spec bounds; the green print pattern is designed larger so it lands in-band after in-plane shrinkage ([[okuma-2021-mlcc-electrode-nanoct|Okuma 2021]]).
+
+A high-CV part is built to the **maximum** allowed footprint to capture extra overlap area — e.g. an 0201 at 0.65 × 0.35 mm vs nominal 0.6 × 0.3 mm carries ~+25–35 % active area. Thickness is the odd dimension out: it is **layer-count-dependent** (set by the capacitance target, not the case), so charts list a *thickness max* rather than a tight ±, and a looser `T` tolerance lets a part stack more layers. The simulator exposes `Ltol`, `Wtol`, `Ttol` as independent inputs for exactly this reason — see [[mlcc-dimensional-tolerance]].
+
 ## Height & layer count budget
 Total external height:
 $$
@@ -127,9 +134,16 @@ Working backward: a 0805 with `d = 1 µm`, `d_e = 1 µm`, `d_cover = 50 µm/side
 
 ## Related
 - [[mlcc-capacitance-equation]] — uses `A` and `N`
+- [[electrode-overlap-and-registration]] — print-pattern / active-overlap parameterization
+- [[mlcc-dimensional-tolerance]] — L/W/T tolerance & build-to-max-footprint
+- [[mlcc-margin-cover-design-rules]] — quantitative margin/cover minimums (MIL/GSFC) + measured as-built
+- [[dielectric-layer-thickness-floor]] — companion limit on layer count
 - [[bme-reliability-model]] — uses `S` (chip-size scale factor)
 - [[failure-modes-mlcc]] — larger cases (>0805) are more susceptible to flex crack
 
 ## References
 - [[nasa-nepp-bme-mlcc-reliability]]
+- [[nasa-gsfc-liu-construction-database-2011]] — measured per-part margins/cover/layers (30 parts)
+- [[avx-automotive-mlcc-kam-kaf]] — vendor chip L×W×T dimension tables
 - [[samsung-cl-series-mlcc-ds]]
+- [[okuma-2021-mlcc-electrode-nanoct]]

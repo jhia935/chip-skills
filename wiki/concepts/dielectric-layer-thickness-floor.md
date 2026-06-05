@@ -2,11 +2,13 @@
 title: Dielectric Layer Thickness Floor — Why MLCC Layers Can't Go Arbitrarily Thin
 type: concept
 created: 2026-05-29
-updated: 2026-05-29
+updated: 2026-06-05
 sources:
   - kyocera-thin-mlcc-roadmap.md
   - aqueous-tape-casting-ultrathin-batio3-2025.md
   - nasa-batio3-mlcc-failure-mechanisms.md
+  - mil-spec-mlcc-requirements.md
+  - gsfc-mlcc-space-spec-requirements.md
 status: complete
 importance: high
 ---
@@ -52,6 +54,18 @@ State-of-the-art **production** dielectric is **~400 nm**. The processing litera
 | Bleeding-edge consumer | ~0.3 µm | 3 grains × 100 nm; premium high-CV |
 | Absolute frontier (2023+) | ~0.2–0.25 µm | KYOCERA 0201 10 µF class; beyond conventional casting |
 | **Unreachable in volume tape casting** | **< 0.2 µm** | powder/rheology wall |
+
+## The other floor: spec-mandated minimum thickness (the voltage side)
+
+The manufacturing floor above is independent of voltage. The **qualification specs** impose a *separate* minimum from the breakdown-field side — and the BME vs PME specs draw it very differently:
+
+| Spec | Min fired d vs rated V | Note |
+|---|---|---|
+| [[mil-prf-123-spec\|MIL-PRF-123]] (PME) | 0.8 mil (20.3 µm) @50 V; 1.0 mil (25.4 µm) @>50 V | also caps K ≤ 3000 |
+| [[mil-prf-32535-spec\|MIL-PRF-32535]] (BME) | **none fixed** | geometry via margin tables; SEM void check if d ≤ 7 µm |
+| [[gsfc-mlcc-space-specs\|GSFC S-311-P-838]] (BME) | 0.28 mil (7.1 µm) @16/25 V; 0.33 mil (8.4 µm) @50 V; 0.60 mil (15.2 µm) @100 V | plus ≤300 layers + grains-per-layer gate |
+
+So a *space-qualified* part is held well above the manufacturing frontier (7 µm minimum at 25 V, ~28× the 0.25 µm frontier), trading CV for reliability — whereas the BME DoD spec lets thickness float and polices reliability through the [[bme-reliability-model|`(r̄/d)^α`]] grains-per-layer gate instead. Commercial high-CV parts run far below both, right at the manufacturing floor. The measured [[nasa-gsfc-liu-construction-database-2011|Liu DPA database]] shows the spread directly: BME d = 2–12 µm, PME d = 15–22.5 µm.
 
 ## Worked reconciliation: the 0201 high-CV parts
 

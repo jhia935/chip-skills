@@ -1,0 +1,653 @@
+Automotive MLCC with FLEXITERM®, KAF Series
+General Specifications
+                                                   GENERAL DESCRIPTION
+                                                   With increased requirements from the automotive industry for additional component robustness, KYOCERA AVX
+                                                   recognized the need to produce a MLCC with enhanced mechanical strength. It was noted that many components
+                                                   may be subject to severe flexing and vibration when used in various under the hood automotive and other harsh
+                                                   environment applications.
+                                                   To satisfy the requirement for enhanced mechanical strength, KYOCERA AVX had to find a way of ensuring electrical
+                                                   integrity is maintained whilst external forces are being applied to the component. It was found that the structure
+                                                   of the termination needed to be flexible and after much research and development, KYOCERA AVX launched
+                                                   FLEXITERM®. FLEXITERM® is designed to enhance the mechanical flexure and temperature cycling performance of
+                                                   a standard ceramic capacitor. The industry standard for flexure is 2mm minimum. Using FLEXITERM®, KYOCERA
+                                                   AVX provides up to 5mm of flexure without internal cracks. Beyond 5mm, the capacitor will generally fail “open”.
+                                                   As well as for automotive applications FLEXITERM® will provide Design Engineers with a satisfactory solution
+                                                   when designing PCB’s which may be subject to high levels of board flexure.
+
+
+PRODUCT ADVANTAGES                                                           APPLICATIONS
+• High mechanical performance able to withstand,                             High Flexure Stress Circuit Boards
+  5mm bend test guaranteed
+• Increased temperature cycling performance, 3000                            • e.g. Depanelization: Components near edges of board.
+  cycles and beyond                                                          Variable Temperature Applications
+• Flexible termination system                                                • Soft termination offers improved reliability performance in
+• Reduction in circuit board flex failures                                     applications where there is temperature variation.
+• Base metal electrode system                                                • e.g. All kind of engine sensors: Direct connection to battery rail.
+• Automotive or commercial grade products available
+• AECQ200 Qualified                                                          Automotive Applications
+• Approved to VW 80808 Specification                                         • Improved reliability.
+                                                                             • Excellent mechanical performance and thermo mechanical
+                                                                               performance.
+HOW TO ORDER
+
+     KAF                 31                  G                 R7                         1H                                475                                K               U
+
+    Series               Size         Thickness             Dielectric                                               Capacitance                       Capacitance         Packaging
+  AEC-Q200            05 = 0402      See Cap Chart          CG = COG         0J = 6.3V 2H = 500V                   Code Code (in pF)                    Tolerance        See Table Below
+ FLEXITERM®           15 = 0603                             R7 = X7R                                                2 Significant Digits         B = ± 0.1pF (<10pF)*
+                      21 = 0805                                               1A = 10V 2J = 630V
+   SERIES                                                   R8 = X8R          1C = 16V 3A = 1000V                   +Number of zeros             C = ± 0.25pF (<10pF)*
+                      31 = 1206                             L8 = X8L
+                      32 = 1210                                               1E = 25V 3N = 1500V                     eg 10uF = 106              D = ± 0.5pF (<10pF)*
+                      42 = 1808                             G8 = X8G         1H = 50V 3D =2000V                          10nF = 103              F = ± 1%*
+                      43 = 1812                                              2A = 100V 3E = 2500V                        47pF = 470              G = ± 2%*
+                      55 = 2220                                              2D = 200V 3U = 3000V                                                J = ± 5%
+                                                                             2E = 250V                                                           K = ± 10%
+                                                                                                                                                 M = ± 20%
+
+                                                                                                                                                 *COG only
+NOTE: Contact factory for availability of Tolerance Options for Specific Part Numbers.
+ PACKAGING CODES
+
+               EIA         IEC         7"            7"               13"            13"
+  Code
+             (inch)       (mm)        Paper       Embossed           Paper         Embossed
+     05      0402         1005           H                               N
+     15      0603         1608           T              U               M                 L
+     21      0805         2012           T              U               M                 L
+     31      1206         3216           T              U               M                 L
+     32      1210         3225           T              U               M                 L
+     42      1808         4520                          Y                                 K
+     43      1812         4532                          V                                 S
+     55      2220         5750                          V                                 S
+*thickness determines paper or plastic embossed packaging
+
+
+
+
+                                                 The Important Information/Disclaimer is incorporated in the catalog where these specifications came from or available
+14                                               online at www.kyocera-avx.com/disclaimer/ by reference and should be reviewed in full before placing any order.
+                                                                                  TDS-SMDMLCC-0034 | Rev 17
+                                                                    – surface mount ceramic capacitor products –
+Automotive MLCC with FLEXITERM®, KAF Series
+Specifications and Test Methods
+PERFORMANCE TESTING                                                                                   BOARD BEND TEST PROCEDURE
+                                                                                                      According to AEC-Q200
+AEC-Q200 Qualification:                                                                                Test Procedure as per AEC-Q200:
+• Created by the Automotive Electronics                                                                Sample size:      20 components
+  Council                                                                                              Span: 90mm        Minimum deflection spec: 2 mm
+• Specification defining stress
+                                                                                                                                                                                           LOADING
+                                                                                                                                                                                           KNIFE
+
+  test qualification for passive                                                                       • Components soldered onto FR4 PCB (Figure 1)
+  components                                                                                           • Board connected electrically to the test equipment                                MOUNTING
+                                                                                                                                                                                           ASSEMBLY
+
+                                                                                                         (Figure 2)
+Testing:
+                                                                                                                                                                         DIGITAL
+Key tests used to compare                                                                                                                                                CALIPER
+
+soft termination to AEC-Q200                                                                                                  BEND TESTPLATE
+
+
+qualification:
+                                                                                                                                                      CONNECTOR
+• Bend Test                                                                                                                                                                                CONTROL
+• Temperature Cycle Test                                                                                                                                                                   PANEL
+
+
+                                                                                                                                                CONTROL PANEL
+                                                                                                                                                                         Fig 2 - Board Bend test
+BOARD BEND TEST RESULTS                                                                                Fig 1 - PCB layout with electrical connections                           equipment
+
+
+Style       Conventional Termination                         FLEXITERM®
+0603        >2mm                                             >5mm
+                                                                                                                        ENHANCED SOFT TERMINATION BEND
+0805        >2mm                                             >5mm                                                       TEST PROCEDURE
+1206        >2mm                                             >5mm
+                                                                                                                        Bend Test
+TEMPERATURE CYCLE TEST PROCEDURE
+                                                                                                                        The capacitor is soldered to the printed circuit board as
+Test Procedure as per AEC-Q200:                                                                                         shown and is bent up to 10mm at 1mm per second:
+The test is conducted to determine the resistance of the component when it
+is exposed to extremes of alternating high and low temperatures.
+•   Sample lot size quantity 77 pieces
+•   TC chamber cycle from -55ºC to +125ºC for 1000 cycles
+•   Interim electrical measurements at 250, 500, 1000 cycles
+•   Measure parameter capacitance dissipation factor, insulation
+    resistance
+                                                                                                                                                                           Max. = 10mm
+
+
+
+                                                                                                                                               90mm
+
+
+
+
+                   Test Temperature Profile (1 cycle)                                                                   • The board is placed on 2 supports 90mm apart
+                                                                                                                          (capacitor side down)
+                                                                                                                        • The row of capacitors is aligned with the load
+                                                                                                                          stressing knife
+
+
+
+                                                                                                                                                                            Max. = 10mm
+
+
+
+
+                                                                                                                        • The load is applied and the deflection where the
+                                                                                                                          part starts to crack is recorded (Note: Equipment
+                                                                                                                          detects the start of the crack using a highly
+                                                                                                                          sensitive current detection circuit)
+                                                                                                                        • The maximum deflection capability is 10mm
+
+
+
+
+                                                 The Important Information/Disclaimer is incorporated in the catalog where these specifications came from or available
+                                                 online at www.kyocera-avx.com/disclaimer/ by reference and should be reviewed in full before placing any order.                                      15
+                                                                                  TDS-SMDMLCC-0034 | Rev 17
+                                                                    – surface mount ceramic capacitor products –
+Automotive MLCC with FLEXITERM®, KAF Series
+Specifications and Test Methods
+BEYOND 1000 CYCLES: TEMPERATURE CYCLE TEST RESULTS
+
+                                             0603                                                                                                  0805
+                   10                                                                                                 10
+                    8                                                                                                  8
+
+
+       % Failure                                                                                          % Failure
+                    6                                                                                                  6
+                    4                                                                                                  4
+                    2                                                                                                  2
+                    0                                                                                                  0
+                        0   500 1000 1500 2000 2500 3000                                                                   0     500 1000 1500 2000 2500 3000
+
+                                             1206                                                                                                  1210
+                   10                                                                                                 10
+                    8                                                                                                  8
+
+
+       % Failure                                                                                          % Failure
+                    6                                                                                                  6
+                    4                                                                                                  4
+                    2                                                                                                  2
+                    0                                                                                                  0
+                        0   500 1000 1500 2000 2500 3000                                                                   0     500 1000 1500 2000 2500 3000
+                                                                              Green = Soft Term MLCC (Flexiterm)
+                                                                              Red = Standard MLCC
+
+
+                                                                                                                                              AEC-Q200 specification states
+                        Soft Term - No Defects up to 3000 cycles                                                                              1000 cycles compared to 3000
+                                                                                                                                              temperature cycles.
+FLEXITERM® TEST SUMMARY
+     • Qualified to AEC-Q200 test/specification with the exception                                   • Board bend test improvement by a factor of 2 to 4 times.
+       of using 3000 temperature cycles (up to +150°C bend test                                      • Temperature Cycling:
+       guaranteed greater than 5mm).                                                                   – 0% Failure up to 3000 cycles
+     • FLEXITERM® provides improved performance compared to                                            – No ESR change up to 3000 cycle
+       standard termination systems.
+
+            WITHOUT SOFT TERMINATION                                                                       WITH SOFT TERMINATION
+
+
+
+
+                    Major fear is of latent board flex failures.
+                                                                                                                               Far superior mechanical performance.
+                                                                                                                                Generally open failure mode beyond
+                                                                                                                                            5mm flexure
+
+                                                 The Important Information/Disclaimer is incorporated in the catalog where these specifications came from or available
+16                                               online at www.kyocera-avx.com/disclaimer/ by reference and should be reviewed in full before placing any order.
+                                                                                  TDS-SMDMLCC-0034 | Rev 17
+                                                                    – surface mount ceramic capacitor products –
+Automotive MLCC with FLEXITERM® - NP0
+Capacitance Range
+          SIZE                                         0603                                                                     0805                                                                      1206                                                     1210
+      Soldering                                    Reflow/Wave                                                              Reflow/Wave                                                             Reflow/Wave                                                 Reflow/Wave
+                  mm                                 1.6 ± 0.15                                                               2.01 ± 0.2                                                               3.2 ± 0.2                                                  3.2 ± 0.2
+(L) Length
+                  (in.)                           (0.063 ± 0.006)                                                           (0.079 ± 0.008)                                                         (0.126 ± 0.008)                                            (0.126 ± 0.008)
+                  mm                                0.81 ± 0.15                                                               1.25 ± 0.2                                                               1.6 ± 0.2                                                  2.5 ± 0.2
+(W) Width
+                  (in.)                           (0.032 ± 0.006)                                                           (0.049 ± 0.008)                                                         (0.063 ± 0.008)                                            (0.098 ± 0.008)
+    (t)           mm                                0.35 ± 0.15                                                               0.5 ± 0.25                                                              0.5 ± 0.25                                                 0.5 ± 0.25
+ Terminal         (in.)                           (0.014 ± 0.006)                                                            (0.02 ± 0.01)                                                           (0.02 ± 0.01)                                              (0.02 ± 0.01)
+         WVDC               25V   50V       100V       200V       250V          630V      1000V   25V          50V   100V       200V         250V   630V     1000V    25V       50V          100V   200V     250V     500V   630V   1000V   50V   100V   200V      250V         500V   630V   1000V
+   0R5            0.5        A     A         A             A                                       B           B      B           B
+   1R0            1.0        A     A         A             A                                       B           B      B           B
+   100            10         A     A         A             A                                       B           B      B           B
+   120            12         A     A         A             A                                       B           B      B           B
+   150            15         A     A         A             A                                       B           B      B           B
+   180            18         A     A         A             A                                       B           B      B           B
+   220            22         A     A         A             A                                       B           B      B           B
+   270            27         A     A         A             A                                       B           B      B           B
+   330            33         A     A         A             A                     B          B      B           B      B           B
+   390            39         A     A         A             A                     B          B      B           B      B           B
+   470            47         A     A         A             A                     B          B      B           B      B           B                  A         A
+   560            56         A     A         A             A        A*           B          B      B           B      B           B                  A         A
+   680            68         A     A         A             A        A*           B          B      B           B      B           B                  A         A
+   820            82         A     A         A             A        A*           B          B      B           B      B           B                  A         A
+   101            100        A     A         A             A        A*           B          B      B           B      B           B                  A         A
+   121            120                                   A*          A*           B          B      B           B      B           B                  A        A
+   151            150                                   A*          A*           B          B      B           B      B           B                  A        A
+   181            180                                   A*          A*           B          B      B           B      B           B                  A        A
+   221            220                                   A*          A*           B          B      B           B      B           B                  A        A
+   271            270                                   A*          A*           B*                B           B      B           B                  A        A                                                                      N
+   331            330                                   A*          A*           B*                                               B                  A        A                                                                      N
+   391            390                                   A*          A*           B*                                               B                  A        A                                                                      N
+   471            470                        A*         A*          A*           B*                                               B                  A        A                                                                      N
+   561            560                        A*         A*          A*           B*                                               B                  A        A                                                                      N
+   681            680                        A*         A*          A*           B*                                               B                  A        A                                                                      N
+   821            820       A*    A*         A*         A*          A*           B*                                               B                  A        A                                                                      N
+   102           1000       A*    A*         A*         A*          A*           B*                                               B                  A        A                                                                      N                                                  K*     K*
+   122           1200       A*    A*         A*         A*          A*                                                                               A        A                                                                      N                                                  C*     C*
+   152           1500       A*    A*         A*         A*          A*                                                                                                                                                                N                                                 G*     G*
+   182           1800       A*    A*         A*                                                                       B           B            B                                                                                      N                                                 G*     G*
+   222           2200       A*    A*         A*                                                                       B           B            B                                 B            B       B          B     B      B       N                                          G*     G*     G*
+   272           2700       A*    A*                                                                           A      A           A            A                                 B            B       B          B     B      B      G*     G*     G*     G*         G*          G*     G*     G*
+   332           3300       A*    A*                                                                           A      A           A            A                                 G            G      G           G     G      G      G*     G*     G*     G*         G*          G*     G*     G*
+   392           3900       A*    A*                                                                           A      A           A            A                                 G            G      G           G     G      G      G*     G*     G*     G*         G*          G*     G*     G*
+   472           4700       A*    A*                                                                           A      A           A            A                                 G            G      G           G     G      G      G*     G*     G*     G*         G*          G*     G*     G*
+   562           5600       A*    A*                                                                           A      A                                                          G            G      G           G     G      G             G*     G*     G*         G*          G*     G*     G*
+   682           6800       A*    A*                                                                           A      A                                                          G            G      G           G     G      G             K*     K*     K*         K*          K*     K*     K*
+   822           8200       A*                                                                                 A      A                                                          G            G      G           G     G      G             K*     K*     K*         K*          K*     K*     K*
+   103           10000      A*                                                                                 A      A                                                          G            G      G           G     G      G             K*     K*     K*         K*          K*     K*     L*
+   123           12000                                                                                                                                                 G         G            G      G           G                          K*     K*     K*         K*          K*     K*
+   153           15000                                                                                                                                                 G         G            G      G           G                          L*     L*     L*         L*          L*     L*
+   183           18000                                                                                                                                                 G         G            G      G           G                          L*     L*     L*         L*          L*     L*
+   223           22000                                                                                                                                                 G         G            G                                             L*     L*     L*         L*          L*     L*
+   273           27000                                                                                                                                                 G         G            G                                             L*     L*     L*         L*          L*     L*
+   333           33000                                                                                                                                                 G         G            G                                             L*     L*     L*         L*          L*     L*
+   393           39000                                                                                                                                                 G         G
+   473           47000                                                                                                                                                 G         G
+   563           56000
+   683           68000
+   823           82000
+   104         100000
+         WVDC               25V   50V       100V       200V       250V          630V      1000V   25V        50V     100V       200V         250V   630V     1000V    25V       50V          100V   200V     250V     500V   630V   1000V   50V   100V   200V      250V         500V   630V   500V
+
+          Size                                         0603                                                                     0805                                                                      1206                                                     1210
+
+
+
+* These dimensions differ from the standard in table above and are:
+0603 L= 1.6 ± 0.2 mm , W = 0.8 ± 0.2 mm
+1206 L= 3.2 ± 0.4 mm , W = 1.6 ± 0.3 mm
+1210 L= 3.2 ± 0.4 mm , W = 2.5 ± 0.3 mm
+
+                                             0603                                 0805                                 1206                                                   1210
+             Case Size
+                                           (KAF15)                              (KAF21)                              (KAF31)                                                (KAF32)
+         Thickness Letter              A               B                  B                A             B             N                   G             C            G                K              L
+    Max Thickness (mm)             0.90              0.95                0.94             1.45          0.94          1.27              1.78          1.27           1.78             2.29          2.80
+           Carrier Tape           PAPER              PAPER           PAPER                EMB          PAPER          EMB               EMB           EMB            EMB              EMB           EMB
+    Packaging Code 7" reel             T               T                  T                U             T             U                   U             U            U                U              U
+   Packaging Code 13" reel             M               M                  M                L             M              L                  L             L            L                L              L
+                                                                                PAPER                                                                              EMBOSSED
+
+
+
+
+                                                                                          The Important Information/Disclaimer is incorporated in the catalog where these specifications came from or available
+17                                                                                        online at www.kyocera-avx.com/disclaimer/ by reference and should be reviewed in full before placing any order.
+                                                                                                                                               TDS-SMDMLCC-0034 | Rev 17
+                                                                                                                     – surface mount ceramic capacitor products –
+Automotive MLCC with FLEXITERM® - X8R / X8L
+Capacitance Range
+KYOCERA AVX has developed a range of multilayer ceramic capacitors designed for use in applications up to 150°C. These capacitors are manufactured with an X8R and an X8L dielectric material. X8R material has capacitance variation of ± 15% between -55°C and +150°C. The
+X8L material has capacitance variation of ±15% between -55°C to 125°C to 125°C and +15/40% from +125°C to +150°C.
+The need for X8R and X8L performance has been driven by customer requirements for parts that operate at elevated temperatures. They provide a highly reliable capacitor with low loss and stable capacitance over temperature.
+They are ideal for automotive under the hood sensors, and various industrial applications. Typical industrial application would be drilling monitoring system. They can also be used as bulk capacitors for high temperature camera modules.
+
+
+
+X8R                                                                                                                                                                                                X8L
+                      SIZE                                                     0603                                0805                                       1206                                                     SIZE                                   0603                           0805                             1206                              1210                         2220
+                  Soldering                                              Reflow/Wave                           Reflow/Wave                              Reflow/Wave                                                  Soldering                            Reflow/Wave                    Reflow/Wave                    Reflow/Wave                       Reflow/Wave                  Reflow Only
+                                    mm                                       1.6 ± 0.15                          2.01 ± 0.2                                 3.2 ± 0.2                                                                mm                     1.6 ± 0.15                     2.01 ± 0.2                        3.2 ± 0.2                         3.2 ± 0.2                   5.7 ± 0.5
+    (L) Length                                                                                                                                                                                        (L) Length
+                                    (in.)                               (0.063 ± 0.006)                        (0.079 ± 0.008)                         (0.126 ± 0.008)                                                               (in.)                (0.063 ± 0.006)                (0.079 ± 0.008)                (0.126 ± 0.008)                   (0.126 ± 0.008)             (0.224 ± 0.02)
+                                    mm                                    0.81 ± 0.15                            1.25 ± 0.2                                 1.6 ± 0.2                                                                mm                     0.81 ± 0.15                    1.25 ± 0.2                        1.6 ± 0.2                         2.5 ± 0.2                    5 ± 0.4
+    (W) Width                                                                                                                                                                                         (W) Width
+                                    (in.)                               (0.032 ± 0.006)                        (0.049 ± 0.008)                         (0.063 ± 0.008)                                                               (in.)                (0.032 ± 0.006)                (0.049 ± 0.008)                (0.063 ± 0.008)                   (0.098 ± 0.008)             (0.197 ± 0.016)
+                                    mm                                    0.35 ± 0.15                            0.5 ± 0.25                                 0.5 ± 0.25                                                               mm                     0.35 ± 0.15                    0.5 ± 0.25                     0.5 ± 0.25                        0.5 ± 0.25                  0.64 ± 0.39
+   (t) Terminal                                                                                                                                                                                       (t) Terminal
+                                    (in.)                               (0.014 ± 0.006)                         (0.02 ± 0.01)                           (0.02 ± 0.01)                                                                (in.)                (0.014 ± 0.006)                 (0.02 ± 0.01)                  (0.02 ± 0.01)                     (0.02 ± 0.01)              (0.025 ± 0.015)
+                      WVDC                                      25V            50V          100V      25V           50V            100V          25V          50V          100V
+                                                                                                                                                                                                                      WVDC                          25V        50V          100V   25V        50V          100V   16V   25V          50V     100V   10V   25V          50V     100V   25V             50V
+       271                   Cap            270                 A                A            A
+       331                   (pF)           330                 A                A            A       B              B               B                                                                   271                  Cap            270    A           A
+
+       471                          470                         A                A            A       B              B               B                                                                   331                  (pF)           330    A           A            A     B           B            B
+
+       681                          680                         A                A            A       B              B               B                                                                    471                        470            A           A            A     B           B            B
+
+       102                      1000                            A                A            A       B              B               B           B              B                                         681                        680            A           A            A     B           B            B
+
+       152                      1500                            A                A            A       B              B               B           B              B                                         102                        1000           A           A            A     B           B            B            B               B    B
+
+       182                      1800                            A                A            A       B              B               B           B              B                                         152                        1500           A           A            A     B           B            B            B               B    B
+
+       222                      2200                            A                A            A       B              B               B           B              B                                         182                        1800           A           A            A     B           B            B            B               B    B
+
+       272                      2700                            A                A            A        B             B               B            B             B                                        222                         2200           A           A            A     B           B            B            B               B    B
+
+       332                      3300                            A                A            A        B             B               B            B             B                                         272                        2700           A           A            A     B           B            B            B               B    B
+
+       392                      3900                            A                A            A        B             B               B            B             B                                         332                        3300           A           A            A      B          B            B            B               B    B
+
+       472                      4700                            A                A            A        B             B               B            B             B                                         392                        3900           A           A            A      B          B            B            B               B    B
+
+       562                      5600                            A                A            A        B             B               B            B             B                                         472                        4700           A           A            A      B          B            B            B               B    B
+
+       682                      6800                            A                A            A        B             B               B            B             B                                         562                        5600            A          A            A      B          B            B            B               B    B
+
+       822                      8200                            A                A            A        B             B               B            B             B                                         682                        6800            A          A            A      B          B            B            B               B    B
+
+       103                   Cap          0.01                  A                A            A        B             B               B            B             B                                         822                        8200            A          A            A      B          B            B            B               B    B
+
+       123                    (uF) 0.012                        A                A                     B             B               B            B             B                                         103                 Cap            0.01    A          A            A      B          B            B            B               B    B
+
+       153                      0.015                           A                A                     B             B               A            B             B                                         123                 (uF)          0.012    A          A                   B          B            B            B               B    B
+
+       183                      0.018                            A               A                     B             B               A            B             B                                         153                        0.015           A          A                   B          B            B            B               B    B
+
+       223                      0.022                            A               A                     B             B               A            B             B                                         183                        0.018           A          A                   B          B            B            B               B    B
+
+       273                      0.027                            A               A                     B             B                            B             B                                         223                        0.022           A          A                   B          B            B            B               B    B
+
+       333                      0.033                            A               A                     B             B                            B             B                                         273                        0.027           A          A                   B          B            B            B               B    B
+       393                      0.039                            A               A                     B             B                            B             B                                         333                        0.033           A          A                   B          B            A            B               B    B
+       473                      0.047                            A               A                     B             B                            B             B                                         393                        0.039           A          A                   B          B            A            B               B    B
+       563                      0.056                            A                                     A             A                           N              N                                         473                        0.047           A          A                   B          B            A            B               B    B
+       683                      0.068                            A                                     A             A                           N              N                                         563                        0.056           A          A                   B          B            A            B               B    B
+       823                      0.082                                                                  A             A                           N              N                                         683                        0.068           A          A                   B          B            A            B               B    B
+       104                          0.1                                                                A             A                           N              N                                         823                        0.082           A          A                   B          B            A            B               B    N
+       124                          0.12                                                               A             A                           N              N                                         104                         0.1            A          A                   B          B            A            B               B    N
+
+       154                          0.15                                                               A             A                           N              N                                         124                        0.12                                           B          A                         B               B    N
+
+       184                          0.18                                                               A                                         N              N                                         154                        0.15                                           B          A                   B     B               B    N
+
+       224                         0.22                                                                A                                         N              N                                         184                        0.18                                           A          A                   B     B               B    G
+
+       274                         0.27                                                                                                          N              N                                         224                        0.22                                           A          A                   B     B               B    G
+
+       334                         0.33                                                                                                          N              N                                         274                        0.27                                           A          A                   B     N               N
+
+       394                         0.39                                                                                                           E             G                                         334                        0.33                                           A          A                   B     N               E
+
+       474                         0.47                                                                                                           E             G                                         394                        0.39                                           A          A                   N     N               E
+
+       684                         0.68                                                                                                           G             G                                         474                        0.47                                          A           A                  N      N               E
+
+       824                         0.82                                                                                                           G             G                                        684                         0.68                                          A           A                  N      G               G
+
+       105                           1                                                                                                            G             G                                        824                         0.82                                          A           A                  N      G               G
+
+                      WVDC                                      25V             50V          100V     25V           50V            100V          25V           50V         100V                           105                         1                                            A           A                  N      G               G
+
+                      SIZE                                                     0603                                0805                                       1206                                        155                         1.5                                                                         G      G               G
+                                                                                                                                                                                                         225                          2.2                                                                         G      G               G                                 L    L      C               C
+        Case Size                             0603(KAF15)                           0805(KAF21)                                1206(KAF31)                           1210(KAF32)   2220 (KAF55)           475                         4.7                                                                         G      G                                                 L
+     Thickness Letter                     A                 B                   B                 A        B               N                 E          G                 L             C                 106                         10                                                                                                             L     L
+
+      Max Thickness                   0.90             0.95                   0.94           1.45      0.94               1.27            1.52         1.78              2.79          2.80                           WVDC                          25V        50V          100V   25V        50V          100V   16V   25V          50V     100V   10V   25V          50V     100V   200V          250V
+
+       Carrier Tape                  PAPER            PAPER                  PAPER           EMB      PAPER               EMB             EMB          EMB               EMB          EMB                              SIZE                                    0603                           0805                            1206                              1210                         2220
+
+  Packaging Code 7"reel                   T                 T                   T                 U        T               U                 U          U                 U             V
+  Packaging Code 13"reel                 M              M                      M                  L        M               L                 L          L                 L             S
+
+                                                                     PAPER                                                                   EMBOSSED (EMB)
+
+
+
+
+                                                                                                                                                 The Important Information/Disclaimer is incorporated in the catalog where these specifications came from or available
+                                                                                                                                                 online at www.kyocera-avx.com/disclaimer/ by reference and should be reviewed in full before placing any order.                                                                                                                                    18
+                                                                                                                                                                                              TDS-SMDMLCC-0034 | Rev 17
+                                                                                                                                                                                – surface mount ceramic capacitor products –
+Automotive MLCC with FLEXITERM® - X8R / X8L
+General Specifications
+APPLICATIONS FOR X8R AND X8L CAPACITORS
+• All market sectors with a 150°C requirement
+• Automotive on engine applications
+• Oil exploration applications
+• Hybrid automotive applications
+  – Battery control
+  – Inverter / converter circuits
+  – Motor control applications
+  – Water pump
+• Hybrid commercial applications
+  – Emergency circuits
+  – Sensors
+  – Temperature regulation
+
+
+
+
+                                                                                     ADVANTAGES OF X8R AND X8L MLC CAPACI-
+                                                                                     TORS
+                                                                                     • Both ranges are qualified to the highest automotive
+                                                                                       AEC-Q200 standards
+                                                                                     • Excellent reliability compared to other capacitor
+                                                                                       technologies
+                                                                                     • RoHS compliant
+                                                                                     • Low ESR / ESL compared to other technologies
+                                                                                     • Tin solder finish
+                                                                                     • FLEXITERM® available
+                                                                                     • 100V range available
+
+
+
+
+ENGINEERING TOOLS FOR HIGH VOLTAGE MLC CAPACITORS
+•   Samples
+•   Technical Articles
+•   Application Engineering
+•   Application Support
+                                                                                      X8R/X8L Dielectric
+                                                                          0805, 50V, X8R/X8L Typical Temperature Coefficient
+                                                   10.00
+
+                                                                                                                         X8R
+                                                    0.00
+
+
+                                                  -10.00
+
+
+
+
+                                   Cap change %
+                                                                                                                       X8L
+                                                  -20.00
+
+
+                                                  -30.00
+
+
+                                                  -40.00
+
+
+                                                  -50.00
+                                                            -55 -35 -15     0   20    25   35   45   65 85 105 125 130 135 140 150
+                                                                                           Temperature (°C)
+
+
+
+
+                                                  The Important Information/Disclaimer is incorporated in the catalog where these specifications came from or available
+19                                                online at www.kyocera-avx.com/disclaimer/ by reference and should be reviewed in full before placing any order.
+                                                                                     TDS-SMDMLCC-0034 | Rev 17
+                                                                     – surface mount ceramic capacitor products –
+Automotive MLCC with FLEXITERM® - X7R , 4V to 500V
+Capacitance Range
+          SIZE                               0402                                               0603                                                                 0805                                                          1206                                                     1210                                  1812                              2220
+        Soldering                        Reflow/Wave                                        Reflow/Wave                                                          Reflow/Wave                                                   Reflow/Wave                                               Reflow Only                           Reflow Only                       Reflow Only
+                 mm                        1.0 ± 0.2                                         1.6 ± 0.15                                                           2.01 ± 0.2                                                     3.2 ± 0.2                                                3.2 ± 0.2                             4.5 ± 0.3                         5.7 ± 0.5
+ (L) Length
+                 (in.)                   (0.039±0.008)                                      (0.063 ± 0.006)                                                      (0.079 ± 0.008)                                           (0.126 ± 0.008)                                              (0.126 ± 0.008)                       (0.177 ± 0.012)                 (0.224 ± 0.02)
+                 mm                         0.5± 0.2                                          0.81 ± 0.15                                                           1.25 ± 0.2                                                 1.6 ± 0.2                                                    2.5 ± 0.2                             3.2 ± 0.2                       5 ± 0.4
+ (W) Width
+                 (in.)                    (0.02±0.008)                                      (0.032 ± 0.006)                                                      (0.049 ± 0.008)                                           (0.063 ± 0.008)                                              (0.098 ± 0.008)                       (0.126 ± 0.008)                (0.197 ± 0.016)
+                     mm                   0.25 ± 0.15                                         0.35 ± 0.15                                                           0.5 ± 0.25                                                  0.5 ± 0.25                                                0.5 ± 0.25                            0.61 ± 0.36                      0.64 ± 0.39
+(t) Terminal
+                     (in.)               (0.010±0.006)                                      (0.014 ± 0.006)                                                        (0.02 ± 0.01)                                               (0.02 ± 0.01)                                             (0.02 ± 0.01)                        (0.024 ± 0.014)                (0.025 ± 0.015)
+          WVDC                     10V    16V     25V      50V    6.3V        10V   16V      25V     50V      100V       200V   250V    6.3V    10V    16V         25V     50V     100V    200V     250V     16V    25V   50V       100V     200V     250V    500V    16V         25V    50V      100V      200V     250V     50V        100V    25V   50V       100V   200V     250V   500V
+    101                  100                                                                                                                                                                                                                                                                                   Q      Q
+    221                  220       A       A          A    A                    A   A         A          A     A          A                                                                                                                                                                                    Q      Q
+    271                  270       A       A          A    A                    A   A         A          A     A          A                                                                                                                                                                                    Q      Q
+    331                  330       A       A          A    A                    A   A         A          A     A          A                                                                                                                                                                                    Q      Q
+    391                  390       A       A          A    A                    A   A         A          A     A          A                                                                                                                                                                                    Q      Q
+    471                  470       A       A          A    A                    A   A         A          A     A          A                                                                                                                                                                                    Q      Q
+    561                 560        A       A          A    A                    A   A         A          A     A          A                                                                                                                                                                                    Q      Q
+    681                 680        A       A          A    A                    A   A         A          A     A          A                                                                                                                                                                                    Q      Q
+    821                  820       A       A          A    A                    A   A         A          A     A          A                                                                                                                                                                                    Q      Q
+    102                1000        A       A          A    A                    A   A         A          A     A          A      A                      B           B          B    B           B    B       B       B    B           B        B       B          B   Q           Q       Q           Q        Q      Q        Y           Y
+    122                1220        A       A          A    A                    A   A         A          A     A          A      A                      B           B          B    B           B    B       B       B    B           B        B       B          B   Q           Q       Q           Q        Q      Q        Y           Y
+    152                1500        A       A          A    A                    A   A         A          A     A          A      A                      B           B          B    B           B    B       B       B    B           B        B       B          B   Q           Q       Q           Q        Q      Q        Y           Y
+    182                1800        A       A          A    A                    A   A         A          A     A          A      A                      B           B          B    B           B    B       B       B    B           B        B       B          B   Q           Q       Q           Q        Q      Q        Y           Y
+    222                2200        A       A          A    A                    A   A         A          A     A          A      A                      B           B          B    B           B    B       B       B    B           B        B       B          B   Q           Q       Q           Q        Q      Q        Y           Y
+    272                2700        A       A          A    A                  A     A         A          A     A          A      A                      B           B          B    B           B    B       B       B    B           B        B       B          B   Q           Q       Q           Q        Q      Q        Y           Y
+    332                3300        A       A          A    A                  A     A         A          A     A          A      A                      B           B          B    B           B    B       B       B    B           B        B       B          B   Q           Q       Q           Q        Q      Q        Y           Y
+    392                3900        A       A          A    A                  A     A         A          A     A          A      A                      B           B          B    B           B    B       B       B    B           B        B       B          B   Q           Q       Q           Q        Q      Q        Y           Y
+    472                4700        A       A          A    A                  A     A         A          A     A          A      A                      B           B          B    B           B    B       B       B    B           B        B       B          B   Q           Q       Q           Q        Q      Q        Y           Y
+    562                5600        A       A          A    A                  A     A         A          A     A          A      A                      B           B          B    B           B    B       B       B    B           B        B       B          B   Q           Q       Q           Q        Q      Q        Y           Y
+    682                6800        A       A          A    A                  A     A         A          A     A          A      A                      B           B          B    B           B    B       B       B    B           B        B       B          B   Q           Q       Q           Q        Q      Q        Y           Y
+    822                8200        A       A          A    A                  A     A         A          A     A          A      A                      B           B          B    B           B    B       B       B    B           B        B       B          B   Q           Q       Q           Q        Q      Q        Y           Y
+    103        Cap       0.01      A       A          A    A                  A     A         A          A     A          A      A                      B           B          B    B           B    B       B       B    B           B        B       B          G   Q           Q       Q           Q        Q      Q        Y           Y
+    123        (F)     0.012       A       A                                  A     A         A          A     A                                        B           B          B    B           B    K       B       B    B           B        B       N              Q           Q       Q           Q        Q      G        Y           Y
+    153               0.015        A       A                                  A     A         A          A     A                                        B           B          B    B           B    K       B       B    B           B        B       N              Q           Q       Q           Q        Q      G        Y           Y
+    183               0.018        A       A                                  A     A         A          A     A                                        B           B          B    B           K    K       B       B    B           B        B       N              Q           Q       Q           Q        Q      G        Y           Y
+    223               0.022        A       A                                  A     A         A          A     A                                        B           B          B    B           K    K       B       B    B           B        G       G              Q           Q       Q           Q        Q      G        Y           Y
+    273               0.027        A       A                                  A     A         A          A     B                                        B           B          B    B           K    K       B       B    B           B        G       G              Q           Q       Q           Q        Q      G        Y           Y
+    333               0.033        A       A                                    A   A         A          A     B                                        B           B          B    K           K    K       B       B    B           B        G       G              Q           Q       Q           Q        Q      G        Y           Y
+    393               0.039                                                     A   A         A          A     B                                        B           B          B    K           K    K       B       B    B           B        G       G              Q           Q       Q           Q        Q      G        Y           Y
+    473               0.047                                                     A   A         A          A     B                                        B           B          B    K           K    K       B       B    B           N        G       G              Q           Q       Q           Q        Q      G        Y           Y
+    563               0.056                                                     A   A         A          A     B                                        B           B          B    K                        B       B    B           N        G       G              Q           Q       Q           Q        C      G        Y           Y
+    683               0.068                                                     A   A         A          A     B                                        B           B          B    K                        B       B    B           N        G       G              Q           Q       Q           Q        C      G        Y           Y
+    823               0.082                                                     A   A         A          A     B                                        B           B          B    K                        B       B    B           N        G       G              Q           Q       Q           Q        G      G        Y           Y
+    104                      0.1                                                A   A         A          A     B                                        B           B          B    K                        B       B    B           N        G       G              Q           Q       Q           Q        G      G        Y           Y                                             A
+    124                 0.12                                                    A   B         B          B                                              B           B          K    K                        B       B    B           N        G       G              Q           Q       Q           F        G      G        Y           Y
+    154                 0.15                                                    A   B         B          B                                              B           B          K    K                        B       B    B           N        G       G              Q           Q       Q           F        K      G        Y           Y
+    224                 0.22                                                    A   B         B          B                                              J           K          K    K                        B       B    B           G        G       G              Q           Q       Q           F        G      G        Z           Z
+    334                 0.33                                                    B   B         B                                                         K           K          K    K                        B       N     E          G                               Q           Q       Q           G          L    L        G           G
+    474                 0.47                                                    B   B         B                                                         K           K          K    K                        N       N     E          G                                F           F       F          G                        G           G
+    684                 0.68                                                                                                                            K           K          K    K                        N       G    G           G                                F           F      G           K                        G           G
+    105                      1.0                                                                                                                        K           K          K    K                        N       G    G           G                                F          G       G           L                        G           G           C          C          A    A
+    155                      1.5                                                                                                                        K           K          K                             G       G    G           G                                F          G        L          L                        G           G           C          C          C    C
+    225                  2.2                                                                                                                            K           K          K                             G       G    G           G                                L           L       L          L                        J           J           C          C          C    C
+    335                  3.3                                                                                                                                                                                 G       G    G                                           K            L       L          L                        J                       C          C
+    475                      4.7                                                                                                                                                                             G       G    G                                           K            L       L          L                        J                       C          C
+    106                      10                                                                                                                                                                              H*     H*                                                 L           L       L                                   J                  C    C          C
+    226                      22                                                                                                                                                                                                                                                                                                                   C
+          WVDC                     10v    16V     25V      50V    6.3V        10V   16V      25V     50V      100V       200V   250V    6.3V    10V    16V         25V     50V     100V    200V     250V     16V    25V   50V       100V     200V     250V    500V    16V         25V    50V     100V       200V     250V     50V        100V    25V   50V       100V   200V     250V   500V
+           Size                                0402                                               0603                                                                  0805                                                        1206                                                       1210                                 1812                              2220
+
+*The dimensions are:
+Length (mm)     3.2 ± 0.4
+Width (mm)      1.6 ± 0.3
+
+          Case Size                 0402 (KAF05)            0603(KAF15)                        0805(KAF21)                                            1206(KAF31)                                                                1210(KAF32)                                                               1812(KAF43)                           2220(KAF55)
+     Thickness Letter                      A               A              B             B            K               A            B             N            E                 G          H              Q          C           F               G             K             L              Y               Z              G          J           A           C
+   Max Thickness(mm)                     0.56             0.90           0.95        0.94           1.40           1.45          0.94          1.27         1.52           1.78           1.9        0.94          1.27        1.52            1.78          2.29          2.80          1.02             1.27        2.29          2.80        2.29       2.80
+       Carrier Tape                      PAPER            PAPER      PAPER          PAPER           EMB            EMB          PAPER          EMB       EMB               EMB          EMB         PAPER          EMB         EMB             EMB           EMB           EMB           EMB              EMB         EMB           EMB         EMB        EMB
+  Packaging Code 7"reel                    H                T             T             T            U               U            T             U            U                 U          U              T          U           U               U             U             U              V               V              V          V           V           V
+ Packaging Code 13"reel                    N               M              M             M            L               L            M             L            L                 L          L              M          L           L               L             L             L              S               S              S          S           S           S
+                                                                                                              PAPER                                                                                                                                                    EMBOSSED (EMB)
+
+                                                                                                                                        The Important Information/Disclaimer is incorporated in the catalog where these specifications came from or available
+                                                                                                                                        online at www.kyocera-avx.com/disclaimer/ by reference and should be reviewed in full before placing any order.                                                                                                                                        20
+                                                                                                                                                                                        TDS-SMDMLCC-0034 | Rev 17
+                                                                                                                                                                    – surface mount ceramic capacitor products –
+Automotive MLCC with FLEXITERM® - X7R, 630V to 3000V
+Capacitance Range
+
+
+       Case Size                         1206                              1210                                      1808                                     1812                                2220
+       Soldering                     Reflow/Wave                       Reflow/Wave                                Reflow Only                              Reflow Only                         Reflow Only
+                   mm                   3.2 ± 0.2                          3.2 ± 0.2                               4.57 ± 0.25                                4.5 ± 0.3                       5.7 ± 0.5
+(L) Length
+                   (in.)            (0.126 ± 0.008)                    (0.126 ± 0.008)                            (0.18 ± 0.01)                           (0.177 ± 0.012)                  (0.224 ± 0.02)
+                   mm                   1.6 ± 0.2                          2.5 ± 0.2                               2.03 ± 0.25                                3.2 ± 0.2                        5 ± 0.4
+W) Width
+                   (in.)            (0.063 ± 0.008)                    (0.098 ± 0.008)                            (0.08 ± 0.01)                           (0.126 ± 0.008)                  (0.197 ± 0.016)
+                   mm                  0.5 ± 0.25                         0.5 ± 0.25                               0.61 ± 0.36                              0.61 ± 0.36                      0.64 ± 0.39
+(t) Terminal
+                   max               (0.02 ± 0.01)                      (0.02 ± 0.01)                            (0.024 ± 0.014)                          (0.024 ± 0.014)                  (0.025 ± 0.015)
+      Voltage (V)          630   1000 1500 2000 2500             630    1000 1500 2000           630     1000 1500 2000 2500 3000             630    1000 1500 2000 2500 3000       630   1000 1500 2000 3000
+Cap (pF)    101    100      B     B    B    B    B
+            121    120      B     B    B    B    B
+            151    150      B     B    B    B    B
+            181    180      B     B    B    B    B
+            221    220      B     B    B    B    B                                                B          B      B      B       B     B
+            271    270      B     B    B    B    B                H       H      H        H       B          B      B      B       B     B
+            331    330      B     B    B    B    B                H       H      H        H       B          B      B      B       B     B    E
+            391    390      B     B    B    B    B                H       H      H        H       B          B      B      B       B     B    E
+            471    470      B     B    B    B    B                H       H      H        H       B          B      B      B       B     B    E       E      E      E       E   E
+            561    560      B     B    B    B    B                H       H      H        H       B          B      B      B       B     B    E       E      E      E       E   E
+            681    680      B     B    B    B    B                H       H      H        H       B          B      B      B       B     B    E       E      E      E       E   E
+            821    820      B     B    B    B    B                H       H      H        H       B          B      C      C       C     C    E       E      E      E       E   E
+            102   1000      B     B    B    B    B                H       H      H        H       B          B      C      C       C     C    E       E      E      E       E   E   Z      Z       Z         Z   C
+            122   1220      D     A    A    A                     H       H      H        H                                                   F       F      F      F       F       Z      Z       Z         Z   C
+            152   1500      D     A    A    A                     H       H      H        H                                                   F       F      F      F       F       Z      Z       Z         Z   C
+            182   1800      D     A    A                          H       H      H        H                                                   F       F      F      F       F       Z      Z       Z         Z   C
+            222   2200      D     A    A                          H       H      H        H                                                   F       F      F      F       F       Z      Z       Z         Z   C
+            272   2700      D     A    A                          H       H      H        H                                                   F       F      F      F               Z      Z       Z         Z
+            332   3300      D     A                               H       H      H        H                                                   F       F      F      F               Z      Z       Z         Z
+            392   3900      D     A                               H       H      H                                                            F       F      F      F               Z      Z       Z         Z
+            472   4700      D     A                               H       H      H                                                            F       F      J      J               Z      Z       Z         Z
+            562   5600      D     A                               H       H      H                                                            F       F      J      J               Z      Z       Z         Z
+            682   6800      A     A                               H       H                                                                   F       F      J      J               Z      Z       Z         Z
+            822   8200      A                                     H       H                                                                   F       F      J      J               Z      Z       C         C
+            103    0.01     A                                     H       H                                                                   F       F      J                      C      C       C         C
+            123 0.012                                             H       H                                                                   F       F      J                      C      C       C         C
+            153 0.015                                             H       H                                                                   F       F      J                      C      C       C         C
+            183 0.018                                             H                                                                           F       F                             C      C       C         C
+            223 0.022                                             H                                                                           F       F                             C      C       C         C
+            273 0.027                                             H                                                                           F       F                             C      C       C
+            333 0.033                                                                                                                         F                                     C      C
+            393 0.039                                                                                                                         F                                     C      C
+            473 0.047                                                                                                                         F                                     C      C
+            563 0.056                                                                                                                                                               C      C
+            683 0.068                                                                                                                                                               C      C
+            823 0.082                                                                                                                                                               C      C
+            104     0.1                                                                                                                                                             C      C
+            124    0.12                                                                                                                                                             C
+            154    0.15                                                                                                                                                             C
+            224    0.22
+            334    0.33
+            474    0.47
+            684    0.68
+            105       1
+         WVDC              630   1000 1500 2000 2500             630    1000 1500 2000           630     1000 1500 2000 2500 3000             630    1000 1500 2000 2500 3000       630   1000 1500 2000 3000
+          Size                        1206                                 1210                                  1808                                        1812                              2220
+NOTE: Contact factory for non-specified capacitance values
+
+
+       Case Size                   1206(KAF31)            1210(KAF32)         1808(KAF42)                    1812(KAF43)               2220(KAF55)
+   Thickness Letter          B         D          A              H             B          C            E           F          J         Z      C
+    Max Thickness           0.94      1.45       1.80           1.80          1.80       2.21         1.80       2.21       2.80       2.21   2.80
+     Carrier Tape          PAPER      EMB        EMB            EMB           EMB        EMB          EMB        EMB        EMB        EMB    EMB
+Packaging Code 7"reel        T         U          U              U             Y          Y            V          V          V          V      V
+Packaging Code 13"reel       M          L          L              L            K          K            S          S          S          S      S
+                                                        PAPER                                                      EMBOSSED (EMB)
+
+
+
+
+                                                          The Important Information/Disclaimer is incorporated in the catalog where these specifications came from or available
+                                                          online at www.kyocera-avx.com/disclaimer/ by reference and should be reviewed in full before placing any order.                                        21
+                                                                                                TDS-SMDMLCC-0034 | Rev 17
+                                                                               – surface mount ceramic capacitor products –
+

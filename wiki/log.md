@@ -2,7 +2,7 @@
 title: Activity Log
 type: log
 created: 2026-05-19
-updated: 2026-05-27
+updated: 2026-06-05
 ---
 
 # Activity Log
@@ -10,6 +10,22 @@ updated: 2026-05-27
 Chronological record of wiki operations. Newest entries first.
 
 ---
+
+## [2026-06-05] ingest | NASA + MIL + AVX MLCC qualification & internal-structure data
+
+Collected the MLCC qualification "database" the user asked about and ingested it as a three-tier internal-structure dataset: **measured DPA** (NASA GSFC / Liu), **qualification design rules** (MIL/GSFC specs), and **vendor dimensions** (AVX automotive). Web-research via parallel extraction agents over the NEPP/GSFC corpus, the MIL specs, and the KYOCERA AVX automotive datasheets.
+
+Key finds: the [[nasa-gsfc-liu-construction-database-2011|Liu & Sampson 2011]] 30-part construction table (per-part fired d, electrode thickness, layer count, cover, margins) is the measured core; [[mil-prf-32535-spec|MIL-PRF-32535]] supplies voltage-scaled margin/cover tables (no fixed dielectric thickness) and a VBR ≥ 6×VR screen; [[gsfc-mlcc-space-specs|GSFC S-311-P-838]] adds ≤300 layers + the grains-per-layer reliability gate; [[avx-automotive-mlcc-kam-kaf|AVX KAM/KAF]] datasheets fill the chip L×W×T dimension/tolerance gap the NASA data lacked.
+
+Pages created (8): sources [[nasa-gsfc-liu-construction-database-2011]], [[mil-prf-123-spec]], [[mil-prf-32535-spec]], [[gsfc-mlcc-space-specs]], [[avx-automotive-mlcc-kam-kaf]]; concept [[mlcc-margin-cover-design-rules]]; entity stubs [[michael-sampson]], [[alexander-teverovsky]]. Updated (6): [[kyocera-avx]] (automotive + space-qual), [[dielectric-layer-thickness-floor]] (spec min-d-vs-V table), [[case-size-geometry]] + [[mlcc-dimensional-tolerance]] (real AVX/MIL dimensions & tolerances), [[index]]. Raw tables stored in `resources/literature/`, `resources/design-rules/`, `resources/market/avx/`. 226 pages, 0 dangling.
+
+## [2026-05-31] ingest | Electrode-overlap pattern geometry, print registration & L/W/T dimensional tolerance
+
+Grounded the simulator's geometry-model refinements (print-pattern overlap parameterization, in-plane shrinkage of the active area, and independent L/W/T dimensional tolerances) in the literature, then ingested the supporting physics.
+
+Lit search confirmed: capacitance ∝ inner-electrode **overlap area** (not footprint); inner-electrode screen-printing is "one level higher than general thick-film printing" — print position/shape/flatness set performance; thickness is **layer-count-dependent** so case charts give a *thickness max* rather than a tight ± (height is application-specific); in-plane shrinkage is real and **anisotropic, tied to the tape-casting direction** (Okuma 2021 nano-CT); dimensional tolerances per EIA RS-198 / IEC 60384-1/-21/-22 / JIS C 5101.
+
+Pages created: [[okuma-2021-mlcc-electrode-nanoct]] (source — synchrotron nano-CT of Ni electrode sintering, TDK/Tokyo Tech), [[electrode-overlap-and-registration]] (concept — print unit cell, 2-D coverage, registration tolerance, in-plane shrinkage, electrode discontinuity), [[mlcc-dimensional-tolerance]] (concept — L/W/T tolerance, why T differs, build-to-max-footprint), [[gaku-okuma]] + [[fumihiro-wakai]] (entity stubs). Updated: [[case-size-geometry]] (registration note + dimensional-tolerance subsection + cross-refs), [[green-tape-shrinkage-anisotropy]] (nano-CT confirmation of in-plane anisotropy), [[index]]. 218 pages, 0 dangling.
 
 ## [2026-05-29] simulator+ingest | Dielectric thickness floor — fix C_max envelope for small high-CV parts
 
