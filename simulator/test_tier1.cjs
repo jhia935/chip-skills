@@ -585,6 +585,108 @@ function warningCodes(inp) {
 })();
 
 // ============================================================
+// 10c. optimizeDesign — full green build recipe for a target spec
+// ============================================================
+
+(function optimizeDesignTests() {
+  const spec = { case: '0805_2012', cls: 'X7R', V: 50, C_target_uF: 1.0, grade: 'commercial' };
+  const o = t.optimizeDesign(spec);
+
+  ok('optimizeDesign hits target C within ±5 %',
+    o.feasible && near(o.C_achieved_uF, 1.0, 0.05),
+    `achieved ${o.C_achieved_uF.toFixed(3)} µF`);
+
+  // Green dimensions are fired / (1 − s).
+  const k = 1 / (1 - o.sTotal);
+  ok('green dielectric = fired / (1 − s)',
+    near(o.hBT_green_um, o.d_fired_um * k, 1e-9));
+  ok('green print overlap = fired overlap / (1 − s)',
+    near(o.print_overlapL_green_um, o.overlapL_fired_um * k, 1e-6) &&
+    near(o.print_overlapW_green_um, o.overlapW_fired_um * k, 1e-6));
+  ok('green print pattern larger than fired overlap',
+    o.print_overlapL_green_um > o.overlapL_fired_um);
+
+  // The chosen design fits the body height.
+  ok('optimized stack fits body height',
+    o.fired_T_um <= o.Hmax_um + 1e-6,
+    `T ${o.fired_T_um.toFixed(0)} vs Hmax ${o.Hmax_um}`);
+
+  // Round-trip: feed the GREEN recipe back through compute() (pattern mode).
+  const rt = t.compute({
+    case: spec.case, cls: spec.cls,
+    hBT: o.hBT_green_um, hNi: o.hNi_green_um, Ne: o.N_e,
+    overlapL: o.print_overlapL_green_um, overlapW: o.print_overlapW_green_um,
+    em: o.em_fired_um, sm: o.sm_fired_um,
+    cover: o.cover_um, coverage: o.coverage, disc: o.disc,
+    sTotal: o.sTotal, tier2: false, vdc: 0, top: 25,
+  });
+  ok('optimizeDesign green recipe → compute round-trip within ±3 %',
+    near(rt.C_nominal_F * 1e6, o.C_achieved_uF, 0.03),
+    `got ${(rt.C_nominal_F * 1e6).toFixed(3)} µF vs ${o.C_achieved_uF.toFixed(3)}`);
+
+  // Objective: reliability uses a thicker dielectric than max_capacitance.
+  const oRel = t.optimizeDesign({ ...spec, objective: 'reliability' });
+  const oCap = t.optimizeDesign({ ...spec, objective: 'max_capacitance' });
+  ok('reliability objective ≥ max_capacitance dielectric thickness',
+    oRel.d_fired_um >= oCap.d_fired_um);
+  ok('max_capacitance objective sits at the grade dielectric floor',
+    near(oCap.d_fired_um, t.GRADES.commercial.dFloor, 1e-9) ||
+    oCap.d_fired_um >= t.GRADES.commercial.dFloor);
+
+  // Custom fired body (not a standard case) is accepted.
+  const oc = t.optimizeDesign({ L_um: 1000, W_um: 500, Hmax_um: 550, cls: 'X5R', V: 6.3, C_target_uF: 1.0 });
+  ok('optimizeDesign accepts a custom fired body', oc.custom && oc.feasible);
+
+  // Absurd target for a tiny body → infeasible (overflow), not a crash.
+  const inf = t.optimizeDesign({ case: '0201_0603', cls: 'X5R', V: 6.3, C_target_uF: 1000 });
+  ok('optimizeDesign flags an unachievable target as infeasible',
+    !inf.feasible && inf.overflow && inf.C_target_uF > inf.C_body_ceiling_uF);
+})();
+
+// ============================================================
+// 10d. Calibration layer — evolve toward real measured parts
+// ============================================================
+
+(function calibrationTests() {
+  // Default is identity: no correction until one is loaded.
+  ok('default calibration is identity (scale = 1)', t.calScale('X7R') === 1);
+
+  // Learn from the engine's built-in real-part seed (KNOWN_PARTS).
+  const cal = t.calibrateFromKnown();
+  ok('calibrateFromKnown uses ≥ 5 real parts', cal.n_parts >= 5);
+  ok('calibrateFromKnown global scale finite & positive',
+    isFinite(cal.er_scale_global) && cal.er_scale_global > 0);
+  ok('calibrateFromKnown reports a residual spread σ ≥ 0', cal.sigma_ln >= 0);
+
+  // predictRealPartC reproduces a positive C for a seeded part.
+  const kp = t.KNOWN_PARTS.find(k => k.C_uF > 0 && k.d_fired_um > 0 && k.N_a > 0);
+  ok('predictRealPartC returns positive C for a real part', t.predictRealPartC(kp) > 0);
+
+  // Applying a correction shifts suggestions toward reality: a lower effective
+  // ε_r (scale < 1) means MORE layers are needed for the same target.
+  const spec = { case: '0805_2012', cls: 'X7R', V: 50, C_target_uF: 1.0, grade: 'commercial' };
+  const base = t.suggestDesign(spec);
+  t.setCalibration({ source: 'test', n_parts: 9, er_scale_global: 0.7, sigma_ln: 0.3 });
+  ok('calibration applied to scale', Math.abs(t.calScale('X7R') - 0.7) < 1e-9);
+  const cald = t.suggestDesign(spec);
+  ok('lower effective ε_r → more layers needed (gap correction)',
+    cald.N_e_needed > base.N_e_needed);
+  ok('suggestDesign reports effective ε_r + calibration meta',
+    cald.er_effective < cald.er_class && cald.calibration.n_parts === 9);
+  const od = t.optimizeDesign(spec);
+  ok('optimizeDesign honors the calibration',
+    od.er_effective < od.er_class && Math.abs(od.calibration.scale - 0.7) < 1e-9);
+
+  // Wild corrections are clamped.
+  t.setCalibration({ er_scale_global: 99 });
+  ok('calibration scale clamped to ≤ 3', t.calScale('X7R') <= 3);
+
+  // Reset to identity so no other test is affected.
+  t.setCalibration(null);
+  ok('setCalibration(null) restores identity', t.calScale('X7R') === 1);
+})();
+
+// ============================================================
 // 11. predictCMax — forward upper-bound predictor
 // ============================================================
 

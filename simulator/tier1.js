@@ -698,6 +698,93 @@
   }
 
   // ============================================================
+  // Calibration layer — evolve toward real measured parts
+  // ============================================================
+  //
+  // The physics in compute() is transparent and uncalibrated. The gap between
+  // computed capacitance and REAL product behaviour (mostly the uncontrolled
+  // effective ε_r, plus lumped geometry/coverage error) is captured here as a
+  // multiplicative **effective-ε_r correction**, learned from a set of real
+  // measured parts and APPLIED ONLY in the design-suggestion layer
+  // (suggestDesign / optimizeDesign). Add real parts → recalibrate → the
+  // suggestions move toward reality, while the physics stays pure.
+  //
+  // Default is identity (no correction), so the engine and all physics tests are
+  // unchanged until a calibration is explicitly loaded (e.g. by the CLI).
+  const CALIBRATION_IDENTITY = {
+    version: 1, source: 'default-identity', updated: null, n_parts: 0,
+    er_scale_global: 1, er_scale_byClass: {}, sigma_ln: 0, sigma_pct: 0,
+  };
+  let CALIBRATION = { ...CALIBRATION_IDENTITY };
+
+  function getCalibration() { return CALIBRATION; }
+  function setCalibration(c) {
+    CALIBRATION = c ? { ...CALIBRATION_IDENTITY, ...c } : { ...CALIBRATION_IDENTITY };
+    return CALIBRATION;
+  }
+  // Effective-ε_r scale for a class: per-class if learned, else global, clamped.
+  function calScale(cls) {
+    const s = (CALIBRATION.er_scale_byClass && CALIBRATION.er_scale_byClass[cls] != null)
+      ? CALIBRATION.er_scale_byClass[cls]
+      : (CALIBRATION.er_scale_global != null ? CALIBRATION.er_scale_global : 1);
+    return Math.max(0.3, Math.min(3, isFinite(s) && s > 0 ? s : 1));
+  }
+
+  // Model capacitance (µF) for a real part using its MEASURED recipe + the class
+  // ε_r — the reference against which the real rated C residual is measured.
+  function predictRealPartC(p) {
+    const N = p.N != null ? p.N : p.N_a;
+    if (!(p.C_uF > 0) || !(p.d_fired_um > 0) || !(N > 0)) return null;
+    const c = CASES.find(x => x.id === p.case);
+    if (!c) return null;
+    const s = 0.14;
+    const r = compute({
+      case: p.case, cls: p.cls,
+      hBT: p.d_fired_um / (1 - s),
+      hNi: (p.h_Ni_fired_um != null ? p.h_Ni_fired_um : Math.max(0.5, 0.6 * p.d_fired_um)) / (1 - s),
+      Ne: N,
+      em: p.em_um != null ? p.em_um : c.em,
+      sm: p.sm_um != null ? p.sm_um : c.sm,
+      cover: p.cover_um != null ? p.cover_um : 60,
+      coverage: 0.90, disc: 0.15, sTotal: s, tier2: false, vdc: 0, top: 25,
+    });
+    return r.C_nominal_F * 1e6;
+  }
+
+  // Learn the effective-ε_r correction from a set of real parts. Each usable part
+  // needs {case, cls, V, C_uF, d_fired_um, N|N_a}. Returns a calibration object
+  // (geomean residual globally + per class with ≥ minClassCount parts) and the
+  // residual spread σ — the model's honest part-to-part uncertainty.
+  function calibrateFromReal(parts, opts = {}) {
+    const minClass = opts.minClassCount != null ? opts.minClassCount : 4;
+    const recs = [];
+    for (const p of (parts || [])) {
+      const Cp = predictRealPartC(p);
+      if (Cp == null || !(Cp > 0)) continue;
+      recs.push({ cls: p.cls, ln: Math.log(p.C_uF / Cp) });
+    }
+    const n = recs.length;
+    const mean = (a) => a.reduce((x, y) => x + y, 0) / a.length;
+    const ln = recs.map(r => r.ln);
+    const muG = n ? mean(ln) : 0;
+    const sigma = n > 1 ? Math.sqrt(ln.reduce((x, y) => x + (y - muG) ** 2, 0) / (n - 1)) : 0;
+    const byClass = {};
+    for (const cl of [...new Set(recs.map(r => r.cls))]) {
+      const arr = recs.filter(r => r.cls === cl).map(r => r.ln);
+      byClass[cl] = arr.length >= minClass ? Math.exp(mean(arr)) : Math.exp(muG);
+    }
+    return {
+      version: 1, source: opts.source || 'calibrateFromReal', updated: opts.date || null,
+      n_parts: n, er_scale_global: n ? Math.exp(muG) : 1, er_scale_byClass: byClass,
+      sigma_ln: sigma, sigma_pct: (Math.exp(sigma) - 1) * 100,
+    };
+  }
+  // Convenience: calibrate against the engine's built-in real-part seed.
+  function calibrateFromKnown(opts = {}) {
+    return calibrateFromReal(KNOWN_PARTS, { source: 'KNOWN_PARTS', ...opts });
+  }
+
+  // ============================================================
   // Grade-aware design suggester (suggestDesign / solveRecipe)
   // ============================================================
   //
@@ -778,12 +865,13 @@
     const d_m = dp.d_fired_um * 1e-6;
     const A_m = dp.A_eff_um2 * 1e-12;
     const C_target_F = spec.C_target_uF * 1e-6;
-    // Back-solve N with the CLASS ε_r (the value compute() applies) so the recipe
-    // round-trips exactly; er_grain is the realistic-dielectric advisory.
-    const N_needed = (C_target_F * d_m) / (dp.er_class * EPS0 * A_m);
+    // Effective ε_r = class ε_r × the learned real-data correction (identity by
+    // default). Back-solve N with it so suggestions track real product designs.
+    const er_eff = dp.er_class * calScale(spec.cls);
+    const N_needed = (C_target_F * d_m) / (er_eff * EPS0 * A_m);
     const N_actual = Math.min(N_needed, dp.N_e_max);
     const feasible = N_needed <= dp.N_e_max;
-    const C_grade_max_uF = dp.er_class * EPS0 * A_m * dp.N_e_max / d_m * 1e6;
+    const C_grade_max_uF = er_eff * EPS0 * A_m * dp.N_e_max / d_m * 1e6;
     const H_stack_um = N_actual * dp.layer_pitch + 2 * dp.cover;
     const grade = GRADES[spec.grade] ? spec.grade : 'commercial';
     const C_typical_uF  = predictCMax({ case: spec.case, cls: spec.cls, V: spec.V }).C_max_uF;
@@ -794,6 +882,7 @@
       d_fired_um: dp.d_fired_um, h_BT_green: dp.h_BT_green,
       h_Ni_um: dp.h_Ni_green, h_Ni_fired_um: dp.h_Ni_fired,
       grain_um: dp.grain_um, er_class: dp.er_class, er_grain: dp.er_grain,
+      er_effective: er_eff, calibration: { source: CALIBRATION.source, n_parts: CALIBRATION.n_parts, scale: calScale(spec.cls), sigma_pct: CALIBRATION.sigma_pct },
       em: dp.em, sm: dp.sm, coverage: dp.coverage, disc: dp.disc, cover: dp.cover,
       N_e_needed: Math.round(N_needed), N_e_actual: Math.round(N_actual), N_e_max: dp.N_e_max,
       H_stack_um, H_max_um: dp.Hmax_eff, H_pct: H_stack_um / dp.Hmax_eff * 100,
@@ -828,6 +917,128 @@
   }
 
   // ============================================================
+  // optimizeDesign — full GREEN build recipe for a target spec
+  // ============================================================
+  //
+  // Given a target (capacitance + fired body + class + V + grade), optimize the
+  // design parameters and emit the GREEN (as-built / as-printed) recipe a process
+  // engineer actually needs: green dielectric thickness, green Ni thickness, the
+  // screen-print pattern dimensions (green active overlap), per-side margins,
+  // layer count, and cover — plus the resulting fired body and feasibility.
+  //
+  // Body is either a standard `case`, or custom fired dims (L_um, W_um, Hmax_um).
+  // Objective:
+  //   'reliability'     (default) — thickest dielectric (most grains/layer, most
+  //                     robust) whose stack still fits the body height.
+  //   'max_capacitance' — thinnest manufacturable dielectric (grade floor): the
+  //                     densest design, maximum CV headroom in the body.
+  const D_MAX_DESIGN = 25;   // µm — realistic upper bound on a fired dielectric layer
+
+  function optimizeDesign(spec) {
+    if (!(spec.C_target_uF > 0)) throw new Error('optimizeDesign needs spec.C_target_uF (positive µF)');
+    const g   = GRADES[spec.grade] || GRADES.commercial;
+    const cls = CLASSES.find(x => x.id === spec.cls);
+    if (!cls) throw new Error(`Unknown class id: ${spec.cls}`);
+
+    let c, custom = false;
+    if (spec.case) {
+      c = CASES.find(x => x.id === spec.case);
+      if (!c) throw new Error(`Unknown case id: ${spec.case}`);
+    } else if (spec.L_um > 0 && spec.W_um > 0 && spec.Hmax_um > 0) {
+      c = { id: 'custom', label: `custom ${spec.L_um}×${spec.W_um}×${spec.Hmax_um} µm`,
+            L: spec.L_um, W: spec.W_um, Hmax: spec.Hmax_um, Ltol: 0, Wtol: 0, Ttol: 0 };
+      custom = true;
+    } else {
+      throw new Error('optimizeDesign needs spec.case or (L_um, W_um, Hmax_um)');
+    }
+
+    const sTotal    = spec.sTotal != null ? spec.sTotal : 0.14;
+    const V         = spec.V;
+    const objective = spec.objective || 'reliability';
+    // Effective ε_r = class ε_r × learned real-data correction (identity default).
+    const er        = cls.er * calScale(spec.cls);
+    const cover     = g.cover;
+    const Hmax_eff  = c.Hmax + ((spec.Ttol != null ? spec.Ttol : (c.Ttol || 0)) - (c.Ttol || 0));
+
+    // Fired margins from the grade; fired active overlap = footprint − 2·margin.
+    const em = Math.min(gradeMargin(g, V, c.L, 'end'),  0.45 * c.L);
+    const sm = Math.min(gradeMargin(g, V, c.W, 'side'), 0.45 * c.W);
+    const overlapL_fired = c.L - 2 * em;
+    const overlapW_fired = c.W - 2 * sm;
+    if (overlapL_fired <= 0 || overlapW_fired <= 0) throw new Error('margins exceed body footprint');
+    const A_eff_m2 = overlapL_fired * overlapW_fired * g.coverage * (1 - g.disc) * 1e-12;
+    const C_F = spec.C_target_uF * 1e-6;
+    const d_floor = gradeDMin(g, V);
+
+    // For a candidate fired dielectric d, hit C by choosing the layer count.
+    const evalD = (d) => {
+      const N    = Math.max(1, Math.round(C_F * (d * 1e-6) / (er * EPS0 * A_eff_m2)));
+      const hNi  = Math.max(0.30, g.eRatio * d);
+      const pitch = d + hNi;
+      const height = N * pitch + 2 * cover;
+      const C_ach = er * EPS0 * A_eff_m2 * N / (d * 1e-6) * 1e6;
+      return { d, N, hNi, pitch, height, C_ach_uF: C_ach };
+    };
+
+    // Thinnest (max-CV) design and whether it even fits the body.
+    const thin = evalD(d_floor);
+    const feasible = thin.height <= Hmax_eff && thin.N <= g.Nmax;
+
+    // Thickest dielectric that still fits (max reliability), capped at D_MAX_DESIGN.
+    let thick = feasible ? thin : null;
+    for (let d = d_floor + 0.01; d <= D_MAX_DESIGN + 1e-9; d += 0.01) {
+      const e = evalD(d);
+      if (e.height <= Hmax_eff && e.N <= g.Nmax) thick = e;
+      if (e.height > Hmax_eff) break;   // height is monotonic in d
+    }
+
+    const chosen = !feasible ? thin : (objective === 'max_capacitance' ? thin : thick);
+
+    // Body capacitance ceiling: most C this body/grade can hold (thinnest d, fill height).
+    const pitchFloor  = d_floor + Math.max(0.30, g.eRatio * d_floor);
+    const N_floor_max = Math.min(g.Nmax, Math.floor((Hmax_eff - 2 * cover) / pitchFloor));
+    const C_ceiling_uF = er * EPS0 * A_eff_m2 * N_floor_max / (d_floor * 1e-6) * 1e6;
+
+    // Grain target from grains-per-layer reliability rule; realistic ε_r.
+    const grain_um  = Math.max(0.10, Math.min(0.80, chosen.d / g.gpl));
+    const er_grain  = erGrain(spec.cls, grain_um);
+    const k = 1 / (1 - sTotal);   // green = fired × k  (Tier-1 isotropic shrinkage)
+
+    return {
+      grade: GRADES[spec.grade] ? spec.grade : 'commercial', gradeLabel: g.label,
+      objective, caseRec: c, clsRec: cls, custom, sTotal,
+      // ---- GREEN build recipe (what you cast / print) ----
+      hBT_green_um:           chosen.d   * k,
+      hNi_green_um:           chosen.hNi * k,
+      print_overlapL_green_um: overlapL_fired * k,
+      print_overlapW_green_um: overlapW_fired * k,
+      margin_end_green_um:    em * k,
+      margin_side_green_um:   sm * k,
+      green_unit_cell_L_um:   c.L * k,
+      green_unit_cell_W_um:   c.W * k,
+      N_e:                    chosen.N,
+      cover_um:               cover,
+      coverage:               g.coverage,
+      disc:                   g.disc,
+      // ---- fired result ----
+      d_fired_um: chosen.d, hNi_fired_um: chosen.hNi, layer_pitch_um: chosen.pitch,
+      em_fired_um: em, sm_fired_um: sm,
+      overlapL_fired_um: overlapL_fired, overlapW_fired_um: overlapW_fired,
+      fired_L_um: c.L, fired_W_um: c.W, fired_T_um: chosen.height, Hmax_um: Hmax_eff,
+      height_fill_pct: chosen.height / Hmax_eff * 100,
+      // ---- dielectric / reliability ----
+      grain_um, grains_per_layer: chosen.d / grain_um, er_class: cls.er, er_effective: er, er_grain,
+      needs_engineered_dielectric: (er_grain / er) < 0.85,
+      calibration: { source: CALIBRATION.source, n_parts: CALIBRATION.n_parts, scale: calScale(spec.cls), sigma_pct: CALIBRATION.sigma_pct },
+      // ---- target vs achieved ----
+      C_target_uF: spec.C_target_uF, C_achieved_uF: chosen.C_ach_uF,
+      C_body_ceiling_uF: C_ceiling_uF,
+      feasible, overflow: !feasible,
+      body_oversized: feasible && (chosen.height / Hmax_eff < 0.5),
+    };
+  }
+
+  // ============================================================
   // Export
   // ============================================================
 
@@ -838,7 +1049,8 @@
     parseSemcoCL, decodeCapCode,
     fmtCap, fmt, defaultInputs,
     eDesign, dFiredFromV, hNiFromD, predictCMax, cmaxEnvelope, solveRecipe,
-    suggestDesign, gradeDesignPoint, GRADES,
+    suggestDesign, gradeDesignPoint, optimizeDesign, GRADES,
+    getCalibration, setCalibration, calScale, predictRealPartC, calibrateFromReal, calibrateFromKnown,
     computeFromKnown, erForKnown, erGrain,
     D_FLOOR_FRONTIER, E_MAX_FIELD,
   };
