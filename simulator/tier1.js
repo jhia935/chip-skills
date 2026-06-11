@@ -717,7 +717,8 @@
   };
   let CALIBRATION = { ...CALIBRATION_IDENTITY };
 
-  function getCalibration() { return CALIBRATION; }
+  // Return a copy so callers can't mutate the live global calibration state.
+  function getCalibration() { return { ...CALIBRATION, er_scale_byClass: { ...CALIBRATION.er_scale_byClass } }; }
   function setCalibration(c) {
     CALIBRATION = c ? { ...CALIBRATION_IDENTITY, ...c } : { ...CALIBRATION_IDENTITY };
     return CALIBRATION;
@@ -730,24 +731,36 @@
     return Math.max(0.3, Math.min(3, isFinite(s) && s > 0 ? s : 1));
   }
 
+  // Assumed coverage / discontinuity of a real measured part (rarely disclosed).
+  // Holding them fixed makes the learned scale a clean ε_r ratio, independent of
+  // the design grade's own coverage/disc applied later in the suggester — so a
+  // real part's coverage/disc is modelled here, the design's is modelled there,
+  // with no double-count.
+  const CAL_REF_COVERAGE = 0.90, CAL_REF_DISC = 0.15;
+
   // Model capacitance (µF) for a real part using its MEASURED recipe + the class
   // ε_r — the reference against which the real rated C residual is measured.
+  // Total (never throws): skips a part with missing/invalid case or class so one
+  // malformed row can't abort a whole recalibration.
   function predictRealPartC(p) {
     const N = p.N != null ? p.N : p.N_a;
     if (!(p.C_uF > 0) || !(p.d_fired_um > 0) || !(N > 0)) return null;
     const c = CASES.find(x => x.id === p.case);
-    if (!c) return null;
+    if (!c || !CLASSES.find(x => x.id === p.cls)) return null;
     const s = 0.14;
-    const r = compute({
-      case: p.case, cls: p.cls,
-      hBT: p.d_fired_um / (1 - s),
-      hNi: (p.h_Ni_fired_um != null ? p.h_Ni_fired_um : Math.max(0.5, 0.6 * p.d_fired_um)) / (1 - s),
-      Ne: N,
-      em: p.em_um != null ? p.em_um : c.em,
-      sm: p.sm_um != null ? p.sm_um : c.sm,
-      cover: p.cover_um != null ? p.cover_um : 60,
-      coverage: 0.90, disc: 0.15, sTotal: s, tier2: false, vdc: 0, top: 25,
-    });
+    let r;
+    try {
+      r = compute({
+        case: p.case, cls: p.cls,
+        hBT: p.d_fired_um / (1 - s),
+        hNi: (p.h_Ni_fired_um != null ? p.h_Ni_fired_um : Math.max(0.5, 0.6 * p.d_fired_um)) / (1 - s),
+        Ne: N,
+        em: p.em_um != null ? p.em_um : c.em,
+        sm: p.sm_um != null ? p.sm_um : c.sm,
+        cover: p.cover_um != null ? p.cover_um : 60,
+        coverage: CAL_REF_COVERAGE, disc: CAL_REF_DISC, sTotal: s, tier2: false, vdc: 0, top: 25,
+      });
+    } catch (e) { return null; }
     return r.C_nominal_F * 1e6;
   }
 
@@ -867,6 +880,9 @@
     const C_target_F = spec.C_target_uF * 1e-6;
     // Effective ε_r = class ε_r × the learned real-data correction (identity by
     // default). Back-solve N with it so suggestions track real product designs.
+    // NOTE: under a non-identity calibration the recipe no longer round-trips
+    // through compute() (which uses the raw class ε_r) — the calibration is a
+    // suggestion-layer correction only, never applied to the physics path.
     const er_eff = dp.er_class * calScale(spec.cls);
     const N_needed = (C_target_F * d_m) / (er_eff * EPS0 * A_m);
     const N_actual = Math.min(N_needed, dp.N_e_max);
@@ -889,7 +905,7 @@
       C_target_uF: spec.C_target_uF, C_grade_max_uF, C_typical_uF, C_frontier_uF,
       fill_grade_pct: spec.C_target_uF / C_grade_max_uF * 100,
       feasible, overflow: !feasible,
-      needs_engineered_dielectric: (dp.er_grain / dp.er_class) < 0.85,
+      needs_engineered_dielectric: (dp.er_grain / er_eff) < 0.85,
     };
   }
 
@@ -1035,6 +1051,8 @@
       C_body_ceiling_uF: C_ceiling_uF,
       feasible, overflow: !feasible,
       body_oversized: feasible && (chosen.height / Hmax_eff < 0.5),
+      // Target so small the layer count floored at 1 and the design overshoots C.
+      c_overshoot: feasible && chosen.C_ach_uF > 1.15 * spec.C_target_uF,
     };
   }
 

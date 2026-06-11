@@ -641,6 +641,11 @@ function warningCodes(inp) {
   const inf = t.optimizeDesign({ case: '0201_0603', cls: 'X5R', V: 6.3, C_target_uF: 1000 });
   ok('optimizeDesign flags an unachievable target as infeasible',
     !inf.feasible && inf.overflow && inf.C_target_uF > inf.C_body_ceiling_uF);
+
+  // Tiny target (< one layer's capacitance) → N floors at 1 and overshoots → flagged.
+  const tiny = t.optimizeDesign({ case: '1206_3216', cls: 'X7R', V: 50, C_target_uF: 0.0001 });
+  ok('optimizeDesign flags a sub-one-layer target as c_overshoot',
+    tiny.feasible && tiny.N_e === 1 && tiny.c_overshoot && tiny.C_achieved_uF > tiny.C_target_uF);
 })();
 
 // ============================================================
@@ -661,6 +666,22 @@ function warningCodes(inp) {
   // predictRealPartC reproduces a positive C for a seeded part.
   const kp = t.KNOWN_PARTS.find(k => k.C_uF > 0 && k.d_fired_um > 0 && k.N_a > 0);
   ok('predictRealPartC returns positive C for a real part', t.predictRealPartC(kp) > 0);
+
+  // A malformed real part (unknown class / case) is SKIPPED, not crashed on.
+  ok('predictRealPartC returns null on unknown class (no throw)',
+    t.predictRealPartC({ case: '0805_2012', cls: 'X6R', V: 50, C_uF: 1, d_fired_um: 4, N: 100 }) === null);
+  ok('predictRealPartC returns null on unknown case (no throw)',
+    t.predictRealPartC({ case: 'bogus', cls: 'X7R', V: 50, C_uF: 1, d_fired_um: 4, N: 100 }) === null);
+  const mixed = t.calibrateFromReal([
+    { case: '0805_2012', cls: 'X7R', V: 50, C_uF: 1.0, d_fired_um: 4.0, N: 120 },
+    { case: '0805_2012', cls: 'X6R', V: 50, C_uF: 1.0, d_fired_um: 4.0, N: 120 }, // bad class
+  ]);
+  ok('calibrateFromReal skips the malformed part (uses 1, not crash)', mixed.n_parts === 1);
+
+  // getCalibration returns a copy — mutating it does not corrupt global state.
+  const snap = t.getCalibration();
+  snap.er_scale_global = 0.123; snap.er_scale_byClass.X7R = 0.123;
+  ok('getCalibration returns a copy (no global mutation)', t.calScale('X7R') === 1);
 
   // Applying a correction shifts suggestions toward reality: a lower effective
   // ε_r (scale < 1) means MORE layers are needed for the same target.

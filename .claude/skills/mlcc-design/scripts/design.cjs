@@ -166,4 +166,6 @@ if (o.needs_engineered_dielectric)
 console.log(`\n  body capacitance ceiling ≈ ${r2(o.C_body_ceiling_uF)} µF (headroom: thin the dielectric for more C)`);
 if (o.body_oversized)
   console.log(`  note: stack fills only ${r0(o.height_fill_pct)}% of the body — a smaller case would suit this C.`);
+if (o.c_overshoot)
+  console.log(`  note: target is below one layer's worth of capacitance — achieved ${r2(o.C_achieved_uF)} µF overshoots ${o.C_target_uF} µF (use a smaller case or thicker dielectric).`);
 console.log('');
