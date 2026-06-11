@@ -19,6 +19,8 @@ How [[temperature-coefficient-of-capacitance|TCC characteristics]] and [[dc-bias
 
 ## The first-order multiplicative model
 
+This separable product is the **linearised (log-additive) form of the single [[landau-devonshire-permittivity-model|εᵣ(T,E,t) surface]]**: `ln C = ln C₀ + ln f_T + ln f_V + … + (cross terms)`, with the cross terms dropped. The breakdowns below are exactly where the dropped `∂²σ/∂T∂E` term matters.
+
 Standard industry practice (and what most vendor SPICE tools implement at the simple end) treats the derating factors as a product:
 
 $$

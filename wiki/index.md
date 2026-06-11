@@ -2,7 +2,7 @@
 title: Wiki Index
 type: index
 created: 2026-05-19
-updated: 2026-06-05
+updated: 2026-06-11
 ---
 
 # Wiki Index
@@ -108,6 +108,8 @@ A catalog of all pages in this wiki, organized by category. See [[overview]] for
 - [[binder-burnout-debinding]] — First firing step (200–600 °C); PVB kinetics; Ar+1%O₂ window; BBO defect modes.
 - [[tcc-dc-bias-interaction]] — How TCC and DC-bias derating couple; multiplicative f_T × f_V model is accurate to ±5–10 % for X5R/X7R, breaks down for Y5V and near-T_C compositions.
 - [[empirical-c-t-vdc-academic-measurements]] — Synthesis of academic 2D-surface measurements; recipe-specific (E₀, p) calibration table for the Tier 2 simulator.
+- [[landau-devonshire-permittivity-model]] — The single εᵣ(T,E,t) surface (σ=ln εᵣ); TCC, DC-bias and aging are its three gradients; Curie–Weiss + Johnson; the multiplicative model is its log-additive linearisation.
+- [[permittivity-stability-tradeoff]] — Why high εᵣ costs temperature/DC-bias/aging/grain stability — all one cause (domain-wall mobility); the C0G contrast, the class ladder, core-shell as the partial escape.
 - [[polar-nanoregions-pnr]] — Short-range polar order in a non-polar matrix; route to high ε_r with low DC-bias loss without long-range ferroelectric order.
 - [[rayleigh-analysis]] — Linear ε'(E_AC) decomposition into reversible ε'_init plus irreversible α'; basis for understanding TCC × bias coupling.
 - [[dielectric-tunability]] — Same physics as DC-bias derating, opposite sign convention; how the relaxor/varactor literature frames the effect.

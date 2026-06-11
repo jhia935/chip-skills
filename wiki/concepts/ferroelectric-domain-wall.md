@@ -24,7 +24,7 @@ DWs are the physical seat of most of the **εr** that MLCC engineering cares abo
 - DW response gets bigger as `T → T_C` (= 393 K = 120 °C for bulk BaTiO₃).
 - The DW vibration decomposes into a **sliding** mode (rigid translation, lower frequency) and a **breathing** mode (profile-thickness oscillation, higher frequency).
 
-This means: if you suppress DW motion, you crash `εr`. Three things in MLCC physics suppress DWs:
+This is the microscopic root of the [[permittivity-stability-tradeoff|permittivity–stability trade-off]]: the high `εr` *is* DW mobility, so anything that suppresses DWs (field, time, fine grain) both crashes `εr` and is itself a derating axis. Three things in MLCC physics suppress DWs:
 
 1. **DC bias** → pins DWs along the field direction → `εr` drops. This is the mechanism of [[dc-bias-derating]].
 2. **Aging** → DWs relax to lower-energy positions, becoming harder to move → `εr` slowly decays. This is [[aging-class-2]].

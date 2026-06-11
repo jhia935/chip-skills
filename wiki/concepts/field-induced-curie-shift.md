@@ -15,7 +15,7 @@ importance: high
 
 Applying a DC electric field to a [[batio3|BaTiO₃]]-based ferroelectric **shifts its [[curie-temperature|Curie temperature]] (T_C) upward** while simultaneously **suppressing the peak dielectric constant**. This is the central physical mechanism behind the **DC-bias dependency of the [[temperature-coefficient-of-capacitance|TCC]] curve** in Class II MLCCs.
 
-Both effects come from the same Landau-type free-energy expansion: a positive (or "biasing") electric field stabilizes the ferroelectric phase against thermal disordering (raising T_C) but also pulls the system into a saturating-polarization state that flattens `dP/dE` (reducing peak ε_r).
+Both effects come from the same Landau-type free-energy expansion: a positive (or "biasing") electric field stabilizes the ferroelectric phase against thermal disordering (raising T_C) but also pulls the system into a saturating-polarization state that flattens `dP/dE` (reducing peak ε_r). This T_C-shift is the **`∂²σ/∂T∂E` cross-term** of the single [[landau-devonshire-permittivity-model|εᵣ(T,E,t) surface]] — the coupling the separable multiplicative model drops.
 
 ## Quantitative T_C shift in BaTiO₃ single crystals
 

@@ -53,7 +53,7 @@ A useful corollary ([[nasa-batio3-mlcc-failure-mechanisms]] Eq. 3):
 $$
 \frac{C}{V_\text{chip}} \;\approx\; \varepsilon_0 \cdot \frac{\varepsilon_r}{d^2} \;\approx\; 8.854\times 10^{-8} \cdot \frac{\varepsilon_r}{d^2} \;[\mu F/cm^3]
 $$
-This drives the entire MLCC industry roadmap: **decrease d, raise εr**. Both have physical floors — see [[core-shell-batio3]] for the εr-vs-grain-size collapse below `r̄ ≈ 200 nm`.
+This drives the entire MLCC industry roadmap: **decrease d, raise εr**. Both have physical floors — see [[core-shell-batio3]] for the εr-vs-grain-size collapse below `r̄ ≈ 200 nm`, and [[permittivity-stability-tradeoff]] for why the `raise εr` lever costs temperature/DC-bias/aging stability (all gradients of the [[landau-devonshire-permittivity-model|single εᵣ(T,E,t) surface]]).
 
 ## What this equation does not capture
 - Field-dependent `εr` collapse under DC bias → [[dc-bias-derating]]

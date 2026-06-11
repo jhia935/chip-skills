@@ -2,7 +2,7 @@
 title: Activity Log
 type: log
 created: 2026-05-19
-updated: 2026-06-05
+updated: 2026-06-11
 ---
 
 # Activity Log
@@ -10,6 +10,12 @@ updated: 2026-06-05
 Chronological record of wiki operations. Newest entries first.
 
 ---
+
+## [2026-06-11] query | Permittivity ↔ TCC ↔ DC-bias: one equation, and the εᵣ-vs-stability trade-off
+
+Question thread: the three higher-capacitance options and the trade-off of raising εᵣ; whether permittivity, TCC and DC-bias relate by a single equation, and whether they live in one space. Synthesized the answer into two concept pages.
+
+Created: [[landau-devonshire-permittivity-model]] — the single εᵣ(T,E,t) surface (σ = ln εᵣ); permittivity is its value, TCC `∂σ/∂T`, DC-bias `σ(T,E)−σ(T,0)`, aging `−∂σ/∂ln t`; Curie–Weiss (`TCC=−εᵣ/C_cw`) + Johnson tunability (`∝ εᵣ(0)³`); the field-induced Curie shift is the `∂²σ/∂T∂E` cross-term; the industry multiplicative model is the log-additive (separable) linearisation. [[permittivity-stability-tradeoff]] — the qualitative consequence: high εᵣ ⇄ poor T/V/t/grain stability, all from domain-wall mobility; C0G contrast; class ladder; core-shell partial escape. Backlinked from [[field-induced-curie-shift]], [[tcc-dc-bias-interaction]], [[ferroelectric-domain-wall]], [[mlcc-capacitance-equation]]; standard Landau/Curie–Weiss/Johnson theory supplied where the corpus had only the framing. 228 pages, 0 dangling.
 
 ## [2026-06-05] ingest | NASA + MIL + AVX MLCC qualification & internal-structure data
 
