@@ -2,7 +2,7 @@
 title: Activity Log
 type: log
 created: 2026-05-19
-updated: 2026-06-11
+updated: 2026-06-13
 ---
 
 # Activity Log
@@ -10,6 +10,10 @@ updated: 2026-06-11
 Chronological record of wiki operations. Newest entries first.
 
 ---
+
+## [2026-06-13] query | Does Landau–Devonshire cover cutting-edge multi-additive MLCC?
+
+Follow-up (what is LD; does it cover complex-additive / distributed-grain parts). Rather than a duplicate query page, folded the one new insight — the **modeling hierarchy** (homogeneous LD → chemistry-shifted coefficients → Ginzburg–Landau/phase-field → effective-medium core-shell → relaxor/random-field → empirical+calibration) and the "no model predicts a finished multi-additive part from recipe → measure-then-calibrate" punchline — into a *Scope & limits* section on [[landau-devonshire-permittivity-model]]. Added a backlink from [[capacitance-simulation-from-recipe-and-geometry]] explaining this is why the chip-sim looks up/calibrates εᵣ rather than computing it from theory. No new page; 228 pages, 0 dangling.
 
 ## [2026-06-11] query | Permittivity ↔ TCC ↔ DC-bias: one equation, and the εᵣ-vs-stability trade-off
 

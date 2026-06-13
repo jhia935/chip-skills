@@ -2,7 +2,7 @@
 title: "Can MLCC capacitance be simulated from Ni paste, BT sheet composition, thickness, overlap, and layer count?"
 type: query
 created: 2026-05-21
-updated: 2026-05-21
+updated: 2026-06-13
 sources:
   - yan-thesis-2013-mlcc-sintering-nanotomography.md
   - shi-2023-jecs-sovs-bilayer-modeling.md
@@ -115,6 +115,8 @@ graph TB
 | Electrode discontinuity vs `h_Ni, D_Ni0, T_heating` | Yan DEM lookup table or SOVS surface | [[layer-thickness-and-metal-ceramic-ratio]] |
 | `ε_r` corrections (T, V_DC, age, grain) | Empirical sub-models from wiki pages | [[dc-bias-derating]], [[aging-class-2]] |
 | Cofiring camber / warpage | SOVS-FE | [[shi-2023-jecs-sovs-bilayer-modeling]], [[cofiring-camber-bilayer]] |
+
+> **Why `ε_r` is looked up / calibrated, not computed from theory:** no model predicts a finished multi-additive, distributed-grain MLCC's `ε_r` from recipe alone. Pure [[landau-devonshire-permittivity-model|Landau–Devonshire]] gives only the *shape* of `ε_r(T,E)` (one surface, three gradients), not the numbers for a core-shell part — see its *Scope & limits* section and [[permittivity-stability-tradeoff]]. That is the rationale for this pipeline's **measure-then-calibrate** design.
 
 ## Honest assessment
 

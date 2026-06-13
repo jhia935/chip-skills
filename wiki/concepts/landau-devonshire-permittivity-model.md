@@ -2,7 +2,7 @@
 title: Landau–Devonshire Permittivity Model — the Single εᵣ(T,E,t) Surface
 type: concept
 created: 2026-06-11
-updated: 2026-06-11
+updated: 2026-06-13
 sources:
   - dulkin-roth-2020-batio3-curie-shift.md
   - fujii-trolier-mckinstry-2023-batio3-nonlinearity.md
@@ -87,6 +87,22 @@ The closed form above is the **intrinsic, single-crystal** Landau surface. In a 
 
 - The **coefficients** (`C_cw`, `B`, `E₀`, `p`) are not the textbook Landau values — they must be fitted to measured data ([[empirical-c-t-vdc-academic-measurements]], [[fujii-trolier-mckinstry-2023-batio3-nonlinearity|Rayleigh decomposition]]).
 - The **structure is exact regardless of mechanism**: εᵣ(T,E,t) is one scalar field; TCC / DC-bias / aging are its gradients; the multiplicative model is its separable approximation. The truly faithful "single space" is an **empirical `σ(T,E,t)` surface** — exactly what Murata's dynamic SimSurfing model interpolates ([[vendor-spice-models]]).
+
+## Scope & limits — modern multi-additive MLCC
+
+Pure analytic LD is **homogeneous, single-order-parameter, mean-field** — it describes a uniform crystal. A cutting-edge MLCC dielectric (5+ dopants, [[core-shell-batio3|core–shell]] grains, a grain-size *distribution*, ~99 % extrinsic [[ferroelectric-domain-wall|domain-wall]] εᵣ) violates every one of those assumptions. LD is the *scaffold*, not the finished model; the field stacks extensions on it, and the last rung is empirical:
+
+| Layer | What it adds | Cost / limit |
+|---|---|---|
+| Homogeneous LD (this page) | the εᵣ(T,E) surface, Curie–Weiss, Johnson | uniform single crystal only; coefficients fitted, not derived |
+| Chemistry → coefficients | dopant → Tᴄ/εᵣ shifts ([[class-specific-tc-engineering]], [[epsilon-r-from-dopant-composition]]) | empirical slope tables, ~30 % uncertain |
+| Ginzburg–Landau / phase-field (TDGL, +∇P) | domain walls, domain patterns, microstructure | compute-heavy; still needs LD coefficients as input |
+| Effective-medium composite | core + shell + grain-boundary averaging ([[core-shell-batio3]]) | needs volume fractions + per-region εᵣ |
+| Size-dependent coefficients / diffuse transition | grain-size distribution → smeared peak ([[nano-grain-batio3-epsilon-r]]) | the sub-200 nm collapse is grafted on, not predicted |
+| Relaxor / random-field models | replaces the single order parameter for PNR ([[polar-nanoregions-pnr]], [[relaxor-ferroelectric]]) | genuinely beyond LD |
+| **Empirical surface + calibration** | measured εᵣ(T,E,t) / fitted coefficients ([[empirical-c-t-vdc-academic-measurements]]) | the faithful model for a finished part |
+
+**Punchline:** no model — LD, phase-field, or otherwise — predicts a finished multi-additive, distributed-grain MLCC's derating *from recipe alone*. The faithful representation is **measure-then-calibrate**. This is the explicit reason the [[capacitance-simulation-from-recipe-and-geometry|chip-sim]] does not compute εᵣ from LD but uses an empirical grain-size εᵣ curve + DC-bias sigmoid + a real-data calibration layer: LD fixes the *shape of the law* (one surface, three gradients); the *numbers* for a 2025 high-CV core-shell part come from fitting to real parts.
 
 ## Implications for the simulator
 - The Tier-2 model already lives on this surface in its separable form (`f_T·f_V·f_age`); the upgrade path is to carry the **cross-term** near `T_C` (the field-induced Curie shift, +130 mK/(V/µm)) rather than treat T and V_DC as orthogonal.
