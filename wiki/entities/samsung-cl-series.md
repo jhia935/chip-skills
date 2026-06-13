@@ -2,7 +2,7 @@
 title: Samsung CL Series MLCC
 type: entity
 created: 2026-05-19
-updated: 2026-05-20
+updated: 2026-06-13
 sources:
   - samsung-cl-series-mlcc-ds.md
 tags:
@@ -41,7 +41,7 @@ Example: `CL 10 B 104 K B 8 N N N C`
 | 43 | 1812 | 4532 | 4.5 × 3.2 |
 | 55 | 2220 | 5750 | 5.7 × 5.0 |
 
-The SEMCO 2-digit internal code is **independent of either EIA or metric notation**. The simulator's resolver defaults to **JIS metric** when no suffix is given (`2012` → EIA 0805, `1608` → EIA 0603). Use `Xi` to force EIA (`0805i` → 2.0 × 1.25 mm) or `Xm` to make the metric reading explicit (`0603m` → 0.6 × 0.3 mm). Bare codes that are only valid as EIA (`0805`, `1206`, `1210`, `1812`, `2220`) are **rejected** with a hint. See [[case-size-geometry]] §"Recommended disambiguation".
+The SEMCO 2-digit internal code is **independent of either EIA or metric notation**. The (vendor-neutral) case-size resolver defaults to **JIS metric** when no suffix is given (`2012` → EIA 0805, `1608` → EIA 0603). Use `Xi` to force EIA (`0805i` → 2.0 × 1.25 mm) or `Xm` to make the metric reading explicit (`0603m` → 0.6 × 0.3 mm). Bare codes that are only valid as EIA (`0805`, `1206`, `1210`, `1812`, `2220`) are **rejected** with a hint. See [[case-size-geometry]] §"Recommended disambiguation".
 
 ## Variants in the broader SEMCO catalog
 - **Automotive (AEC-Q200)**: same prefix, "P" control code; SEMCO publishes a separate January 2024 automotive catalog.

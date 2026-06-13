@@ -11,6 +11,10 @@ Chronological record of wiki operations. Newest entries first.
 
 ---
 
+## [2026-06-13] maintenance | De-brand the part-number decoder (vendor-neutral)
+
+Generalized SEMCO-specific *naming/framing* so the shared repo doesn't read as a single-vendor employee project. Code: simulator symbols `parseSemcoCL`→`parsePartNumber`, `SEMCO_{SIZE,TCC,VOLTAGE,TOL}_CODES`→`PN_*`, comments/errors de-branded (343 tests pass). Wiki tool-framing generalized on [[case-size-geometry]] ("the simulator's SEMCO encoder" → part-number encoding lives in the multi-vendor mlcc-part skill, not the vendor-neutral simulator), [[samsung-cl-series]] ("the simulator's resolver" → the case-size resolver), and the [[chun-2024-screp-batio3-mlcc-degradation]] simulator-note (dropped the stale `VENDOR_ER_X7R` per-vendor-constant suggestion → grain-curve + calibration). Kept all factual research: SEMCO/Samsung as a cited vendor, datasheets, the CL part-number scheme as domain knowledge, and the multi-vendor mlcc-part skill. 228 pages, 0 dangling.
+
 ## [2026-06-13] query | Does Landau–Devonshire cover cutting-edge multi-additive MLCC?
 
 Follow-up (what is LD; does it cover complex-additive / distributed-grain parts). Rather than a duplicate query page, folded the one new insight — the **modeling hierarchy** (homogeneous LD → chemistry-shifted coefficients → Ginzburg–Landau/phase-field → effective-medium core-shell → relaxor/random-field → empirical+calibration) and the "no model predicts a finished multi-additive part from recipe → measure-then-calibrate" punchline — into a *Scope & limits* section on [[landau-devonshire-permittivity-model]]. Added a backlink from [[capacitance-simulation-from-recipe-and-geometry]] explaining this is why the chip-sim looks up/calibrates εᵣ rather than computing it from theory. No new page; 228 pages, 0 dangling.

@@ -75,15 +75,16 @@
   const EPS0 = 8.854187817e-12; // F/m
 
   // ============================================================
-  // SEMCO CL-series part-number decoder
+  // MLCC part-number decoder (CL-style surface-mount grammar)
   // 11 fields, 15 characters total:
   //   CL <size 2c> <tcc 1c> <cap 3c> <tol 1c> <volt 1c>
   //      <thick 1c> <plating 1c> <control 1c> <reserved 1c> <packaging 1c>
-  // Wiki ref: wiki/entities/samsung-cl-series.md
+  // (Multi-vendor part decoding lives in the mlcc-part skill; this is a
+  //  self-contained convenience decoder for the common CL-prefixed format.)
   // ============================================================
 
   // Size code → simulator case ID
-  const SEMCO_SIZE_CODES = {
+  const PN_SIZE_CODES = {
     '03': '0201_0603',
     '05': '0402_1005',
     '10': '0603_1608',
@@ -96,9 +97,9 @@
     '55': '2220_5750',
   };
 
-  // TCC code → simulator class ID. Some SEMCO codes (e.g. X6S, U2J)
+  // TCC code → simulator class ID. Some codes (e.g. X6S, U2J)
   // don't map to a class we model — decoded but flagged with cls: null.
-  const SEMCO_TCC_CODES = {
+  const PN_TCC_CODES = {
     'A': 'X5R',
     'B': 'X7R',
     'X': null,   // X6S — not in our CLASSES set
@@ -109,14 +110,14 @@
   };
 
   // Voltage letter → V rating
-  const SEMCO_VOLTAGE_CODES = {
+  const PN_VOLTAGE_CODES = {
     'S': 2.5, 'R': 4.0, 'Q': 6.3, 'P': 10, 'O': 16, 'A': 25, 'L': 35,
     'B': 50,  'T': 75,  'C': 100, 'D': 200, 'E': 250, 'G': 500,
     'H': 630, 'I': 1000, 'J': 2000, 'K': 3000,
   };
 
   // Tolerance letter → text
-  const SEMCO_TOL_CODES = {
+  const PN_TOL_CODES = {
     'B': '±0.1 pF', 'C': '±0.25 pF', 'D': '±0.5 pF',
     'F': '±1%',  'G': '±2%',  'J': '±5%', 'K': '±10%',
     'M': '±20%', 'Z': '+80/-20%',
@@ -139,10 +140,10 @@
     return (d1 * 10 + d2) * Math.pow(10, m) * 1e-12;
   }
 
-  function parseSemcoCL(pn) {
+  function parsePartNumber(pn) {
     if (typeof pn !== 'string') throw new Error(`expected string, got ${typeof pn}`);
-    if (!pn.startsWith('CL')) throw new Error(`not a SEMCO CL part: "${pn}"`);
-    if (pn.length !== 15) throw new Error(`SEMCO CL part must be 15 chars, got ${pn.length}: "${pn}"`);
+    if (!pn.startsWith('CL')) throw new Error(`not a CL-style part number: "${pn}"`);
+    if (pn.length !== 15) throw new Error(`CL-style part number must be 15 chars, got ${pn.length}: "${pn}"`);
 
     const sizeCode      = pn.substring(2, 4);
     const tccCode       = pn[4];
@@ -155,22 +156,22 @@
     const reservedCode  = pn[13];
     const packagingCode = pn[14];
 
-    if (!(sizeCode in SEMCO_SIZE_CODES))
-      throw new Error(`unknown SEMCO size code "${sizeCode}" in "${pn}"`);
-    if (!(tccCode in SEMCO_TCC_CODES))
-      throw new Error(`unknown SEMCO TCC code "${tccCode}" in "${pn}"`);
-    if (!(voltCode in SEMCO_VOLTAGE_CODES))
-      throw new Error(`unknown SEMCO voltage code "${voltCode}" in "${pn}"`);
+    if (!(sizeCode in PN_SIZE_CODES))
+      throw new Error(`unknown size code "${sizeCode}" in "${pn}"`);
+    if (!(tccCode in PN_TCC_CODES))
+      throw new Error(`unknown TCC code "${tccCode}" in "${pn}"`);
+    if (!(voltCode in PN_VOLTAGE_CODES))
+      throw new Error(`unknown voltage code "${voltCode}" in "${pn}"`);
 
     const C_F = decodeCapCode(capCode);
 
     return {
       prefix: 'CL',
-      sizeCode, case: SEMCO_SIZE_CODES[sizeCode],
-      tccCode,  cls:  SEMCO_TCC_CODES[tccCode],
+      sizeCode, case: PN_SIZE_CODES[sizeCode],
+      tccCode,  cls:  PN_TCC_CODES[tccCode],
       capCode,  C_F,  C_uF: C_F * 1e6,
-      tolCode,  tol:  SEMCO_TOL_CODES[tolCode] || null,
-      voltCode, V:    SEMCO_VOLTAGE_CODES[voltCode],
+      tolCode,  tol:  PN_TOL_CODES[tolCode] || null,
+      voltCode, V:    PN_VOLTAGE_CODES[voltCode],
       thickCode, platingCode, controlCode, reservedCode, packagingCode,
     };
   }
@@ -518,10 +519,10 @@
       note: 'BTS-BCN graded composition; non-standard 4×4 mm² active area; ε_r ≈ 2050 back-fit.' },
 
     // ===== Yan thesis 2013 SEMCO (N_a not disclosed) =====
-    { id: 'yan-semco-1206', src: 'yan-thesis-2013', case: '1206_3216', cls: 'X7R', V: 50, C_uF: null,
+    { id: 'yan-2013-1206', src: 'yan-thesis-2013', case: '1206_3216', cls: 'X7R', V: 50, C_uF: null,
       d_fired_um: 2.5, h_Ni_fired_um: 1.2, N_a: null, grain_um: null,
       note: 'Samsung production MLCC, cross-sectioned. N_e not disclosed.' },
-    { id: 'yan-semco-0603', src: 'yan-thesis-2013', case: '0603_1608', cls: 'X7R', V: 25, C_uF: null,
+    { id: 'yan-2013-0603', src: 'yan-thesis-2013', case: '0603_1608', cls: 'X7R', V: 25, C_uF: null,
       d_fired_um: 2.5, h_Ni_fired_um: 1.2, N_a: null, grain_um: null,
       note: 'Samsung production MLCC, same study, smaller case.' },
   ];
@@ -1062,9 +1063,9 @@
 
   const api = {
     CASES, CLASSES, DCBIAS, TCC_RANGES, EPS0, VENDOR_PARTS, KNOWN_PARTS,
-    SEMCO_SIZE_CODES, SEMCO_TCC_CODES, SEMCO_VOLTAGE_CODES, SEMCO_TOL_CODES,
+    PN_SIZE_CODES, PN_TCC_CODES, PN_VOLTAGE_CODES, PN_TOL_CODES,
     tccFactor, dcBiasFactor, compute,
-    parseSemcoCL, decodeCapCode,
+    parsePartNumber, decodeCapCode,
     fmtCap, fmt, defaultInputs,
     eDesign, dFiredFromV, hNiFromD, predictCMax, cmaxEnvelope, solveRecipe,
     suggestDesign, gradeDesignPoint, optimizeDesign, GRADES,

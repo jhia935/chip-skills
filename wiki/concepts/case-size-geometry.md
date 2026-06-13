@@ -2,7 +2,7 @@
 title: MLCC Case Sizes & Internal Geometry
 type: concept
 created: 2026-05-19
-updated: 2026-06-05
+updated: 2026-06-13
 status: complete
 importance: high
 sources:
@@ -80,7 +80,7 @@ The simulator's size-resolver follows this convention:
 | `43` | 1812 | 4532 | 4.5 × 3.2 |
 | `55` | 2220 | 5750 | 5.7 × 5.0 |
 
-The simulator's [[samsung-cl-series|SEMCO]] encoder takes either user-side notation (with or without `i`/`m` suffix) and emits the correct 2-digit SEMCO field.
+Mapping a case to/from this 2-digit field is **part-number encoding** (the scheme is documented at [[samsung-cl-series]]); it's handled by the multi-vendor `mlcc-part` skill — which also covers Murata, TDK and KEMET — not the vendor-neutral capacitance simulator.
 
 ## Margins & overlap area
 For BME construction, [[nasa-nepp-bme-mlcc-reliability]] Table II:

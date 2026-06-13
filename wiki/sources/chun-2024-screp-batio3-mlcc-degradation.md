@@ -2,7 +2,7 @@
 title: "Chun et al. 2024 — Thermal Activation Energy on Electrical Degradation in BaTiO₃ MLCC"
 type: source
 created: 2026-05-29
-updated: 2026-05-29
+updated: 2026-06-13
 sources:
   - chun-2024-screp-batio3-mlcc-degradation.md
 tags:
@@ -49,7 +49,7 @@ The paper focuses on a **non-Arrhenius behavior** in lifetime estimation during 
 
 ## Implications for the simulator
 
-1. **SEMCO post-2020 ε_r is significantly higher** than the X7R class default. Adding a SEMCO-tuned ε_r ≈ 6000 to `VENDOR_ER_X7R` would let the simulator forward-predict these and other thin-layer SEMCO parts.
+1. **These post-2020 thin-layer prototypes show ε_r well above the X7R class default** (≈ 6000). The simulator captures elevated thin-layer ε_r through its grain-size ε_r curve + the real-data calibration layer, not a per-vendor constant.
 2. **Layer count is NOT disclosed** for these samples — the paper provides geometry-only data. Back-calculating N_a from cap+d+ε_r is the user's job. The chip-sim's `solveRecipe` can do this directly.
 3. **HALT pass/fail tied to geometry**: thinner dielectric + higher CV → more HALT failures. Consistent with [[bme-reliability-model|Liu's N-amplifier]].
 
