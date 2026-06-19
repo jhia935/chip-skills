@@ -20,12 +20,18 @@ function findTier1() {
 }
 const t = require(findTier1());
 
-// Apply the learned real-data calibration if present (else physics defaults).
-let CALMETA = null;
+// Calibration: prefer the PRIVATE calibration from $MLCC_DATA_DIR (default
+// ~/.mlcc-design); otherwise compute one on the fly from the PUBLIC seed (engine
+// KNOWN_PARTS + bundled real_parts.seed.json) so the tool works out of the box.
+// Real measured-part data never lives inside this skill — see scripts/_data.cjs.
+const D = require('./_data.cjs');
+let CALMETA = null, CAL_FROM_DATA = false;
 try {
-  const calPath = path.join(__dirname, '..', 'data', 'calibration.json');
-  if (fs.existsSync(calPath)) { CALMETA = JSON.parse(fs.readFileSync(calPath, 'utf8')); t.setCalibration(CALMETA); }
-} catch (e) { /* fall back to physics defaults */ }
+  CALMETA = D.readJson(D.CAL);
+  if (CALMETA) { CAL_FROM_DATA = true; }
+  else { CALMETA = t.calibrateFromReal(D.allRealParts(t), { source: 'seed (public)' }); }
+  t.setCalibration(CALMETA);
+} catch (e) { /* fall back to physics defaults (identity) */ }
 
 // ── Arg parsing (--k v / --k=v / --flag) ────────────────────────────────────
 function parseArgs(argv) {
@@ -128,10 +134,12 @@ console.log(`\nMLCC DESIGN — target ${o.C_target_uF} µF · ${o.clsRec.id} · 
 console.log(`  body   : ${body}`);
 console.log(`  grade  : ${o.grade}  (${o.gradeLabel})`);
 console.log(`  objective: ${o.objective}`);
-if (CALMETA && o.calibration && o.calibration.n_parts)
-  console.log(`  calibration: real-data-adjusted vs ${o.calibration.n_parts} parts (effective ε_r ×${r2(o.calibration.scale)}, ±${r0(o.calibration.sigma_pct)}%)`);
+if (o.calibration && o.calibration.n_parts)
+  console.log(`  calibration: ${CAL_FROM_DATA
+      ? `your dataset (${o.calibration.n_parts} parts @ $MLCC_DATA_DIR)`
+      : `public seed (${o.calibration.n_parts} parts) — set MLCC_DATA_DIR + recalibrate for your data`} · effective ε_r ×${r2(o.calibration.scale)}, ±${r0(o.calibration.sigma_pct)}%`);
 else
-  console.log(`  calibration: none (physics defaults) — run calibrate.cjs recalibrate to fit real data`);
+  console.log(`  calibration: none (physics defaults)`);
 
 if (!o.feasible) {
   console.log(`\n  ✗ INFEASIBLE — ${o.C_target_uF} µF exceeds what this body/grade can hold`);

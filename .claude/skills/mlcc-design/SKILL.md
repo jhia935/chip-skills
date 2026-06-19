@@ -95,27 +95,37 @@ say so. If they omit V or C, ask — both are required to solve a recipe.
 
 The model **closes the loop with real measured parts**. The physics in `compute()` is
 uncalibrated; the gap between *computed* capacitance and *real product* behaviour (mostly
-the uncontrolled effective ε_r plus lumped geometry error) is learned from a growing
-real-data store and applied as an **effective-ε_r correction** in the suggestion layer.
-As you add real parts, suggestions move toward real product design parameters.
+the uncontrolled effective ε_r plus lumped geometry error) is learned from real measured
+parts and applied as an **effective-ε_r correction** in the suggestion layer. As you add
+real parts, suggestions move toward real product design parameters.
 
-- **Store** — `data/real_parts.json`: append real measured parts (case, class, V, C, fired
-  dielectric thickness, layer count; margins/grain/electrode optional). Seeded with the NASA
-  GSFC Liu DPA construction database. The engine also carries a built-in seed (`KNOWN_PARTS`).
-- **Learn** — `node scripts/calibrate.cjs recalibrate` reads the store + engine seed, fits the
-  computed-vs-real gap (a geomean effective-ε_r scale, global and per dielectric class) and the
-  residual spread σ (the model's honest uncertainty), and writes `data/calibration.json`.
-- **Apply** — `design.cjs` auto-loads `calibration.json` and applies the correction; its report
-  shows `calibration: real-data-adjusted vs N parts (effective ε_r ×k, ±σ%)`. With no calibration
-  file it falls back to physics defaults and says so.
+> **Data governance — real-part data lives OUTSIDE this skill.** Measured-part data is
+> private and potentially large/proprietary, so it must never be committed into this
+> version-controlled skill. It lives in an external directory: **`$MLCC_DATA_DIR`** (set this
+> to a company/private path), defaulting to **`~/.mlcc-design`**. Only a small **public
+> example seed** (`data/real_parts.seed.json`, NASA GSFC Liu DPA) ships with the skill, plus
+> the engine's public `KNOWN_PARTS`. `data/.gitignore` blocks the live files from ever being
+> committed. In a company, point `MLCC_DATA_DIR` at your private/shared store.
+
+- **Store** — `$MLCC_DATA_DIR/real_parts.json` (external, private, never committed): real
+  measured parts (case, class, V, C, fired dielectric thickness, layer count; margins/grain/
+  electrode optional). Baseline = engine `KNOWN_PARTS` + the bundled public seed.
+- **Learn** — `node scripts/calibrate.cjs recalibrate` reads `KNOWN_PARTS` + seed + your private
+  store, fits the computed-vs-real gap (a geomean effective-ε_r scale, global and per dielectric
+  class) and the residual spread σ, and writes `$MLCC_DATA_DIR/calibration.json`.
+- **Apply** — `design.cjs` loads the external `calibration.json` if present; otherwise it computes
+  one from the **public seed** so it still works out of the box. Its report shows whether the
+  correction came from *your dataset* or the *public seed*.
 - **Commands**:
+  - `calibrate.cjs where` — print the resolved data directory and what's in it.
+  - `calibrate.cjs add --case .. --cls .. --V .. --C .. --d <fired µm> --N <layers> [--hNi --em --sm --cover --grain --source --date --id]` — append a real part to the **private** store, then recalibrate.
   - `calibrate.cjs recalibrate` — refit and persist the correction.
-  - `calibrate.cjs add --case .. --cls .. --V .. --C .. --d <fired µm> --N <layers> [--hNi --em --sm --cover --grain --source --date --id]` — append a real part, then recalibrate.
   - `calibrate.cjs list` / `calibrate.cjs status` — show the dataset / current correction.
 
 When a user shares a real part's measured construction (DPA cross-section, vendor disclosure,
-academic paper), **offer to `add` it** so the model improves. The more parts — especially in the
-user's own case/class/voltage family — the tighter the per-class correction and σ.
+academic paper), **offer to `add` it** (it goes to the private external store, not the repo) so
+the model improves. The more parts — especially in the user's own case/class/voltage family —
+the tighter the per-class correction and σ.
 
 ## Caveats (state these when relevant)
 
@@ -131,10 +141,13 @@ user's own case/class/voltage family — the tighter the per-class correction an
 ## Files in this skill
 
 - `scripts/design.cjs` — design CLI (Node). Wraps `simulator/tier1.js` (`optimizeDesign`,
-  `suggestDesign`/`solveRecipe`/`compute`); auto-applies `data/calibration.json`; console output.
-- `scripts/calibrate.cjs` — real-data calibration CLI (recalibrate / add / list / status).
-- `data/real_parts.json` — the growing real-measured-part store (seeded with NASA GSFC DPA data).
-- `data/calibration.json` — the learned correction (written by `recalibrate`; consumed by `design`).
+  `suggestDesign`/`solveRecipe`/`compute`); applies the external (or public-seed) calibration; console output.
+- `scripts/calibrate.cjs` — calibration CLI (where / add / recalibrate / list / status).
+- `scripts/_data.cjs` — shared data-location policy: resolves `$MLCC_DATA_DIR` (default `~/.mlcc-design`),
+  loads engine `KNOWN_PARTS` + bundled seed + the external private store.
+- `data/real_parts.seed.json` — **public** example seed (NASA GSFC DPA); immutable demo baseline (tracked).
+- `data/.gitignore` — blocks the live private files (`real_parts.json`, `calibration.json`) from being committed.
+- **Not in the repo:** `$MLCC_DATA_DIR/real_parts.json` (private store) and `$MLCC_DATA_DIR/calibration.json` (derived).
 
 The engine itself (`simulator/tier1.js`) is the source of truth — the calibration logic
 (`calibrateFromReal`, `setCalibration`, `calScale`, `optimizeDesign`) is covered by

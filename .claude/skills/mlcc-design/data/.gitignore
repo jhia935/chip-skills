@@ -1,0 +1,6 @@
+# Real measured-part data is PRIVATE — it lives in $MLCC_DATA_DIR (default
+# ~/.mlcc-design), never in the repo. These are the local-fallback names; ignore
+# them so company/proprietary data can never be committed by accident.
+# The PUBLIC example seed (real_parts.seed.json) is intentionally tracked.
+real_parts.json
+calibration.json

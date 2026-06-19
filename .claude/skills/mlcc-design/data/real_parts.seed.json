@@ -1,5 +1,5 @@
 {
-  "_README": "Real measured MLCC parts — the growing ground-truth the design model calibrates against. APPEND new parts here (via `calibrate.cjs add` or by hand), then run `calibrate.cjs recalibrate` to update calibration.json. The engine also carries a built-in seed (KNOWN_PARTS); this file is the user-extendable layer. Each record needs at minimum {case, cls, V, C_uF, d_fired_um, N}; margins/grain/electrode are optional but improve the gap report. Dimensions are FIRED (post-sinter), µm. Seed below = NASA GSFC Liu & Sampson 2011 + 2013 DPA construction database (wiki/sources/nasa-gsfc-liu-construction-database-2011.md).",
+  "_README": "PUBLIC EXAMPLE SEED — do NOT add private/proprietary data here. This file is the bundled, immutable demo baseline (NASA GSFC Liu & Sampson 2011 + 2013 DPA construction database; public). Your own measured parts go to the external private store $MLCC_DATA_DIR/real_parts.json (default ~/.mlcc-design), which is never committed — add them with `calibrate.cjs add ...`, then `calibrate.cjs recalibrate`. Each record needs at minimum {case, cls, V, C_uF, d_fired_um, N}; margins/grain/electrode optional. Dimensions are FIRED (post-sinter), µm.",
   "parts": [
     {
       "id": "A06X47425",
