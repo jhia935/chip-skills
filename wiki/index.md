@@ -2,7 +2,7 @@
 title: Wiki Index
 type: index
 created: 2026-05-19
-updated: 2026-06-11
+updated: 2026-06-24
 ---
 
 # Wiki Index
@@ -81,7 +81,9 @@ A catalog of all pages in this wiki, organized by category. See [[overview]] for
 - [[mlcc-dimensional-tolerance]] — L/W/T case tolerances (EIA/IEC/JIS); why T is a layer-count-dependent "max"; build-to-max-footprint adds ~+25–50 % active area on small cases.
 - [[mlcc-margin-cover-design-rules]] — quantitative side/end-margin & cover-plate minimums (MIL-PRF-32535 voltage-scaled tables, GSFC, EIA-469) vs measured as-built values.
 - [[esr-esl-srf]] — Parasitics, equivalent-circuit impedance, decoupling rules.
-- [[failure-modes-mlcc]] — Cracks (mechanical/thermal/flex), arcing, mitigation hierarchy.
+- [[failure-modes-mlcc]] — Cracks (mechanical/thermal/flex/firing/knit-line), arcing, delamination, mitigation hierarchy.
+- [[mlcc-failure-analysis-techniques]] — C-SAM / X-ray-CT / DPA / functional-acoustic FA; detection limit set by defect openness.
+- [[mlcc-delamination]] — Interfacial separation; intrinsic (co-firing) vs hygrothermal (reflow) origins; why tight delamination evades X-ray.
 - [[core-shell-batio3]] — Rare-earth-doped microstructure that makes thin-layer BME work.
 - [[core-shell-formation-mechanism]] — Dissolution-reprecipitation vs solid-state diffusion; the firing-stage kinetics.
 - [[dopant-site-occupancy-batio3]] — A vs B site, amphoteric rare-earths, Y/Ho/Dy/Er ionic-radius window.
@@ -191,6 +193,10 @@ A catalog of all pages in this wiki, organized by category. See [[overview]] for
 - [[nasa-time-dependent-ir-2013-prb]] — Liu PRB manuscript, exponential leakage law derivation + E_k 1.6/2.8 eV fits.
 - [[arxiv-batio3-domain-wall-motion]] — Gurung et al. arXiv 2024, Landau-Ginzburg domain-wall dielectric response.
 - [[nasa-cracking-low-voltage-mlcc]] — Teverovsky NASA NEPP 2018, encyclopedic cracking & process review.
+- [[acoustic-microscopy-tight-delaminations-mlcc]] — Rayleigh-wave imaging recovers tightly closed delaminations that X-ray and post-section SEM miss.
+- [[x-ray-crack-detection-mlcc]] — Andersson & Ingman et al. 2016; 300 bent MLCCs by 2D/3D X-ray + cross-section; tight flex cracks evade 2D.
+- [[acoustic-ml-crack-detection-mlcc]] — IEEE 2017/18; AC-frequency-sweep acoustic response + SVM classifier screens cracked/delaminated parts.
+- [[hygrothermal-reflow-delamination-mlcc]] — Microelectronics Reliability 2023; moisture→6.23 MPa steam > 6 MPa adhesion drives reflow delamination; X-FEM/ABAQUS.
 - [[octopart-tdk-cga8l3c0g-product-guide]] — TDK 2012 full MLCC product line-up (C-series + CGA + CKC).
 - [[epfl-ceramics-sintering-microstructure]] — EPFL TP3 lab guide; canonical solid-state sintering physics.
 - [[arxiv-electron-localization-cation-diffusion]] — Yu et al. 2018, DFT showing why reducing atmosphere accelerates BaTiO₃ grain growth.

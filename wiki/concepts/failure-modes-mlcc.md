@@ -2,12 +2,14 @@
 title: MLCC Failure Modes
 type: concept
 created: 2026-05-19
-updated: 2026-05-19
+updated: 2026-06-24
 status: complete
 importance: high
 sources:
   - kemet-mlcc-design-and-characteristics.md
   - psma-ceramic-capacitor-basics.md
+  - resources/literature/hygrothermal-reflow-delamination-mlcc.md
+  - resources/literature/x-ray-crack-detection-mlcc.md
 tags:
   - paper
 ---
@@ -17,13 +19,17 @@ tags:
 Ceramic is brittle, strong in compression, weak in tension. Most MLCC field failures are mechanical, not electrical. The major modes ([[kemet-mlcc-design-and-characteristics]]):
 
 ## Cracking
-| Mode | Root cause | Where in part | Common case sizes |
-|---|---|---|---|
-| **Mechanical-damage crack** | Pick-and-place impact, hand mishandling | corner / surface | any |
-| **Thermal-shock crack** | Rapid ΔT during hand-soldering or wave soldering; CTE mismatch | parallel-plate (perpendicular to length) | large cases (>0805) more sensitive |
-| **Flex crack** | PCB bend stress after mounting | initiates near termination, propagates into active | >0805 |
+Cracks split into **assembly/handling** cracks (introduced after the part leaves the factory) and **manufacturing** cracks (born in the build). The as-manufactured crack probability is relatively low; most field cracks come from assembly, handling, and test ([[nasa-cracking-low-voltage-mlcc]]).
 
-Failure mode is **not always immediate** — a crack can be latent and surface as a short or open later under thermal cycling.
+| Mode | Origin | Root cause | Where in part | Common case sizes |
+|---|---|---|---|---|
+| **Mechanical-damage crack** | assembly | Pick-and-place impact, hand mishandling | corner / surface | any |
+| **Thermal-shock crack** | assembly | Rapid ΔT during hand-soldering or wave soldering; CTE mismatch | parallel-plate (perpendicular to length) | large cases (>0805) more sensitive |
+| **Flex crack** | assembly | PCB bend stress after mounting | initiates near termination, propagates diagonally into active | >0805 |
+| **Firing crack** | manufacturing | sintering shrinkage / thermal-gradient stress | runs **perpendicular to the electrodes** | any |
+| **Knit-line crack** | manufacturing | green-lamination knit-line weakness | from an **electrode end toward the opposite termination** | any |
+
+Failure mode is **not always immediate** — a crack can be latent and surface as a short or open later under thermal cycling. Flex cracks specifically are **hard to detect when tightly closed** (see [[mlcc-failure-analysis-techniques]]; [[x-ray-crack-detection-mlcc]] bent 300 MLCCs to map this).
 
 ### Flex-crack mitigation levels
 [[psma-ceramic-capacitor-basics]] catalogs four protection levels:
@@ -36,6 +42,9 @@ Failure mode is **not always immediate** — a crack can be latent and surface a
 | 3 | Hybrid: flexible termination + floating electrode | up to 5 mm | fail-open |
 
 Cost climbs with level; volumetric efficiency drops (the protection structures take space).
+
+## Delamination and voids
+Interfacial separation (electrode–dielectric, cover, or termination) and porosity-driven voids — covered in depth on [[mlcc-delamination]]. Two origins: **intrinsic** (binder-burnout / co-firing shrinkage mismatch, [[ni-batio3-cosintering-interface]]) and **hygrothermal/reflow** ([[hygrothermal-reflow-delamination-mlcc]]: absorbed moisture flashes to **6.23 MPa** steam at reflow, exceeding ~6 MPa interface adhesion → "popcorn" delamination; defects measured at voids 0.15–0.55 µm, delamination 0.05–0.21 mm). **Inter-electrode voids** from ceramic porosity reduce active overlap area and concentrate field. Like cracks, delamination can stay latent and later propagate into a short.
 
 ## Surface arcing
 At high voltage (>500 V typical), discharge can occur **outside** the part — across the surface between opposite-polarity terminations or between a termination and an exposed internal electrode of opposite polarity ([[kemet-mlcc-design-and-characteristics]]).
@@ -60,6 +69,13 @@ The simulator should flag:
 - Large cases (>0805) for flex-crack risk and recommend flex termination or open-mode design.
 - Hand-soldering / wave-soldering process choice → thermal-shock margin check (CTE mismatch limit on size and rated voltage).
 
+## Finding these defects
+Detection and root-cause methods (C-SAM, X-ray/CT, DPA cross-section, functional acoustic screening, electrical) are cataloged on [[mlcc-failure-analysis-techniques]]. Key principle: a defect's **openness** decides the modality — tightly closed cracks/delaminations need acoustic methods, not X-ray.
+
 ## References
 - [[kemet-mlcc-design-and-characteristics]]
 - [[psma-ceramic-capacitor-basics]]
+- [[mlcc-failure-analysis-techniques]]
+- [[mlcc-delamination]]
+- [[hygrothermal-reflow-delamination-mlcc]]
+- [[x-ray-crack-detection-mlcc]]

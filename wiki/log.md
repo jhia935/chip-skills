@@ -2,7 +2,7 @@
 title: Activity Log
 type: log
 created: 2026-05-19
-updated: 2026-06-13
+updated: 2026-06-24
 ---
 
 # Activity Log
@@ -10,6 +10,14 @@ updated: 2026-06-13
 Chronological record of wiki operations. Newest entries first.
 
 ---
+
+## [2026-06-24] lint | Wiki health check
+
+Found: 1 error, 0 actionable warnings, 0 actionable suggestions (234 pages). **Auto-fixed 1 item:** 3 broken links in [[tdk]] — external `mlcc-part` skill-doc pointers were written as `[[…]]` wikilinks with a wrong relative path (`../../skills/…`, missing `.claude/`); converted to standard markdown links targeting `../../.claude/skills/mlcc-part/`. Clean otherwise: 0 orphans, index fully consistent both directions, 0 contradictions, all entity pages carry exactly one classification tag, 0 over-tagged/duplicate tags. Frontmatter passes the project CLAUDE.md schema on all pages (the skill-default `status`/`importance` fields are absent on 4 person entities + overview — left as-is, optional here). Tag-promotion flags `paper`/`patent` are legitimate source-format markers — not promoted.
+
+## [2026-06-24] ingest | MLCC defect-analysis publications & failure-analysis techniques
+
+Web-research ingest of MLCC defect-analysis literature. **2 concept pages created:** [[mlcc-failure-analysis-techniques]] (C-SAM / X-ray-CT / DPA cross-section+SEM-EDX / thermography / functional-acoustic screening, organized around the *defect-openness* principle and the non-destructive→electrical→destructive sequence) and [[mlcc-delamination]] (intrinsic co-firing origin vs hygrothermal reflow origin; why tightly closed delamination evades both X-ray and post-section SEM). **4 source pages created:** [[acoustic-microscopy-tight-delaminations-mlcc]] (Rayleigh-wave imaging for tight delaminations), [[x-ray-crack-detection-mlcc]] (Andersson & Ingman et al., Microelectronics Reliability 2016 — 300 bent MLCCs, 2D/3D X-ray + cross-section), [[acoustic-ml-crack-detection-mlcc]] (IEEE 2017/18 — AC-sweep acoustic response + SVM classifier), [[hygrothermal-reflow-delamination-mlcc]] (Microelectronics Reliability 2023 — moisture→6.23 MPa steam > 6 MPa adhesion; voids 0.15–0.55 µm, delamination 0.05–0.21 mm; X-FEM/ABAQUS). **Updated:** [[failure-modes-mlcc]] (added firing/knit-line crack types, a delamination-and-voids section, and an FA-methods backlink), [[mlcc-acoustic-noise]] (diagnostic-use backlink), index. Raw notes captured under `resources/literature/`.
 
 ## [2026-06-13] maintenance | De-brand the part-number decoder (vendor-neutral)
 

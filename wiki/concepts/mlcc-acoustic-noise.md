@@ -15,6 +15,8 @@ Class II MLCCs emit **audible sound** when driven by AC voltages in the human-he
 
 Same root mechanism as the [[ac-voltage-coefficient-mlcc|AC voltage coefficient]] — strain coupling to ε_r — but the externally-visible problem is the acoustic emission rather than the small-signal capacitance modulation.
 
+The same electromechanical excitation can be **turned into a diagnostic**: sweeping AC drive and listening for shifts in the emitted spectrum reveals cracks and delaminations, the basis of a machine-learning crack screen ([[acoustic-ml-crack-detection-mlcc]]; see [[mlcc-failure-analysis-techniques]]).
+
 ## Empirical correlation from [[covaci-gontean-2022-singing-mlcc|Covaci & Gontean 2022]]
 
 $$

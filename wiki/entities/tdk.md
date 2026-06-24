@@ -2,7 +2,7 @@
 title: TDK Corporation
 type: entity
 created: 2026-05-19
-updated: 2026-05-27
+updated: 2026-06-24
 sources: []
 tags:
   - company
@@ -26,7 +26,7 @@ Founded 1935 (originally TDK Corporation, originally Tokyo Denki Kagaku Kogyo). 
 ### Automotive (AEC-Q200)
 
 - **CGA** — automotive-qualified equivalent of the C-series. Same field grammar as C; the `CGA` prefix triggers the AEC-Q200 spec book (tighter thermal cycling, vibration, longevity).
-- **CGJ** — high-reliability. Single-digit size code (CGJ2 = 0402, CGJ3 = 0603, CGJ4 = 0805) — different field grammar from C/CGA. Not yet covered by the [[../../skills/mlcc-part/SKILL.md|mlcc-part skill]] decoder.
+- **CGJ** — high-reliability. Single-digit size code (CGJ2 = 0402, CGJ3 = 0603, CGJ4 = 0805) — different field grammar from C/CGA. Not yet covered by the [mlcc-part skill](../../.claude/skills/mlcc-part/SKILL.md) decoder.
 
 ### Specialty
 
@@ -36,7 +36,7 @@ Founded 1935 (originally TDK Corporation, originally Tokyo Denki Kagaku Kogyo). 
 
 ## Part-number format
 
-Documented in [[../../skills/mlcc-part/references/vendor-formats.md|the skill's vendor-formats reference]]. The C-series uses the metric size code, spells the dielectric class **literally** (X7R, not the 2-char code Murata/SEMCO use), and a 2-char voltage code (1H = 50 V, 2A = 100 V, etc).
+Documented in [the skill's vendor-formats reference](../../.claude/skills/mlcc-part/references/vendor-formats.md). The C-series uses the metric size code, spells the dielectric class **literally** (X7R, not the 2-char code Murata/SEMCO use), and a 2-char voltage code (1H = 50 V, 2A = 100 V, etc).
 
 Worked example: **`C1005X5R0J106M050BC`** = C-series / 0402 / X5R / 6.3 V / 10 µF / ±20 % / 0.85 mm thick.
 
@@ -61,4 +61,4 @@ The adjacent BME chemistry patents the wiki does have — [[us-4115493-murata-sa
 - [[case-size-geometry]]
 - [[ni-batio3-cosintering-interface]]
 - [[layer-thickness-and-metal-ceramic-ratio]]
-- [[../../skills/mlcc-part/SKILL.md|mlcc-part skill]] — decoder for TDK C-series part numbers
+- [mlcc-part skill](../../.claude/skills/mlcc-part/SKILL.md) — decoder for TDK C-series part numbers
