@@ -33,6 +33,14 @@ try {
   t.setCalibration(CALMETA);
 } catch (e) { /* fall back to physics defaults (identity) */ }
 
+// Shrinkage: load the fitted anisotropic model from $MLCC_DATA_DIR if present
+// (needs paired green↔fired data); otherwise isotropic default.
+let SHRINKMETA = null;
+try {
+  SHRINKMETA = D.readJson(D.SHRINK);
+  if (SHRINKMETA && SHRINKMETA.fitted) t.setShrinkage(SHRINKMETA);
+} catch (e) { /* isotropic default */ }
+
 // ── Arg parsing (--k v / --k=v / --flag) ────────────────────────────────────
 function parseArgs(argv) {
   const a = {};
@@ -140,6 +148,12 @@ if (o.calibration && o.calibration.n_parts)
       : `public seed (${o.calibration.n_parts} parts) — set MLCC_DATA_DIR + recalibrate for your data`} · effective ε_r ×${r2(o.calibration.scale)}, ±${r0(o.calibration.sigma_pct)}%`);
 else
   console.log(`  calibration: none (physics defaults)`);
+const _shFit = SHRINKMETA && SHRINKMETA.fitted;
+console.log(`  shrinkage: ${o.s_xy !== o.s_z
+    ? `anisotropic (fitted) — in-plane ${(o.s_xy * 100).toFixed(1)}% / thickness ${(o.s_z * 100).toFixed(1)}%`
+    : (_shFit
+        ? `fitted, ≈isotropic ${(o.s_z * 100).toFixed(1)}%`
+        : `isotropic ${(o.s_z * 100).toFixed(1)}% — add paired green↔fired data + calibrate.cjs shrinkage to refine`)}`);
 
 if (!o.feasible) {
   console.log(`\n  ✗ INFEASIBLE — ${o.C_target_uF} µF exceeds what this body/grade can hold`);
@@ -148,7 +162,7 @@ if (!o.feasible) {
   process.exit(2);
 }
 
-console.log(`\n  GREEN BUILD RECIPE  (as-cast / as-printed — multiply fired by 1/(1−s), s=${o.sTotal})`);
+console.log(`\n  GREEN BUILD RECIPE  (as-cast / as-printed — thickness ÷(1−${o.s_z.toFixed(2)}), in-plane ÷(1−${o.s_xy.toFixed(2)}))`);
 console.log(`    dielectric (green h_BT)   : ${r2(o.hBT_green_um)} µm   → fires to ${r2(o.d_fired_um)} µm`);
 console.log(`    Ni electrode (green h_Ni) : ${r2(o.hNi_green_um)} µm   → fires to ${r2(o.hNi_fired_um)} µm`);
 console.log(`    print overlap (green L×W) : ${r0(o.print_overlapL_green_um)} × ${r0(o.print_overlapW_green_um)} µm`);

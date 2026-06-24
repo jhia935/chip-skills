@@ -646,6 +646,22 @@ function warningCodes(inp) {
   const tiny = t.optimizeDesign({ case: '1206_3216', cls: 'X7R', V: 50, C_target_uF: 0.0001 });
   ok('optimizeDesign flags a sub-one-layer target as c_overshoot',
     tiny.feasible && tiny.N_e === 1 && tiny.c_overshoot && tiny.C_achieved_uF > tiny.C_target_uF);
+
+  // No-drift guard: suggestDesign and optimizeDesign(max_capacitance) must derive
+  // IDENTICAL grade geometry (both use d_floor via the shared gradeGeometry helper).
+  for (const spec of [
+    { case: '0603_1608', cls: 'X7R', V: 25, C_target_uF: 1.0, grade: 'commercial' },
+    { case: '0805_2012', cls: 'X5R', V: 6.3, C_target_uF: 4.7, grade: 'automotive' },
+    { case: '1206_3216', cls: 'X7R', V: 50, C_target_uF: 0.1, grade: 'space' },
+  ]) {
+    const sd = t.suggestDesign(spec);
+    const od = t.optimizeDesign({ ...spec, objective: 'max_capacitance' });
+    ok(`shared geometry (${spec.grade}): d_fired + margins + coverage/disc agree`,
+      near(sd.d_fired_um, od.d_fired_um, 1e-9) &&
+      near(sd.em, od.em_fired_um, 1e-9) && near(sd.sm, od.sm_fired_um, 1e-9) &&
+      sd.coverage === od.coverage && sd.disc === od.disc,
+      `d ${sd.d_fired_um}/${od.d_fired_um} em ${sd.em}/${od.em_fired_um} sm ${sd.sm}/${od.sm_fired_um}`);
+  }
 })();
 
 // ============================================================
@@ -895,6 +911,61 @@ function warningCodes(inp) {
      t.dcBiasFactor('X8R', E) > t.dcBiasFactor('X7R', E) &&
      t.dcBiasFactor('X7R', E) > t.dcBiasFactor('X5R', E) &&
      t.dcBiasFactor('X5R', E) > t.dcBiasFactor('Y5V', E));
+})();
+
+// ============================================================
+// 13. Anisotropic shrinkage — compute split + shrinkageModel + calibrateShrinkage
+// ============================================================
+
+(function shrinkageTests() {
+  // compute() splits shrinkage into in-plane (s_xy) and thickness (s_z).
+  const base = t.defaultInputs();
+  const aniso = t.compute({ ...base, sTotal: 0.14, sXY: 0.05, sZ: 0.20, tier2: false });
+  ok('compute applies s_z to fired thickness', near(aniso.d_fired_um, base.hBT * (1 - 0.20), 1e-9));
+  ok('compute reports s_xy / s_z', aniso.s_xy === 0.05 && aniso.s_z === 0.20);
+  const iso = t.compute({ ...base, sTotal: 0.14, tier2: false });
+  ok('isotropic default: s_xy = s_z = sTotal', iso.s_xy === 0.14 && iso.s_z === 0.14);
+
+  // Default shrinkage model is identity (isotropic).
+  ok('shrinkageModel identity by default',
+    (() => { const m = t.shrinkageModel({ h_BT_green_um: 1 }); return m.s_xy === m.s_z && near(m.s_z, 0.14, 1e-9); })());
+
+  // calibrateShrinkage recovers a known synthetic law from paired green↔fired data.
+  const TRUTH = (hbtG, hniG) => {
+    const s_z = 0.10 + 0.05 / hbtG;
+    return { s_z, s_xy: s_z * (1 - 0.30 * (hniG / hbtG)) };
+  };
+  const pairs = [[1.0, 0.6], [2.0, 1.0], [3.0, 1.2], [5.0, 1.5], [0.6, 0.4]].map(([hbtG, hniG], i) => {
+    const { s_z, s_xy } = TRUTH(hbtG, hniG);
+    return { id: 'syn' + i, h_BT_green_um: hbtG, h_Ni_green_um: hniG,
+             d_fired_um: hbtG * (1 - s_z), overlapL_green_um: 1000, overlapL_fired_um: 1000 * (1 - s_xy) };
+  });
+  const fit = t.calibrateShrinkage(pairs);
+  ok('calibrateShrinkage fits (≥3 pairs)', fit.fitted && fit.n_pairs >= 3);
+  ok('recovers s_z0 ≈ 0.10', Math.abs(fit.coeff.s_z0 - 0.10) < 0.02);
+  ok('recovers b_hbt ≈ 0.05', Math.abs(fit.coeff.b_hbt - 0.05) < 0.02);
+  ok('recovers k_constraint ≈ 0.30', Math.abs(fit.coeff.k_constraint - 0.30) < 0.10);
+
+  // Too little data → identity with a note (no crash).
+  const none = t.calibrateShrinkage([{ id: 'x', h_BT_green_um: 1, d_fired_um: 0.86 }]);
+  ok('calibrateShrinkage falls back to identity below 3 pairs', !none.fitted && !!none.note);
+
+  // Loading the fitted model makes compute()/optimizeDesign anisotropic.
+  t.setShrinkage(fit);
+  const sm = t.shrinkageModel({ h_BT_green_um: 1.0, h_Ni_green_um: 0.6 });
+  ok('fitted shrinkageModel: s_xy < s_z (constrained)', sm.s_xy < sm.s_z);
+  ok('fitted shrinkageModel s_z matches truth at h_BT 1.0 µm', Math.abs(sm.s_z - 0.15) < 0.01);
+  const od = t.optimizeDesign({ case: '0805_2012', cls: 'X7R', V: 50, C_target_uF: 1.0 });
+  ok('optimizeDesign reports anisotropic s_xy < s_z under fitted model', od.s_xy < od.s_z);
+  ok('optimizeDesign green thickness uses s_z', near(od.hBT_green_um, od.d_fired_um / (1 - od.s_z), 1e-6));
+  ok('optimizeDesign green overlap uses s_xy', near(od.print_overlapL_green_um, od.overlapL_fired_um / (1 - od.s_xy), 1e-6));
+
+  // getShrinkage is copy-safe; reset restores identity.
+  const snap = t.getShrinkage(); snap.fitted = false; snap.coeff.s_z0 = 99;
+  ok('getShrinkage returns a copy', t.shrinkageModel({ h_BT_green_um: 1, h_Ni_green_um: 0.6 }).s_xy < 0.2);
+  t.setShrinkage(null);
+  ok('setShrinkage(null) restores isotropic',
+    (() => { const m = t.shrinkageModel({ h_BT_green_um: 1, h_Ni_green_um: 0.6 }); return m.s_xy === m.s_z; })());
 })();
 
 // ============================================================

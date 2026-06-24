@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 'use strict';
 // mlcc-design calibration — evolve the model toward real measured parts.
-//   recalibrate : learn the computed-vs-real gap from the data set, persist calibration.
+//   recalibrate : learn the computed-vs-real ε_r gap, persist calibration.json.
+//   shrinkage   : fit the anisotropic green→fired shrinkage model from paired
+//                 green↔fired data, persist shrinkage.json.
 //   add         : append a real measured part to the PRIVATE store ($MLCC_DATA_DIR).
 //   list        : show the parts in the calibration set.
-//   status      : show the current calibration + where data lives.
+//   status      : show the current ε_r + shrinkage calibration.
 //   where       : print the resolved data directory.
 //
 // Real-part data and the derived calibration live OUTSIDE this skill, in
@@ -44,7 +46,8 @@ const args = parseArgs(process.argv.slice(3));
 if (cmd === 'where') {
   console.log(`Data directory (set MLCC_DATA_DIR to change): ${D.DATA_DIR}`);
   console.log(`  private store : ${D.REAL}${fs.existsSync(D.REAL) ? '' : '  (none yet)'}`);
-  console.log(`  calibration   : ${D.CAL}${fs.existsSync(D.CAL) ? '' : '  (none yet)'}`);
+  console.log(`  ε_r calib     : ${D.CAL}${fs.existsSync(D.CAL) ? '' : '  (none yet)'}`);
+  console.log(`  shrinkage     : ${D.SHRINK}${fs.existsSync(D.SHRINK) ? '' : '  (none yet)'}`);
   console.log(`  bundled seed  : ${D.SEED}  (public example, read-only)`);
   process.exit(0);
 }
@@ -58,11 +61,31 @@ if (cmd === 'list') {
 
 if (cmd === 'status') {
   const c = D.readJson(D.CAL);
-  if (!c) { console.log(`No calibration yet at ${D.CAL}\nRun: calibrate.cjs recalibrate`); process.exit(0); }
-  console.log(`Calibration (${c.source}, updated ${c.updated || 'n/a'}) @ ${D.CAL}`);
-  console.log(`  parts: ${c.n_parts} · global ε_r scale: ${r2(c.er_scale_global)} · σ ≈ ±${r2(c.sigma_pct)}%`);
-  const bc = c.er_scale_byClass || {};
-  for (const k of Object.keys(bc)) console.log(`  ${k}: ε_r scale ${r2(bc[k])}`);
+  if (c) {
+    console.log(`ε_r calibration (${c.source}, updated ${c.updated || 'n/a'}) @ ${D.CAL}`);
+    console.log(`  parts: ${c.n_parts} · global ε_r scale: ${r2(c.er_scale_global)} · σ ≈ ±${r2(c.sigma_pct)}%`);
+    const bc = c.er_scale_byClass || {};
+    for (const k of Object.keys(bc)) console.log(`  ${k}: ε_r scale ${r2(bc[k])}`);
+  } else { console.log(`ε_r calibration: none — run: calibrate.cjs recalibrate`); }
+  const sh = D.readJson(D.SHRINK);
+  if (sh && sh.fitted) console.log(`shrinkage (fitted, ${sh.n_pairs} pairs) @ ${D.SHRINK}: s_z0 ${r2(sh.coeff.s_z0)} + ${r2(sh.coeff.b_hbt)}/h_BT, k ${r2(sh.coeff.k_constraint)}`);
+  else console.log(`shrinkage: isotropic (no fitted model) — run: calibrate.cjs shrinkage`);
+  process.exit(0);
+}
+
+if (cmd === 'shrinkage') {
+  const m = t.calibrateShrinkage(D.allRealParts(t), { source: 'private store (green↔fired)', date: args.date || null });
+  if (!m.fitted) {
+    console.log(`Shrinkage: ${m.note}`);
+    console.log(`  Add paired records carrying GREEN dims, then re-run:`);
+    console.log(`  calibrate.cjs add ... --hBTgreen <µm> --hNigreen <µm> --olGreen <µm> --olFired <µm>`);
+    process.exit(0);
+  }
+  D.saveShrinkage(m);
+  console.log(`Fitted anisotropic shrinkage from ${m.n_pairs} green↔fired pairs (${m.n_aniso} with in-plane).`);
+  console.log(`  s_z ≈ ${r2(m.coeff.s_z0)} + ${r2(m.coeff.b_hbt)}/h_BT_green   (σ ±${r2(m.sigma_z_pct)}%)`);
+  console.log(`  s_xy = s_z · (1 − ${r2(m.coeff.k_constraint)}·h_Ni/h_BT)   (electrode constraint)`);
+  console.log(`\nWrote ${D.SHRINK}. The design CLI now applies anisotropic shrinkage.`);
   process.exit(0);
 }
 
@@ -79,6 +102,11 @@ if (cmd === 'add') {
   if (args.sm    !== undefined) rec.sm_um = num(args.sm);
   if (args.cover !== undefined) rec.cover_um = num(args.cover);
   if (args.grain !== undefined) rec.grain_um = num(args.grain);
+  // Optional GREEN paired dims → enable shrinkage fitting (calibrate.cjs shrinkage).
+  if (args.hBTgreen !== undefined) rec.h_BT_green_um = num(args.hBTgreen);
+  if (args.hNigreen !== undefined) rec.h_Ni_green_um = num(args.hNigreen);
+  if (args.olGreen  !== undefined) rec.overlapL_green_um = num(args.olGreen);
+  if (args.olFired  !== undefined) rec.overlapL_fired_um = num(args.olFired);
   if (!rec.case || !(rec.V > 0) || !(rec.C_uF > 0) || !(rec.d_fired_um > 0) || !(rec.N > 0)) {
     console.error('add needs --case --cls --V --C --d --N (minimum). Optional: --hNi --em --sm --cover --grain --source --date --id');
     process.exit(1);

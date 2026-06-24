@@ -16,8 +16,9 @@ const fs = require('fs');
 const os = require('os');
 
 const DATA_DIR = process.env.MLCC_DATA_DIR || path.join(os.homedir(), '.mlcc-design');
-const REAL = path.join(DATA_DIR, 'real_parts.json');                       // private writable store
-const CAL  = path.join(DATA_DIR, 'calibration.json');                      // derived artifact
+const REAL   = path.join(DATA_DIR, 'real_parts.json');                     // private writable store
+const CAL    = path.join(DATA_DIR, 'calibration.json');                    // derived: ε_r correction
+const SHRINK = path.join(DATA_DIR, 'shrinkage.json');                      // derived: shrinkage model
 const SEED = path.join(__dirname, '..', 'data', 'real_parts.seed.json');   // bundled PUBLIC example
 
 function readJson(p) { try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch (e) { return null; } }
@@ -34,6 +35,10 @@ function saveStore(parts) {
 function saveCalibration(cal) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
   fs.writeFileSync(CAL, JSON.stringify(cal, null, 2) + '\n');
+}
+function saveShrinkage(model) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  fs.writeFileSync(SHRINK, JSON.stringify(model, null, 2) + '\n');
 }
 
 // Engine public seed (KNOWN_PARTS) → usable calibration records.
@@ -55,7 +60,7 @@ function allRealParts(t) {
 }
 
 module.exports = {
-  DATA_DIR, REAL, CAL, SEED,
-  readJson, loadSeedParts, loadStoreParts, saveStore, saveCalibration,
+  DATA_DIR, REAL, CAL, SHRINK, SEED,
+  readJson, loadSeedParts, loadStoreParts, saveStore, saveCalibration, saveShrinkage,
   knownParts, allRealParts,
 };

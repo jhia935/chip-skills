@@ -4,3 +4,4 @@
 # The PUBLIC example seed (real_parts.seed.json) is intentionally tracked.
 real_parts.json
 calibration.json
+shrinkage.json

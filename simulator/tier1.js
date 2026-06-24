@@ -272,18 +272,24 @@
     //   CASE mode (fallback): no overlap supplied → the fired overlap is the
     //     case L,W minus margins (case dims are datasheet/fired). Unchanged, so
     //     the calibration/known-parts path and all tests are byte-identical.
-    const s = inp.sTotal;
+    // Shrinkage may be ANISOTROPIC: in-plane (s_xy, applied to the print pattern /
+    // footprint) and thickness (s_z, applied to d and h_Ni) can differ — in a
+    // constrained stack the in-plane shrinkage is suppressed and the thickness
+    // enhanced (see shrinkageModel / wiki constrained-sintering-mlcc). Default is
+    // isotropic: both = sTotal, so existing callers are byte-identical.
+    const s_xy = inp.sXY != null ? inp.sXY : inp.sTotal;
+    const s_z  = inp.sZ  != null ? inp.sZ  : inp.sTotal;
     let overlapL_fired_um, overlapW_fired_um, overlapL_green_um, overlapW_green_um;
     if (inp.overlapL != null && inp.overlapW != null) {
       overlapL_green_um = inp.overlapL;
       overlapW_green_um = inp.overlapW;
-      overlapL_fired_um = overlapL_green_um * (1 - s);
-      overlapW_fired_um = overlapW_green_um * (1 - s);
+      overlapL_fired_um = overlapL_green_um * (1 - s_xy);
+      overlapW_fired_um = overlapW_green_um * (1 - s_xy);
     } else {
       overlapL_fired_um = c.L - 2 * em;
       overlapW_fired_um = c.W - 2 * sm;
-      overlapL_green_um = overlapL_fired_um / (1 - s);   // implied green pattern
-      overlapW_green_um = overlapW_fired_um / (1 - s);
+      overlapL_green_um = overlapL_fired_um / (1 - s_xy);   // implied green pattern
+      overlapW_green_um = overlapW_fired_um / (1 - s_xy);
     }
     const L_chip_um = overlapL_fired_um + 2 * em;   // fired chip footprint
     const W_chip_um = overlapW_fired_um + 2 * sm;
@@ -296,8 +302,8 @@
     // on top of `disc`. Omitted → 1.0.
     const coverage      = inp.coverage != null ? inp.coverage : 1.0;
     const A_eff_um2     = A_overlap_um2 * coverage * (1 - inp.disc);
-    const d_fired_um    = inp.hBT * (1 - s);
-    const hNi_fired_um  = inp.hNi * (1 - s);
+    const d_fired_um    = inp.hBT * (1 - s_z);
+    const hNi_fired_um  = inp.hNi * (1 - s_z);
     const H_active_um   = inp.Ne * (d_fired_um + hNi_fired_um);
     const H_stack_um    = H_active_um + 2 * inp.cover;
 
@@ -350,7 +356,7 @@
     }
 
     return {
-      caseRec: c, clsRec: cls, em, sm, Hmax_eff,
+      caseRec: c, clsRec: cls, em, sm, Hmax_eff, s_xy, s_z,
       overlapL_fired_um, overlapW_fired_um, overlapL_green_um, overlapW_green_um,
       L_chip_um, W_chip_um,
       A_overlap_um2, A_eff_um2, d_fired_um, hNi_fired_um, H_active_um, H_stack_um,
@@ -799,6 +805,93 @@
   }
 
   // ============================================================
+  // Shrinkage model — green→fired, optionally anisotropic & data-fitted
+  // ============================================================
+  //
+  // Green→fired shrinkage is isotropic (s_xy = s_z = sTotal ≈ 0.14) by default.
+  // With enough REAL paired green↔fired data it becomes a fitted function of
+  // process args — the two strongest, cleanest predictors:
+  //   • thickness s_z rises as the green sheet thins:  s_z ≈ s_z0 + b/h_BT_green
+  //   • in-plane s_xy is suppressed by electrode constraint:  s_xy = s_z·(1 − k·h_Ni/h_BT)
+  // (wiki: green-tape-shrinkage-anisotropy, constrained-sintering-mlcc,
+  //  metal-electrode-shrinkage-effect, skorohod-olevsky-viscous-sintering.)
+  //
+  // Default is IDENTITY (isotropic) until calibrateShrinkage() is fed paired data
+  // and the result is loaded via setShrinkage() — the physics path stays pure,
+  // exactly like the ε_r calibration.
+  const SHRINKAGE_DEFAULT = { fitted: false, source: 'default-isotropic', sTotal: 0.14 };
+  let SHRINKAGE = { ...SHRINKAGE_DEFAULT };
+  function getShrinkage() { return { ...SHRINKAGE, coeff: SHRINKAGE.coeff ? { ...SHRINKAGE.coeff } : undefined }; }
+  function setShrinkage(m) { SHRINKAGE = m ? { ...SHRINKAGE_DEFAULT, ...m } : { ...SHRINKAGE_DEFAULT }; return SHRINKAGE; }
+
+  // Predict {s_xy, s_z} for a part's process args. Identity until a fitted model is
+  // loaded. args: { h_BT_green_um, h_Ni_green_um, sTotal? }.
+  function shrinkageModel(args = {}) {
+    const m = SHRINKAGE;
+    const s0 = args.sTotal != null ? args.sTotal : (m.sTotal != null ? m.sTotal : 0.14);
+    if (!m.fitted || !m.coeff) return { s_xy: s0, s_z: s0 };
+    const cf = m.coeff;
+    const hbt = args.h_BT_green_um > 0 ? args.h_BT_green_um : null;
+    let s_z = cf.s_z0 + (cf.b_hbt || 0) * (hbt ? 1 / hbt : 0);
+    s_z = Math.max(0.02, Math.min(0.45, s_z));
+    const ratio = (args.h_Ni_green_um > 0 && hbt) ? args.h_Ni_green_um / hbt : 0;
+    let s_xy = s_z * (1 - (cf.k_constraint || 0) * ratio);
+    s_xy = Math.max(0.02, Math.min(s_z, s_xy));   // constrained: in-plane ≤ thickness
+    return { s_xy, s_z };
+  }
+
+  // Ordinary least-squares y = slope·x + intercept (+ residual σ).
+  function _linfit(xs, ys) {
+    const n = xs.length;
+    const mx = xs.reduce((a, b) => a + b, 0) / n, my = ys.reduce((a, b) => a + b, 0) / n;
+    let sxx = 0, sxy = 0;
+    for (let i = 0; i < n; i++) { sxx += (xs[i] - mx) ** 2; sxy += (xs[i] - mx) * (ys[i] - my); }
+    const slope = sxx > 0 ? sxy / sxx : 0;
+    const intercept = my - slope * mx;
+    let ss = 0; for (let i = 0; i < n; i++) { const e = ys[i] - (slope * xs[i] + intercept); ss += e * e; }
+    return { slope, intercept, sigma: n > 2 ? Math.sqrt(ss / (n - 2)) : 0 };
+  }
+
+  // Fit a low-order anisotropic shrinkage model from real paired green↔fired parts.
+  // Each usable part needs the GREEN cast/print dims AND the FIRED measured dims:
+  //   thickness : h_BT_green_um + d_fired_um   → s_z = 1 − d_fired/h_BT_green
+  //   in-plane  : (overlapL_green_um | footprint_L_green_um) + fired counterpart
+  //               + h_Ni_green_um              → s_xy, anisotropy vs h_Ni/h_BT
+  // Returns a model object for setShrinkage(); identity (with a note) if < 3 pairs.
+  function calibrateShrinkage(parts, opts = {}) {
+    const z = [], a = [];
+    for (const p of (parts || [])) {
+      const hbtG = p.h_BT_green_um, dF = p.d_fired_um;
+      if (!(hbtG > 0) || !(dF > 0) || !(dF < hbtG)) continue;
+      const s_z = 1 - dF / hbtG;
+      z.push({ x: 1 / hbtG, s_z });
+      const gIn = p.overlapL_green_um != null ? p.overlapL_green_um : p.footprint_L_green_um;
+      const fIn = p.overlapL_fired_um != null ? p.overlapL_fired_um : p.footprint_L_fired_um;
+      if (gIn > 0 && fIn > 0 && fIn < gIn && p.h_Ni_green_um > 0 && s_z > 0) {
+        a.push({ ratio: p.h_Ni_green_um / hbtG, oneMinusK: 1 - (1 - fIn / gIn) / s_z });
+      }
+    }
+    if (z.length < 3) {
+      return { fitted: false, source: opts.source || 'calibrateShrinkage', updated: opts.date || null,
+               sTotal: opts.sTotal || 0.14, n_pairs: z.length,
+               note: 'need ≥3 green↔fired thickness pairs (h_BT_green_um + d_fired_um); using isotropic default' };
+    }
+    const fz = _linfit(z.map(r => r.x), z.map(r => r.s_z));
+    let k_constraint = 0, sigma_aniso = 0;
+    if (a.length >= 3) {
+      const fk = _linfit(a.map(r => r.ratio), a.map(r => r.oneMinusK));
+      k_constraint = Math.max(0, Math.min(0.6, fk.slope));
+      sigma_aniso = fk.sigma;
+    }
+    return {
+      fitted: true, source: opts.source || 'calibrateShrinkage', updated: opts.date || null,
+      n_pairs: z.length, n_aniso: a.length,
+      coeff: { s_z0: fz.intercept, b_hbt: fz.slope, k_constraint },
+      sigma_z: fz.sigma, sigma_z_pct: fz.sigma * 100, sigma_aniso,
+    };
+  }
+
+  // ============================================================
   // Grade-aware design suggester (suggestDesign / solveRecipe)
   // ============================================================
   //
@@ -834,7 +927,32 @@
     return Math.max(f, k * dim);
   }
 
-  // The grade's design point for (case, class, V): geometry + grain/ε_r targets.
+  // Grade geometry + grain/ε_r at a given fired dielectric thickness `d`, for a
+  // grade + case. SINGLE source of the grade's geometry, so gradeDesignPoint and
+  // optimizeDesign can never drift. Margins / A_eff are d-independent; h_Ni, grain
+  // and the layer pitch follow `d`. Nominal footprint keeps the compute()
+  // round-trip exact; the max-footprint (build-to-tolerance) gain is reported
+  // separately via cmaxEnvelope.
+  function gradeGeometry(g, c, cls, V, d) {
+    const h_Ni_fired = Math.max(0.30, g.eRatio * d);
+    const em = Math.min(gradeMargin(g, V, c.L, 'end'),  0.45 * c.L);
+    const sm = Math.min(gradeMargin(g, V, c.W, 'side'), 0.45 * c.W);
+    const overlapL_fired = c.L - 2 * em;
+    const overlapW_fired = c.W - 2 * sm;
+    const A_overlap_um2 = overlapL_fired * overlapW_fired;
+    // Grain target from the grains-per-layer reliability rule, bounded by the
+    // powder floor (~0.10 µm) and the ε_r-optimum (~0.8 µm).
+    const grain_um = Math.max(0.10, Math.min(0.80, d / g.gpl));
+    return {
+      em, sm, overlapL_fired, overlapW_fired, A_overlap_um2,
+      A_eff_um2: A_overlap_um2 * g.coverage * (1 - g.disc),
+      h_Ni_fired, grain_um, er_grain: erGrain(cls.id, grain_um),
+      layer_pitch: d + h_Ni_fired,
+    };
+  }
+
+  // The grade's design point for (case, class, V): geometry + grain/ε_r targets
+  // at the grade's minimum (thinnest, max-CV) dielectric.
   function gradeDesignPoint(spec) {
     const g   = GRADES[spec.grade] || GRADES.commercial;
     const c   = CASES.find(x => x.id === spec.case);
@@ -844,27 +962,16 @@
     const sTotal = spec.sTotal != null ? spec.sTotal : 0.14;
 
     const d_fired_um = gradeDMin(g, spec.V);
-    const h_Ni_fired = Math.max(0.30, g.eRatio * d_fired_um);
-    // Nominal footprint keeps the compute() round-trip exact; the max-footprint
-    // (build-to-tolerance) gain is reported separately via cmaxEnvelope.
-    const Leff = c.L, Weff = c.W;
-    const em = Math.min(gradeMargin(g, spec.V, Leff, 'end'),  0.45 * Leff);
-    const sm = Math.min(gradeMargin(g, spec.V, Weff, 'side'), 0.45 * Weff);
-    const A_overlap_um2 = (Leff - 2 * em) * (Weff - 2 * sm);
-    const A_eff_um2     = A_overlap_um2 * g.coverage * (1 - g.disc);
-    // Grain target from the grains-per-layer reliability rule, bounded by the
-    // powder floor (~0.10 µm) and the ε_r-optimum (~0.8 µm).
-    const grain_um  = Math.max(0.10, Math.min(0.80, d_fired_um / g.gpl));
-    const er_grain  = erGrain(spec.cls, grain_um);
-    const layer_pitch = d_fired_um + h_Ni_fired;
+    const geo = gradeGeometry(g, c, cls, spec.V, d_fired_um);
     const Hmax_eff  = c.Hmax + ((spec.Ttol != null ? spec.Ttol : (c.Ttol || 0)) - (c.Ttol || 0));
-    const N_e_max   = Math.min(g.Nmax, Math.floor((Hmax_eff - 2 * g.cover) / layer_pitch));
+    const N_e_max   = Math.min(g.Nmax, Math.floor((Hmax_eff - 2 * g.cover) / geo.layer_pitch));
     return {
-      g, c, cls, sTotal, d_fired_um, h_Ni_fired,
-      h_Ni_green: h_Ni_fired / (1 - sTotal), h_BT_green: d_fired_um / (1 - sTotal),
-      em, sm, coverage: g.coverage, disc: g.disc, cover: g.cover,
-      A_overlap_um2, A_eff_um2, grain_um, er_grain, er_class: cls.er,
-      layer_pitch, Hmax_eff, N_e_max,
+      g, c, cls, sTotal, d_fired_um, h_Ni_fired: geo.h_Ni_fired,
+      h_Ni_green: geo.h_Ni_fired / (1 - sTotal), h_BT_green: d_fired_um / (1 - sTotal),
+      em: geo.em, sm: geo.sm, coverage: g.coverage, disc: g.disc, cover: g.cover,
+      A_overlap_um2: geo.A_overlap_um2, A_eff_um2: geo.A_eff_um2,
+      grain_um: geo.grain_um, er_grain: geo.er_grain, er_class: cls.er,
+      layer_pitch: geo.layer_pitch, Hmax_eff, N_e_max,
     };
   }
 
@@ -977,62 +1084,76 @@
     const cover     = g.cover;
     const Hmax_eff  = c.Hmax + ((spec.Ttol != null ? spec.Ttol : (c.Ttol || 0)) - (c.Ttol || 0));
 
-    // Fired margins from the grade; fired active overlap = footprint − 2·margin.
-    const em = Math.min(gradeMargin(g, V, c.L, 'end'),  0.45 * c.L);
-    const sm = Math.min(gradeMargin(g, V, c.W, 'side'), 0.45 * c.W);
-    const overlapL_fired = c.L - 2 * em;
-    const overlapW_fired = c.W - 2 * sm;
-    if (overlapL_fired <= 0 || overlapW_fired <= 0) throw new Error('margins exceed body footprint');
-    const A_eff_m2 = overlapL_fired * overlapW_fired * g.coverage * (1 - g.disc) * 1e-12;
-    const C_F = spec.C_target_uF * 1e-6;
+    // Grade geometry at the floor dielectric — margins / A_eff are d-independent,
+    // and this is the SAME helper gradeDesignPoint uses (no drift between the two
+    // suggesters). h_Ni / pitch follow `d` inside evalD below.
     const d_floor = gradeDMin(g, V);
+    const geo0 = gradeGeometry(g, c, cls, V, d_floor);
+    const em = geo0.em, sm = geo0.sm;
+    const overlapL_fired = geo0.overlapL_fired, overlapW_fired = geo0.overlapW_fired;
+    if (overlapL_fired <= 0 || overlapW_fired <= 0) throw new Error('margins exceed body footprint');
+    const A_eff_m2 = geo0.A_eff_um2 * 1e-12;
+    const C_F = spec.C_target_uF * 1e-6;
 
     // For a candidate fired dielectric d, hit C by choosing the layer count.
     const evalD = (d) => {
-      const N    = Math.max(1, Math.round(C_F * (d * 1e-6) / (er * EPS0 * A_eff_m2)));
-      const hNi  = Math.max(0.30, g.eRatio * d);
+      const N     = Math.max(1, Math.round(C_F * (d * 1e-6) / (er * EPS0 * A_eff_m2)));
+      const hNi   = Math.max(0.30, g.eRatio * d);
       const pitch = d + hNi;
       const height = N * pitch + 2 * cover;
       const C_ach = er * EPS0 * A_eff_m2 * N / (d * 1e-6) * 1e6;
       return { d, N, hNi, pitch, height, C_ach_uF: C_ach };
     };
+    const fitsBody = (e) => e.height <= Hmax_eff && e.N <= g.Nmax;
 
     // Thinnest (max-CV) design and whether it even fits the body.
     const thin = evalD(d_floor);
-    const feasible = thin.height <= Hmax_eff && thin.N <= g.Nmax;
+    const feasible = fitsBody(thin);
 
-    // Thickest dielectric that still fits (max reliability), capped at D_MAX_DESIGN.
-    let thick = feasible ? thin : null;
-    for (let d = d_floor + 0.01; d <= D_MAX_DESIGN + 1e-9; d += 0.01) {
-      const e = evalD(d);
-      if (e.height <= Hmax_eff && e.N <= g.Nmax) thick = e;
-      if (e.height > Hmax_eff) break;   // height is monotonic in d
+    // Thickest dielectric that still fits (max reliability), found by bisection on
+    // the monotonically-rising height(d) — exact, O(log), no float accumulation.
+    let thick = thin;
+    if (feasible) {
+      let a = d_floor, b = D_MAX_DESIGN;
+      if (fitsBody(evalD(b))) { a = b; }                       // whole range fits
+      else { for (let i = 0; i < 60; i++) { const m = (a + b) / 2; if (fitsBody(evalD(m))) a = m; else b = m; } }
+      const e = evalD(a);
+      if (fitsBody(e)) thick = e;
     }
 
     const chosen = !feasible ? thin : (objective === 'max_capacitance' ? thin : thick);
 
     // Body capacitance ceiling: most C this body/grade can hold (thinnest d, fill height).
-    const pitchFloor  = d_floor + Math.max(0.30, g.eRatio * d_floor);
+    const pitchFloor  = geo0.layer_pitch;
     const N_floor_max = Math.min(g.Nmax, Math.floor((Hmax_eff - 2 * cover) / pitchFloor));
     const C_ceiling_uF = er * EPS0 * A_eff_m2 * N_floor_max / (d_floor * 1e-6) * 1e6;
 
-    // Grain target from grains-per-layer reliability rule; realistic ε_r.
-    const grain_um  = Math.max(0.10, Math.min(0.80, chosen.d / g.gpl));
-    const er_grain  = erGrain(spec.cls, grain_um);
-    const k = 1 / (1 - sTotal);   // green = fired × k  (Tier-1 isotropic shrinkage)
+    // Grain target + realistic ε_r at the chosen dielectric (same geometry helper).
+    const chosenGeo = gradeGeometry(g, c, cls, V, chosen.d);
+    const grain_um  = chosenGeo.grain_um;
+    const er_grain  = chosenGeo.er_grain;
+    // Green = fired / (1 − s). Anisotropic (thickness s_z vs in-plane s_xy) when a
+    // fitted shrinkage model is loaded; isotropic sTotal by default → kz = kxy = k.
+    const sh = shrinkageModel({
+      h_BT_green_um: chosen.d   / (1 - sTotal),   // first-pass green estimate
+      h_Ni_green_um: chosen.hNi / (1 - sTotal),
+      sTotal,
+    });
+    const kz  = 1 / (1 - sh.s_z);     // thickness dims
+    const kxy = 1 / (1 - sh.s_xy);    // in-plane dims (print pattern, margins, footprint)
 
     return {
       grade: GRADES[spec.grade] ? spec.grade : 'commercial', gradeLabel: g.label,
-      objective, caseRec: c, clsRec: cls, custom, sTotal,
+      objective, caseRec: c, clsRec: cls, custom, sTotal, s_xy: sh.s_xy, s_z: sh.s_z,
       // ---- GREEN build recipe (what you cast / print) ----
-      hBT_green_um:           chosen.d   * k,
-      hNi_green_um:           chosen.hNi * k,
-      print_overlapL_green_um: overlapL_fired * k,
-      print_overlapW_green_um: overlapW_fired * k,
-      margin_end_green_um:    em * k,
-      margin_side_green_um:   sm * k,
-      green_unit_cell_L_um:   c.L * k,
-      green_unit_cell_W_um:   c.W * k,
+      hBT_green_um:           chosen.d   * kz,
+      hNi_green_um:           chosen.hNi * kz,
+      print_overlapL_green_um: overlapL_fired * kxy,
+      print_overlapW_green_um: overlapW_fired * kxy,
+      margin_end_green_um:    em * kxy,
+      margin_side_green_um:   sm * kxy,
+      green_unit_cell_L_um:   c.L * kxy,
+      green_unit_cell_W_um:   c.W * kxy,
       N_e:                    chosen.N,
       cover_um:               cover,
       coverage:               g.coverage,
@@ -1070,6 +1191,7 @@
     eDesign, dFiredFromV, hNiFromD, predictCMax, cmaxEnvelope, solveRecipe,
     suggestDesign, gradeDesignPoint, optimizeDesign, GRADES,
     getCalibration, setCalibration, calScale, predictRealPartC, calibrateFromReal, calibrateFromKnown,
+    getShrinkage, setShrinkage, shrinkageModel, calibrateShrinkage,
     computeFromKnown, erForKnown, erGrain,
     D_FLOOR_FRONTIER, E_MAX_FIELD,
   };

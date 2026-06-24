@@ -127,6 +127,32 @@ academic paper), **offer to `add` it** (it goes to the private external store, n
 the model improves. The more parts — especially in the user's own case/class/voltage family —
 the tighter the per-class correction and σ.
 
+### Shrinkage (green→fired) calibration
+
+Green→fired shrinkage is **isotropic `s = 0.14`** by default. With enough **paired green↔fired**
+real data it becomes a fitted **anisotropic** model — `compute()` splits into in-plane `s_xy`
+(print pattern / footprint) and thickness `s_z` (`d`, `h_Ni`), and `optimizeDesign` emits the
+green recipe with each axis converted separately. The fitted form (low-order, not overfit):
+
+```
+s_z  = s_z0 + b / h_BT_green                 # thickness shrinks more as the sheet thins
+s_xy = s_z · (1 − k · h_Ni/h_BT)             # in-plane suppressed by electrode constraint
+```
+
+- **Paired-data schema** — a record in the private store may carry, in addition to the fired
+  fields, the GREEN cast/print dims so shrinkage can be fit:
+  `h_BT_green_um`, `h_Ni_green_um`, `overlapL_green_um` (or `footprint_L_green_um`),
+  `overlapL_fired_um` (or `footprint_L_fired_um`). Thickness fit needs `h_BT_green_um` +
+  `d_fired_um`; the in-plane/anisotropy fit also needs the green↔fired in-plane pair + `h_Ni_green_um`.
+- **Commands**:
+  - `calibrate.cjs add ... --hBTgreen <µm> --hNigreen <µm> --olGreen <µm> --olFired <µm>` — attach green dims.
+  - `calibrate.cjs shrinkage` — fit + persist `$MLCC_DATA_DIR/shrinkage.json` (≥3 thickness pairs; else stays isotropic with a note).
+  - `design.cjs` auto-loads it and reports `shrinkage: anisotropic …` / `isotropic …`.
+- **The catch (state it):** the **green** side is proprietary process data that **only a
+  manufacturer has** — all the public/DPA data we ingested is fired-only, so a fired-only dataset
+  cannot identify shrinkage. Until paired data exists, the isotropic 0.14 default holds (same
+  measure-then-calibrate stance as ε_r).
+
 ## Caveats (state these when relevant)
 
 - **Tier-1 model**: shrinkage is treated as isotropic (`s ≈ 0.14`); in a real constrained stack
@@ -142,12 +168,12 @@ the tighter the per-class correction and σ.
 
 - `scripts/design.cjs` — design CLI (Node). Wraps `simulator/tier1.js` (`optimizeDesign`,
   `suggestDesign`/`solveRecipe`/`compute`); applies the external (or public-seed) calibration; console output.
-- `scripts/calibrate.cjs` — calibration CLI (where / add / recalibrate / list / status).
+- `scripts/calibrate.cjs` — calibration CLI (where / add / recalibrate / shrinkage / list / status).
 - `scripts/_data.cjs` — shared data-location policy: resolves `$MLCC_DATA_DIR` (default `~/.mlcc-design`),
   loads engine `KNOWN_PARTS` + bundled seed + the external private store.
 - `data/real_parts.seed.json` — **public** example seed (NASA GSFC DPA); immutable demo baseline (tracked).
 - `data/.gitignore` — blocks the live private files (`real_parts.json`, `calibration.json`) from being committed.
-- **Not in the repo:** `$MLCC_DATA_DIR/real_parts.json` (private store) and `$MLCC_DATA_DIR/calibration.json` (derived).
+- **Not in the repo:** `$MLCC_DATA_DIR/real_parts.json` (private store), `calibration.json` (ε_r), and `shrinkage.json` (anisotropic green→fired model) — all derived/private.
 
 The engine itself (`simulator/tier1.js`) is the source of truth — the calibration logic
 (`calibrateFromReal`, `setCalibration`, `calScale`, `optimizeDesign`) is covered by
