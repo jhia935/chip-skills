@@ -2,6 +2,13 @@
 'use strict';
 // mlcc-design CLI — turn a target MLCC spec into an optimized GREEN build recipe.
 // Wraps the simulator engine (simulator/tier1.js, the project source of truth).
+//
+// ⚠ DESIGN-FIELD CAVEAT (surfaced in the report): the per-µm withstand field that
+// sizes the dielectric (GRADES[*].eField / eDesign in tier1.js) is a reliability-set,
+// TECHNOLOGY-NODE assumption, NOT a fixed constant — it drifts upward as materials/
+// process/design improve (same rated V → thinner d over time). It should ultimately be
+// calibrated from real V-vs-thickness data or derived from the reliability model.
+// See wiki/concepts/dielectric-breakdown.md §"Design field is a technology-node parameter".
 
 const path = require('path');
 const fs = require('fs');
@@ -180,6 +187,12 @@ console.log(`    capacitance               : ${r2(o.C_achieved_uF)} µF achieved
 console.log(`\n  DIELECTRIC / RELIABILITY`);
 console.log(`    grain size target         : ${r2(o.grain_um)} µm  → ${r2(o.grains_per_layer)} grains per layer`);
 console.log(`    ε_r class / effective / grain-real : ${o.er_class} / ${r0(o.er_effective)} / ${r0(o.er_grain)}`);
+{
+  const eCap = t.GRADES[o.grade] && t.GRADES[o.grade].eField;
+  console.log(`    design field (this build) : ≈ ${r2(spec.V / o.d_fired_um)} V/µm at rated V`
+    + (eCap ? `  ·  grade cap E_design = ${eCap} V/µm (node assumption — see caveat)`
+           : `  ·  space grade: spec-fixed thickness, no field cap`));
+}
 if (o.needs_engineered_dielectric)
   console.log(`    ⚠ grain-realistic ε_r is well below the class value — needs an engineered`);
 if (o.needs_engineered_dielectric)
@@ -190,4 +203,9 @@ if (o.body_oversized)
   console.log(`  note: stack fills only ${r0(o.height_fill_pct)}% of the body — a smaller case would suit this C.`);
 if (o.c_overshoot)
   console.log(`  note: target is below one layer's worth of capacitance — achieved ${r2(o.C_achieved_uF)} µF overshoots ${o.C_target_uF} µF (use a smaller case or thicker dielectric).`);
+console.log(`\n  ⓘ design-field caveat: the per-µm withstand field that sizes the dielectric is a`);
+console.log(`    RELIABILITY-SET, TECHNOLOGY-NODE assumption — not a fixed constant. Better materials/`);
+console.log(`    process/design let the same rated V go thinner over time, so this figure drifts up per`);
+console.log(`    node. Treat as calibratable (like ε_r); refine against real V-vs-thickness data.`);
+console.log(`    Ref: wiki/concepts/dielectric-breakdown.md §"Design field is a technology-node parameter".`);
 console.log('');

@@ -155,6 +155,18 @@ s_xy = s_z · (1 − k · h_Ni/h_BT)             # in-plane suppressed by electr
 
 ## Caveats (state these when relevant)
 
+- **Design field (V/µm) is a technology-node assumption, not a fixed constant.** The per-µm
+  withstand field that sizes the dielectric (`GRADES[*].eField` = commercial 30 / automotive 22,
+  and the legacy voltage-banded `eDesign()`) is a **reliability-set, node-dependent derated
+  working field**, far below the intrinsic breakdown field. It **rises as materials/process/design
+  improve** — a better dielectric makes the *same rated voltage* run at a *thinner `d`*, so a frozen
+  per-grade number over-thickens next-gen parts (under-predicting CV) and over-thins weaker ones.
+  The criterion is still needed to cap the field, but it should be **calibrated from real
+  V-vs-thickness data** (the same measure-then-calibrate loop used for effective ε_r) or **derived
+  from the reliability model**, not hard-coded. The CLI report prints the effective design field and
+  this caveat on every run. Full treatment: `wiki/concepts/dielectric-breakdown.md`
+  §"Design field is a technology-node parameter"; `wiki/concepts/dielectric-layer-thickness-floor.md`.
+  *(space grade sidesteps this — it uses hard spec-mandated absolute thickness, S-311-P-838, not a field.)*
 - **Tier-1 model**: shrinkage is treated as isotropic (`s ≈ 0.14`); in a real constrained stack
   the in-plane shrinkage is smaller than the thickness shrinkage (see
   `wiki/concepts/green-tape-shrinkage-anisotropy.md`). Green in-plane dims are therefore a

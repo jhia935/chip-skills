@@ -591,6 +591,21 @@
   // E_design (V/µm) — design rule for dielectric voltage-to-thickness scaling.
   // Empirically calibrated against the 25-part vendor lineup so that
   // back-solved N_e values land in the 1-500 range with H_stack < 50 % of H_max.
+  //
+  // ⚠ KNOWN LIMITATION — the per-µm design field is NOT a physical constant.
+  //   It is a RELIABILITY-SET, TECHNOLOGY-NODE-DEPENDENT derated working field, well
+  //   below the intrinsic breakdown field (~80-150 V/µm bulk, 25-50 defect-limited).
+  //   Material improvement (core-shell BaTiO3, defect control), process improvement
+  //   (tape casting / sintering uniformity) and design changes let the SAME rated
+  //   voltage run at a THINNER d over time → the usable design field rises. Freezing
+  //   these band values encodes today's node; a next-gen material makes them too
+  //   conservative (over-thick d, under-predicted CV). This table should ultimately
+  //   be replaced by a field CALIBRATED from real V-vs-thickness data (the same
+  //   measure-then-calibrate stance as effective ε_r), or DERIVED from the reliability
+  //   model. See wiki/concepts/dielectric-breakdown.md
+  //   §"Design field is a technology-node parameter, not a fixed constant".
+  //   NOTE: this eDesign() table (legacy solveRecipe path) and GRADES[*].eField
+  //   (grade-aware path) are two separate hard-codings of the same criterion.
   function eDesign(cls, V_rated) {
     let E;
     if      (V_rated <= 6.3) E = 10;
@@ -912,9 +927,22 @@
   };
 
   // Minimum fired dielectric thickness (µm) the grade allows at rated V.
+  //
+  // ⚠ KNOWN LIMITATION — g.eField (V/µm) is a RELIABILITY-SET, TECHNOLOGY-NODE
+  //   assumption, NOT a fixed material constant. It is a derated working field far
+  //   below intrinsic breakdown, and it RISES as materials/process/design improve
+  //   (same rated V → thinner d over time). The frozen per-grade numbers
+  //   (commercial 30, automotive 22) are a snapshot of today's node; they will
+  //   over-thicken next-gen materials and over-thin weaker ones. Space grade sidesteps
+  //   this by using a hard spec-mandated absolute thickness (S-311-P-838), not a field.
+  //   Roadmap: make eField a CALIBRATED parameter (learned from real V-vs-thickness
+  //   data, like calScale for ε_r) or DERIVE it from the reliability model
+  //   (Prokopowicz–Vaskas field acceleration + grains-per-layer Weibull).
+  //   See wiki/concepts/dielectric-breakdown.md §"Design field is a technology-node
+  //   parameter" and wiki/concepts/dielectric-layer-thickness-floor.md.
   function gradeDMin(g, V) {
     if (g.specMinD) { if (V <= 25) return 7.1; if (V <= 50) return 8.4; return 15.2; } // S-311-P-838
-    return Math.max(g.dFloor, V / g.eField);    // manufacturing floor vs breakdown-field
+    return Math.max(g.dFloor, V / g.eField);    // manufacturing floor vs (node-dependent) design-field
   }
   // Minimum margin (µm). MIL grades are voltage-scaled; others scale with the dimension.
   function gradeMargin(g, V, dim, which) {
