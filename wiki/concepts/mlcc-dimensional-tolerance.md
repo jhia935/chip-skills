@@ -2,11 +2,13 @@
 title: MLCC Dimensional Tolerance (L / W / T)
 type: concept
 created: 2026-05-31
-updated: 2026-06-05
+updated: 2026-11-10
 sources:
   - okuma-2021-mlcc-electrode-nanoct.md
   - avx-automotive-kam-kaf-dimensions.md
   - mil-spec-mlcc-requirements.md
+tags:
+  - paper
 status: complete
 importance: medium
 ---

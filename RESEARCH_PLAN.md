@@ -50,12 +50,13 @@ Maintain `resources/bibliography.md` — append-only registry of every source co
 
 ### 1.2 Files to produce in `resources/manufacturing/`
 - [ ] `00-overview.md` — end-to-end process diagram (ASCII or mermaid) + one paragraph per step.
-- [ ] `10-powder-and-slurry.md` — BaTiO₃ powder synthesis routes (solid-state, hydrothermal, oxalate), particle size distribution, slurry rheology.
-- [ ] `20-tape-casting.md` — doctor-blade casting, green-tape thickness control, binder/plasticizer chemistry.
-- [ ] `30-electrode-printing.md` — screen / gravure printing, Ni paste rheology, wet/dry thickness, alignment.
-- [ ] `40-lamination-and-dicing.md` — stack-up, isostatic pressing, cutting blade vs laser dicing.
+- [x] `10-powder-and-slurry.md` — BaTiO₃ powder synthesis routes (solid-state, hydrothermal, oxalate), particle size distribution, slurry rheology.
+- [x] `20-tape-casting.md` — doctor-blade casting, green-tape thickness control, binder/plasticizer chemistry.
+- [x] `30-electrode-printing.md` — screen / gravure printing, Ni paste rheology, wet/dry thickness, alignment.
+- [x] `40-lamination-and-dicing.md` — stack-up, isostatic pressing, cutting blade vs laser dicing.
 - [ ] `50-binder-burnout-and-sintering.md` — atmosphere control (PO₂, reducing for BME), shrinkage matching, microstructure development.
-- [ ] `60-termination-and-plating.md` — Cu termination paste, Ni barrier, Sn finish; thickness specs.
+- [x] `60-termination-and-plating.md` — Cu termination paste, Ni barrier, Sn finish; thickness specs.
+- [x] `80-test-sort-and-packaging.md` — end-of-line sort, screening, tape & reel (added 2026-11-10).
 - [ ] `70-defects-and-yield.md` — cracking, delamination, voids, IR fail mechanisms with images/diagrams.
 
 ### 1.3 Sources to mine

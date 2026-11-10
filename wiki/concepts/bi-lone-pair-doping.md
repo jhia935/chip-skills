@@ -2,11 +2,13 @@
 title: Bi³⁺ Lone-Pair Doping in BaTiO₃
 type: concept
 created: 2026-05-27
-updated: 2026-05-27
+updated: 2026-11-10
 sources:
   - deluca-2018-biybo3-batio3-doping.md
   - yabuta-2017-bi-mn-batio3-tetragonality.md
   - x9r-batio3-bimg-nanbo3-2022.md
+tags:
+  - paper
 status: draft
 importance: medium
 ---

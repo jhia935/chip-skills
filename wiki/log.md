@@ -2,7 +2,7 @@
 title: Activity Log
 type: log
 created: 2026-05-19
-updated: 2026-06-24
+updated: 2026-11-10
 ---
 
 # Activity Log
@@ -10,6 +10,33 @@ updated: 2026-06-24
 Chronological record of wiki operations. Newest entries first.
 
 ---
+
+## [2026-11-10] query | MLCC process sub-steps and equipment
+
+Filed [[mlcc-process-substeps-and-equipment]]: the 16-step process broken into sub-steps, each with its equipment. Items not yet backed by corpus sources are marked (g). Also linked from [[mlcc-manufacturing-process]].
+
+## [2026-11-10] ingest | MLCC manufacturing process, step by step (slurry → test/sort)
+
+Gap-filling ingest for RESEARCH_PLAN pillar 1. The corpus already had powder, dopant coating, debinding, sintering, re-oxidation, Ni paste, and a short termination page. Missing steps were researched with parallel web extraction, and raw notes were stored as `resources/manufacturing/{10,20,30,40,60,80}-*.md`. Sources are mostly granted patents (TDK, SEMCO, Murata, Taiyo Yuden, Rohm, Lintec, Nan Ya), plus NASA NEPP (Teverovsky, Brusse), vendor pages (Murata, ESI Allegro XP, Johanson), and one 2026 journal paper. No Tier-1 vendor publishes per-step production parameters, so most numbers are patent embodiments. This is flagged on each page.
+
+**Concept pages created (8):** [[slurry-preparation-mlcc]], [[tape-casting-mlcc]], [[internal-electrode-printing]], [[step-height-compensation]], [[stacking-and-lamination-mlcc]], [[green-chip-cutting-and-side-margin]], [[barrel-chamfering-mlcc]] (draft), [[production-test-and-screening-mlcc]].
+
+**Source pages created (4):** [[mlcc-slurry-tape-casting-research-notes]], [[mlcc-printing-lamination-research-notes]], [[mlcc-termination-plating-research-notes]], [[mlcc-test-sort-packaging-research-notes]].
+
+**Updated:**
+- [[mlcc-manufacturing-process]]: step → page table and patent-range caveats.
+- [[termination-and-plating]]: paste, firing, and glass windows; plating-H and band-width defects.
+- [[mlcc-margin-cover-design-rules]]: attached side margins of ~2–11 µm.
+- [[electrode-overlap-and-registration]]: quantified registration.
+- [[dielectric-layer-thickness-floor]]: tape-casting gate.
+- index.
+
+**Contradictions flagged:**
+1. Ni barrier thickness: 2–3 µm (training deck) vs 3–10 µm (patents/NASA, thick Ni implicated in delamination), on [[termination-and-plating]].
+2. Whisker mitigation: a vendor claim vs NASA observations.
+3. Attached side-margin definitions differ between patents, on [[green-chip-cutting-and-side-margin]]. A spot-check against the patent text corrected an extraction error (the 5–15 µm range is not the margin width).
+
+**Maintenance in the same pass:** added the missing `tags` frontmatter field to 21 concept pages (`paper`, matching the existing concept-page convention). The 2026-06-24 lint had reported frontmatter as passing; that was incorrect.
 
 ## [2026-06-24] lint | Wiki health check
 

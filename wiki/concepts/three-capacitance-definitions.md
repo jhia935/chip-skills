@@ -2,10 +2,12 @@
 title: Three Capacitance Definitions for Non-Linear MLCCs
 type: concept
 created: 2026-05-28
-updated: 2026-05-28
+updated: 2026-11-10
 sources:
   - ben-yaakov-2025-nonlinear-capacitance-definition.md
   - kalbitz-wurth-anp114-mlcc-voltage-frequency.md
+tags:
+  - paper
 status: complete
 importance: high
 ---

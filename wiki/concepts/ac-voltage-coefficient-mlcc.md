@@ -2,13 +2,15 @@
 title: AC Voltage Coefficient of Capacitance (ACC / F_ACV)
 type: concept
 created: 2026-05-27
-updated: 2026-05-27
+updated: 2026-11-10
 sources:
   - herb-ma-2020-2022-mlcc-ac-dc-aging.md
   - electrical-integrity-dce11-200.md
   - kalbitz-wurth-anp114-mlcc-voltage-frequency.md
   - covaci-gontean-2022-singing-mlcc.md
   - epci-high-cv-mlcc-bias-aging.md
+tags:
+  - paper
 status: complete
 importance: high
 ---

@@ -2,9 +2,11 @@
 title: Tetragonality (c/a Ratio) of BaTiO₃
 type: concept
 created: 2026-05-27
-updated: 2026-05-27
+updated: 2026-11-10
 sources:
   - yoon-kim-2020-batio3-tetragonality-dc-bias.md
+tags:
+  - paper
 status: draft
 importance: medium
 ---

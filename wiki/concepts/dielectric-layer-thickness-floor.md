@@ -2,13 +2,15 @@
 title: Dielectric Layer Thickness Floor — Why MLCC Layers Can't Go Arbitrarily Thin
 type: concept
 created: 2026-05-29
-updated: 2026-06-24
+updated: 2026-11-10
 sources:
   - kyocera-thin-mlcc-roadmap.md
   - aqueous-tape-casting-ultrathin-batio3-2025.md
   - nasa-batio3-mlcc-failure-mechanisms.md
   - mil-spec-mlcc-requirements.md
   - gsfc-mlcc-space-spec-requirements.md
+tags:
+  - paper
 status: complete
 importance: high
 ---
@@ -43,6 +45,8 @@ To make a layer thinner you must use finer powder (to keep ≥3 grains across). 
 Production tape-casting slurries run roughly **50–55 vol % solids with ~35–43 vol % binder** using **180–300 nm powder**. The one published demonstration of sub-1 µm tape used **20–25 nm nanoparticles + a special pre-cooling method** ([[aqueous-tape-casting-ultrathin-batio3-2025]] and related work) — a lab result, not volume-manufacturable, and still nowhere near 0.15 µm. This is the rheological wall: the powder fine enough to make a 0.15 µm layer can't be dispersed at a castable solid loading. See [[ni-electrode-paste-formulation]] (same physics on the electrode side), [[green-density-vs-shrinkage]], [[mistler-twiname-tape-casting-textbook]].
 
 ### 3. Tape casting itself tops out
+
+Process detail is on [[slurry-preparation-mlcc]] and [[tape-casting-mlcc]]. Patents put the green-sheet target at 0.5–2 µm. Reaching it requires D90 ~0.45 µm powder after bead-mill deagglomeration, 1–2 µm filtration, and a release film with Ra ≤8 nm.
 
 State-of-the-art **production** dielectric is **~400 nm**. The processing literature is explicit that going **below ~1 µm already strains tape casting**, and that sub-0.3 µm "can only be produced by techniques more advanced than tape casting and screen printing" (sputtering, sol-gel, ALD — none used in volume MLCC). So tape casting itself caps the floor near 0.3–0.4 µm.
 

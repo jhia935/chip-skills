@@ -2,11 +2,13 @@
 title: Field-Induced Curie Temperature Shift
 type: concept
 created: 2026-05-27
-updated: 2026-05-27
+updated: 2026-11-10
 sources:
   - dulkin-roth-2020-batio3-curie-shift.md
   - lim-cho-2010-batio3-mlcc-field-induced.md
   - yoon-kim-2020-batio3-tetragonality-dc-bias.md
+tags:
+  - paper
 status: complete
 importance: high
 ---

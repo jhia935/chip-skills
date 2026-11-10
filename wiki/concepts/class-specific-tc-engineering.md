@@ -2,7 +2,7 @@
 title: Class-Specific T_C Engineering — Why Each MLCC Dielectric Class Has Its Own Curie Temperature
 type: concept
 created: 2026-05-27
-updated: 2026-05-27
+updated: 2026-11-10
 sources:
   - deluca-2018-biybo3-batio3-doping.md
   - yabuta-2017-bi-mn-batio3-tetragonality.md
@@ -10,6 +10,8 @@ sources:
   - cazro3-x8r-batio3-2015.md
   - liu-2019-sm-mn-codoped-batio3-permittivity.md
   - epsilon-r-from-dopant-composition.md
+tags:
+  - paper
 status: complete
 importance: high
 ---

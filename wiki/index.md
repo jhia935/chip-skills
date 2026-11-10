@@ -2,7 +2,7 @@
 title: Wiki Index
 type: index
 created: 2026-05-19
-updated: 2026-06-24
+updated: 2026-11-10
 ---
 
 # Wiki Index
@@ -91,7 +91,15 @@ A catalog of all pages in this wiki, organized by category. See [[overview]] for
 - [[dc-bias-aging]] — Slow capacitance drift under continuous DC bias, distinct from natural aging and from VCC.
 - [[oxygen-vacancy-migration]] — Schottky-barrier-collapse mechanism behind BME IR degradation.
 - [[ferroelectric-domain-wall]] — Where most of MLCC εr comes from; explains VCC, aging, and grain-size effects.
-- [[mlcc-manufacturing-process]] — End-to-end process map from powder to packaged chip.
+- [[mlcc-manufacturing-process]] — End-to-end process map from powder to packaged chip; step → page table.
+- [[slurry-preparation-mlcc]] — Bead-mill deagglomeration, dispersant/PVB/plasticizer windows, 1–2 µm filtration; D90 sets the thin-layer limit.
+- [[tape-casting-mlcc]] — Green-sheet casting on release-coated PET (Ra ≤ 8 nm); 0.5–2 µm sheets; drying, peel static, defect modes.
+- [[internal-electrode-printing]] — Screen vs gravure (5–150 m/min) vs inkjet; transfer printing; 0.4–0.7 µm electrodes; vision registration 8–13 µm.
+- [[step-height-compensation]] — Electrode level-difference absorption: blank-pattern paste or high-viscosity cover to prevent margin delamination.
+- [[stacking-and-lamination-mlcc]] — Sheet-transfer stacking, 100–1000 layers, final/WIP press 40–100 °C, 10–200 MPa.
+- [[green-chip-cutting-and-side-margin]] — Dicing the green bar; attached side-margin sheets (~2–11 µm) for high-CV small cases.
+- [[barrel-chamfering-mlcc]] — Corner rounding; R ≥ 0.10 mm cuts thermal-shock rejects *(draft)*.
+- [[production-test-and-screening-mlcc]] — 100 % sort (~1 M parts/h), Class II measurement/de-aging, burn-in 2×V_R/125 °C, crack escapes, tape & reel.
 - [[bme-sintering-atmosphere]] — Reducing-atmosphere co-firing with PO₂ control.
 - [[re-oxidation-anneal]] — Post-sinter step that refills oxygen vacancies and raises IR.
 - [[batio3-powder-synthesis]] — Hydrothermal, solid-state, oxalate, sol-gel routes; size distribution control.
@@ -251,6 +259,11 @@ A catalog of all pages in this wiki, organized by category. See [[overview]] for
 - [[kyocera-thin-mlcc-roadmap]] — KYOCERA roadmap + 2023 0201 10 µF (4 V, 0.45 µm electrode, > 90 % coverage); bleeding-edge thin-layer frontier.
 - [[aqueous-tape-casting-ultrathin-batio3-2025]] — tape-casting powder/binder/solid-loading limits; 180–300 nm production powder, ~400 nm fired floor, sub-1 µm only with 20–25 nm nanopowder.
 
+- [[mlcc-slurry-tape-casting-research-notes]] — 2026-11 patent/literature survey: slurry milling & tape casting (12 docs).
+- [[mlcc-printing-lamination-research-notes]] — 2026-11 patent survey: electrode printing, stacking, cutting, side margin (~18 docs).
+- [[mlcc-termination-plating-research-notes]] — 2026-11 patent + NASA survey: chamfer, Cu termination firing, Ni/Sn plating (10 docs).
+- [[mlcc-test-sort-packaging-research-notes]] — 2026-11 vendor + NASA survey: test handlers, screening, burn-in, tape & reel (12 docs).
+
 ### Patents
 - [[us-4115493-murata-sakabe-1978-bme-foundational]] — Sakabe & Seno 1978; the foundational Ca-doped BaTiO₃ non-reducing dielectric that enabled Ni-electrode MLCC; expired 1997. Composition `{(Ba₁₋ₓCaₓ)O}ₘ(Ti₁₋ᵧZrᵧ)O₂` with m=1.005-1.03, x=0.02-0.22.
 - [[us-6043974-philips-dy-stabilizer]] — Chen, Lee, Tseng (Philips → Phycomp) 2000; Dy at the Ba site stabilizes Mn charge and suppresses DC-bias-driven IR degradation; the industry-standard Dy-Mn co-doping recipe traces here.
@@ -267,6 +280,7 @@ A catalog of all pages in this wiki, organized by category. See [[overview]] for
 
 ## Queries
 
+- [[mlcc-process-substeps-and-equipment]] — Sub-steps of each MLCC process step with the equipment each needs; corpus-backed vs general-practice marked.
 - [[dc-bias-vs-tcc-relationship]] — How DC-bias and TCC derating relate: independent multiplicative factors (`f_T × f_V`) of the Zednicek formula; couples significantly near T_C, at high bias, and for Y5V.
 - [[shrinkage-shape-dependence-batio3-vs-alumina]] — BaTiO₃ does not show the powder-shape-driven anisotropy that alumina does (Heunisch K_xy 1.9-12.7 vs BT ≈ 1); finished-MLCC anisotropy comes from lamination constraint, not green-tape powder shape.
 - [[capacitance-simulation-from-recipe-and-geometry]] — Three-tier pipeline from recipe + geometry to predicted capacitance (Tier 1 geometric ±20 %; Tier 2 material-corrected ±10 %; Tier 3 SOVS-process-coupled ±5 %).

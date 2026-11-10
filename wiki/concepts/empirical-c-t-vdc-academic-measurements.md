@@ -2,7 +2,7 @@
 title: Empirical C(T, V_DC) Surfaces from Academic MLCC Literature
 type: concept
 created: 2026-05-27
-updated: 2026-05-27
+updated: 2026-11-10
 sources:
   - song-2017-compositionally-graded-mlcc.md
   - fujii-trolier-mckinstry-2023-batio3-nonlinearity.md
@@ -11,6 +11,8 @@ sources:
   - he-2025-bsite-ca-batio3-pnr.md
   - an-2026-grain-boundary-segregation-dc-bias.md
   - hwang-2024-coreshell-electrode-dc-bias.md
+tags:
+  - paper
 status: complete
 importance: high
 ---

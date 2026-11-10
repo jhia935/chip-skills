@@ -2,9 +2,11 @@
 title: Piezoelectricity in BaTiO₃ MLCC
 type: concept
 created: 2026-05-27
-updated: 2026-05-27
+updated: 2026-11-10
 sources:
   - covaci-gontean-2022-singing-mlcc.md
+tags:
+  - paper
 status: draft
 importance: medium
 ---

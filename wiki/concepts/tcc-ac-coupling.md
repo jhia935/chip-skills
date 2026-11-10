@@ -2,13 +2,15 @@
 title: TCC × AC-Level Coupling — How AC Excitation Reshapes the Temperature Coefficient Curve
 type: concept
 created: 2026-05-27
-updated: 2026-05-27
+updated: 2026-11-10
 sources:
   - fujii-trolier-mckinstry-2023-batio3-nonlinearity.md
   - herb-ma-2020-2022-mlcc-ac-dc-aging.md
   - kalbitz-wurth-anp114-mlcc-voltage-frequency.md
   - electrical-integrity-dce11-200.md
   - covaci-gontean-2022-singing-mlcc.md
+tags:
+  - paper
 status: complete
 importance: high
 ---

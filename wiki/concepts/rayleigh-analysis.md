@@ -2,9 +2,11 @@
 title: Rayleigh Analysis (Dielectric Nonlinearity)
 type: concept
 created: 2026-05-27
-updated: 2026-05-27
+updated: 2026-11-10
 sources:
   - fujii-trolier-mckinstry-2023-batio3-nonlinearity.md
+tags:
+  - paper
 status: draft
 importance: medium
 ---

@@ -2,7 +2,7 @@
 title: AC × DC Capacitance Mapping — The Joint V_AC × V_DC Surface
 type: concept
 created: 2026-05-28
-updated: 2026-05-28
+updated: 2026-11-10
 sources:
   - kalbitz-wurth-anp114-mlcc-voltage-frequency.md
   - murata-dynamic-model-hidaka-2016.md
@@ -10,6 +10,8 @@ sources:
   - herb-ma-2020-2022-mlcc-ac-dc-aging.md
   - electrical-integrity-dce11-200.md
   - covaci-gontean-2022-singing-mlcc.md
+tags:
+  - paper
 status: complete
 importance: high
 ---

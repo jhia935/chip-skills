@@ -2,9 +2,11 @@
 title: Relaxor Ferroelectric
 type: concept
 created: 2026-05-27
-updated: 2026-05-27
+updated: 2026-11-10
 sources:
   - he-2025-bsite-ca-batio3-pnr.md
+tags:
+  - paper
 status: draft
 importance: medium
 ---

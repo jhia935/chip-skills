@@ -2,9 +2,11 @@
 title: Dielectric Tunability
 type: concept
 created: 2026-05-27
-updated: 2026-05-27
+updated: 2026-11-10
 sources:
   - song-2017-compositionally-graded-mlcc.md
+tags:
+  - paper
 status: draft
 importance: low
 ---

@@ -2,10 +2,12 @@
 title: Electrode Overlap & Print Registration — How the Active Area Is Defined
 type: concept
 created: 2026-05-31
-updated: 2026-05-31
+updated: 2026-11-10
 sources:
   - okuma-2021-mlcc-electrode-nanoct.md
   - yan-thesis-2013-mlcc-sintering-nanotomography.md
+tags:
+  - paper
 status: complete
 importance: high
 ---
@@ -35,6 +37,9 @@ $$
 The margins (`em`, `sm`) already account for this bulk loss. What remains beyond the nominal margins is **print-registration jitter** — the printed electrode edge not landing exactly on the design line, and layer-to-layer misregistration in the stack. That is a small (~2–5 %) extra de-rating, distinct from the bulk margin.
 
 ## Registration tolerance — the precision driver
+
+> [!note] Quantified (patent data)
+> In [us5935365], camera/target-mark registration plus extrusion coating cut maximum misalignment from ~250 µm to **8–13 µm**. The shorting rate fell from 33.2% to 0.4–1.0% (thick-layer examples). Process detail is on [[internal-electrode-printing]] and [[stacking-and-lamination-mlcc]].
 
 Screen-printing the inner electrode is described in the process literature as "one level higher than general thick-film printing" — the **position, shape, and flatness** of the print directly set the electrical performance. As parts miniaturize (sub-µm dielectric, 0201/01005 cases), the registration budget shrinks relative to the chip, so:
 

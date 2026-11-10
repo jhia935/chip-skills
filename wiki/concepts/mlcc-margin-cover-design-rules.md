@@ -2,11 +2,14 @@
 title: MLCC Margin & Cover-Plate Design Rules
 type: concept
 created: 2026-06-05
-updated: 2026-06-05
+updated: 2026-11-10
 sources:
+  - resources/manufacturing/40-lamination-and-dicing.md
   - mil-spec-mlcc-requirements.md
   - gsfc-mlcc-space-spec-requirements.md
   - nasa-gsfc-liu-mlcc-construction-2011.md
+tags:
+  - paper
 status: complete
 importance: high
 ---
@@ -39,6 +42,10 @@ End margin and cover are held equal and ~1.5–2× the side margin — the end m
 
 The [[nasa-gsfc-liu-construction-database-2011|Liu & Sampson 30-part DPA]] found every part ran margins **≥2× the EIA-469 minimum**: side **65–340 µm**, end **90–350 µm**, cover **55–175 µm** (BME), with PME military parts at the high end (D12X39350: 350/350 µm margins). So the *spec minimum* is a floor far below the *as-built* values — manufacturers spend margin for yield and registration headroom (see [[electrode-overlap-and-registration]]).
 
+## Attached side margins (post-cut)
+
+High-CV parts can drop the printed side margin altogether. The bar is cut so that the electrodes reach the side faces, and a ceramic sheet is then attached to each side. Patent embodiments in 0603 cases (≥400 layers) give **2–10 µm** average [us11348730] or ~11 µm example widths [us11600441], compared with ≥20 µm for printed margins. Below ~2 µm the margin becomes weak and moisture-prone. These numbers are far below the spec minimums above, which come from the printed-margin era. See [[green-chip-cutting-and-side-margin]].
+
 ## Why margins scale with size (and the small-case squeeze)
 
 A fixed registration + dicing budget is a larger fraction of a tiny chip, so small cases historically carried disproportionately large fractional margins. The simulator encodes this as **size-scaled margins** (`em ≈ 0.12·L`, `sm ≈ 0.10·W`, with floors/caps) rather than a constant absolute value — see [[case-size-geometry]]. The voltage-scaled spec minimums above are the *lower bound* the size-scaled value must clear.
@@ -49,6 +56,7 @@ A fixed registration + dicing budget is a larger fraction of a tiny chip, so sma
 - A high-CV design pushes margins toward these minimums to maximize [[electrode-overlap-and-registration|active overlap]]; the [[mlcc-dimensional-tolerance|build-to-max-footprint]] tolerance is the complementary lever.
 
 ## Cross-references
+- [[green-chip-cutting-and-side-margin]]: attached side-margin process
 - [[case-size-geometry]] — footprint, size-scaled margins, the case table
 - [[electrode-overlap-and-registration]] — margins → active overlap area
 - [[mlcc-dimensional-tolerance]] — the L/W/T tolerance lever

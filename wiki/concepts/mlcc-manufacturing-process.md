@@ -2,13 +2,19 @@
 title: MLCC Manufacturing Process (End-to-End)
 type: concept
 created: 2026-05-19
-updated: 2026-05-19
+updated: 2026-11-10
 status: complete
 importance: high
 sources:
   - escies-bme-mlcc-high-reliability.md
   - nasa-cracking-low-voltage-mlcc.md
   - octopart-tdk-cga8l3c0g-product-guide.md
+  - resources/manufacturing/10-powder-and-slurry.md
+  - resources/manufacturing/20-tape-casting.md
+  - resources/manufacturing/30-electrode-printing.md
+  - resources/manufacturing/40-lamination-and-dicing.md
+  - resources/manufacturing/60-termination-and-plating.md
+  - resources/manufacturing/80-test-sort-and-packaging.md
 tags:
   - paper
 ---
@@ -38,7 +44,30 @@ A multi-step ceramic-electronic packaging pipeline that takes powder + paste + g
 16. Tape & reel
 ```
 
-Each step has its own page (or planned page) covering parameters, defect modes, and yield-critical knobs.
+Each step has its own page covering parameters, defect modes, and yield-critical knobs:
+
+| Step(s) | Page |
+|---|---|
+| 1 | [[batio3-powder-synthesis]] · [[dopant-powder-coating]] |
+| 2 | [[slurry-preparation-mlcc]] |
+| 3 | [[tape-casting-mlcc]] |
+| 4 | [[internal-electrode-printing]] · [[ni-electrode-paste-formulation]] · [[step-height-compensation]] |
+| 5–6 | [[stacking-and-lamination-mlcc]] |
+| 7 | [[green-chip-cutting-and-side-margin]] |
+| 8 | [[binder-burnout-debinding]] |
+| 9 | [[sintering-profile-mlcc]] · [[bme-sintering-atmosphere]] |
+| 10 | [[re-oxidation-anneal]] |
+| 11 | [[barrel-chamfering-mlcc]] |
+| 12–14 | [[termination-and-plating]] |
+| 15–16 | [[production-test-and-screening-mlcc]] |
+
+> [!note] Patent values vs this overview
+> The 2026-11 survey suggests some numbers in the map above should be read as broad ranges:
+> - Electrode print thickness: modern patents give **0.4–0.7 µm fired** [us10573466].
+> - Lamination pressure: 10–200 MPa at 40–100 °C [us7641727].
+> - Ni plating: observed values span 2–10 µm (see the contradiction on [[termination-and-plating]]).
+>
+> High-CV parts may skip printed side margins and attach a **~2–11 µm side-margin sheet** after cutting ([[green-chip-cutting-and-side-margin]]).
 
 ## Key kinetic coupling: shrinkage matching
 The dielectric and electrode layers must shrink **in lockstep** during sintering, or the part delaminates or develops electrode discontinuity. Modern BME does this by:
@@ -58,18 +87,20 @@ Closed-loop O₂ control is now the state of the art in pusher furnaces ([[bme-s
 |---|---|---|
 | Tape casting | non-uniform thickness | yield loss at thin spots, capacitance variation |
 | Electrode print | misalignment, voids | electrode discontinuity, reduced effective area |
-| Lamination | trapped air | post-sinter delamination |
+| Lamination | trapped air, margin step | post-sinter delamination ([[step-height-compensation]]) |
 | Dicing | edge chipping | reduced creepage distance |
 | Debinding | too fast | bulk cracking, [[failure-modes-mlcc|parallel-plate cracks]] |
 | Sintering | shrinkage mismatch | delamination, electrode breaks |
 | Re-oxidation | over-oxidize | Ni inner electrode degradation, raised ESR |
 | Termination | poor coverage | open termination, dropped chips |
-| Plating | porosity | solderability fail, humidity ingress |
+| Plating | porosity, H uptake, thick Ni | solderability fail, humidity ingress, termination delamination |
+| Test/sort | weak DWV, short IR | cracked parts escape ([[production-test-and-screening-mlcc]]) |
 
 ## Production scale
 World-wide MLCC production: **~2 trillion pieces/year** ([[escies-bme-mlcc-high-reliability]]). A single Tier-1 fab can output billions of pieces/month.
 
 ## Cross-references
+- [[mlcc-process-substeps-and-equipment]]: sub-step and equipment list
 - [[bme-vs-pme]]
 - [[bme-sintering-atmosphere]]
 - [[re-oxidation-anneal]]
@@ -79,6 +110,7 @@ World-wide MLCC production: **~2 trillion pieces/year** ([[escies-bme-mlcc-high-
 - [[oxygen-vacancy-migration]]
 
 ## References
+- [[mlcc-slurry-tape-casting-research-notes]] · [[mlcc-printing-lamination-research-notes]] · [[mlcc-termination-plating-research-notes]] · [[mlcc-test-sort-packaging-research-notes]]: 2026-11 per-step survey
 - [[escies-bme-mlcc-high-reliability]]
 - [[nasa-cracking-low-voltage-mlcc]] — Section 2 has the most comprehensive open-literature process survey
 - [[octopart-tdk-cga8l3c0g-product-guide]] — vendor side
