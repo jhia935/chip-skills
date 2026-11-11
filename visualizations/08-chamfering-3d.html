@@ -1,0 +1,1903 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MLCC 배럴 면취 3D</title>
+<style>
+  :root {
+    --panel: rgba(15, 20, 27, 0.80);
+    --panel-line: rgba(255, 255, 255, 0.12);
+    --text: #e9eef3;
+    --muted: #9db0c2;
+    --accent: #ffb547;
+    --accent-ink: #1d1406;
+    --g: #8fd0ff;
+  }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #1b2229; color: var(--text);
+    font-family: system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; }
+  #scene { position: fixed; inset: 0; }
+  #scene canvas { display: block; }
+  .labels { position: absolute; inset: 0; pointer-events: none; }
+  .tag { pointer-events: auto; cursor: pointer; transform: translateY(-6px);
+    background: rgba(14, 18, 24, 0.84); color: var(--text); border: 1px solid rgba(255,255,255,.2);
+    border-radius: 999px; padding: 4px 10px; font-size: 12px; white-space: nowrap; transition: background .25s, color .25s; }
+  .tag b { color: var(--accent); margin-right: 4px; }
+  .tag.active { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .tag.active b { color: var(--accent-ink); }
+  .sub { pointer-events: none; font-size: 11px; padding: 2px 8px; border-radius: 6px;
+    background: rgba(255,255,255,.88); color: #1d242c; opacity: 0; transition: opacity .3s; white-space: nowrap; }
+  .sub.show { opacity: 1; }
+  .panel { position: fixed; background: var(--panel); border: 1px solid var(--panel-line); border-radius: 12px;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  #left { top: 16px; left: 16px; width: 268px; padding: 14px 14px 12px; }
+  #left h1 { font-size: 15px; margin: 0 0 2px; letter-spacing: -.01em; }
+  #left .sub-h { font-size: 11.5px; color: var(--muted); margin: 0 0 10px; }
+  #stages { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+  #stages button { width: 100%; text-align: left; background: transparent; color: var(--text); border: 0;
+    border-radius: 8px; padding: 6px 8px; font: inherit; font-size: 13px; cursor: pointer; display: flex; gap: 8px; align-items: center; }
+  #stages button:hover { background: rgba(255,255,255,.07); }
+  #stages button.active { background: rgba(255,181,71,.16); color: #fff; }
+  #stages .n { width: 20px; height: 20px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 11px;
+    background: rgba(255,255,255,.1); flex: none; }
+  #stages button.active .n { background: var(--accent); color: var(--accent-ink); }
+  #stages .bar { height: 2px; background: var(--accent); width: 0; border-radius: 2px; margin-top: 2px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; align-items: center; }
+  .controls button, .controls select { background: rgba(255,255,255,.08); color: var(--text); border: 1px solid var(--panel-line);
+    border-radius: 8px; padding: 5px 9px; font: inherit; font-size: 12px; cursor: pointer; }
+  .controls label { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 4px; cursor: pointer; }
+  #info { right: 16px; bottom: 16px; width: 390px; max-height: calc(100vh - 32px); overflow: auto; padding: 16px; box-sizing: border-box; }
+  #info .head { display: flex; justify-content: space-between; align-items: start; gap: 8px; }
+  #info .fold { background: rgba(255,255,255,.08); color: var(--text); border: 1px solid var(--panel-line); border-radius: 8px; padding: 3px 8px; font: inherit; font-size: 11.5px; cursor: pointer; flex: none; }
+  #info.collapsed .body { display: none; }
+  #info.collapsed h2 { margin-bottom: 0; }
+  #info .kicker { font-size: 11px; color: var(--accent); letter-spacing: .06em; text-transform: uppercase; }
+  #info h2 { font-size: 18px; margin: 2px 0 6px; }
+  #info p { font-size: 13px; line-height: 1.55; color: #d5dde5; margin: 0 0 10px; }
+  #info h3 { font-size: 11.5px; color: var(--muted); margin: 12px 0 5px; font-weight: 600; letter-spacing: .03em; }
+  #info ul { margin: 0; padding-left: 16px; font-size: 12.5px; line-height: 1.55; }
+  #info li { margin-bottom: 2px; }
+  #info code { font-size: 11px; color: var(--g); }
+  .g { color: #ffcf8a; font-size: 11px; }
+  .canvas-wrap { margin-top: 8px; background: rgba(0,0,0,.25); border-radius: 8px; padding: 6px; }
+  .canvas-wrap canvas { width: 100%; display: block; }
+  .cap { font-size: 10.5px; color: var(--muted); margin-top: 3px; }
+  .foot { font-size: 10.5px; color: var(--muted); margin-top: 12px; line-height: 1.5; border-top: 1px solid var(--panel-line); padding-top: 8px; }
+  /* process-flow branches */
+  #left { max-height: calc(100vh - 32px); overflow: auto; box-sizing: border-box; }
+  #stages li.fork { display: grid; gap: 3px; margin: 3px 0; padding: 6px 6px 6px 7px;
+    border: 1px dashed rgba(255,255,255,.2); border-radius: 10px; }
+  #stages .fork-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; flex-wrap: wrap; padding: 0 2px 2px; }
+  #stages .fk { font-size: 11.5px; color: var(--muted); font-weight: 600; }
+  #stages .seg { display: inline-flex; background: rgba(255,255,255,.07); border-radius: 999px; padding: 2px; gap: 2px; }
+  #stages .seg button { width: auto; display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 11.5px; color: var(--muted); }
+  #stages .seg button[aria-checked="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  #stages .opt { display: grid; gap: 2px; padding-left: 7px; border-left: 2px solid rgba(255,255,255,.14); }
+  #stages .opt.on { border-left-color: var(--accent); }
+  #stages .opt-label { font-size: 10.5px; color: var(--muted); padding: 1px 0 0 2px; }
+  #stages .opt.off > button { opacity: .45; }
+  #stages .opt.off .n { background: transparent; border: 1px dashed rgba(255,255,255,.3); }
+  #stages .skip { font-size: 11.5px; line-height: 1.45; color: var(--muted); padding: 3px 8px 4px; }
+  #stages .mk { font-size: 10.5px; color: var(--muted); margin-left: 5px; white-space: nowrap; }
+  .tag.off { opacity: .35; }
+  @media (max-width: 820px) {
+    #left { max-height: none; overflow: visible; }
+    #stages li.fork { display: flex; align-items: center; gap: 4px; padding: 3px 5px; margin: 0; }
+    #stages .fork-head { padding: 0; }
+    #stages .fk { display: none; }
+    #stages .opt { display: flex; gap: 4px; border-left: 0; padding-left: 0; }
+    #stages .opt.off, #stages .opt-label { display: none; }
+    #stages .skip { white-space: nowrap; padding: 0 4px; font-size: 11px; max-width: 46vw; overflow: hidden; text-overflow: ellipsis; }
+  }
+  #loading { position: fixed; inset: 0; display: grid; place-items: center; font-size: 14px; color: var(--muted); }
+  @media (max-width: 820px) {
+    #left { left: 8px; right: 8px; top: 8px; width: auto; padding: 10px; }
+    #left .sub-h { display: none; }
+    #stages { display: flex; overflow-x: auto; gap: 4px; }
+    #stages li { flex: none; }
+    #stages button { white-space: nowrap; padding: 5px 8px; }
+    #info { left: 8px; right: 8px; bottom: 8px; width: auto; max-height: 40vh; }
+  }
+</style>
+</head>
+<body>
+<div id="scene"></div>
+<div id="loading">3D 설비 모형을 불러오는 중…</div>
+
+<div id="left" class="panel">
+  <h1>MLCC 배럴 면취 (모서리 라운딩)</h1>
+  <p class="sub-h">배럴 탱크 충전부터 모서리 R 측정까지, 설비 3D 모형. 연마는 원심·회전·진동 배럴, 건조는 원심·열풍 중 한 경로를 고릅니다.</p>
+  <ol id="stages"></ol>
+  <div class="controls">
+    <button id="play">❚❚ 일시정지</button>
+    <select id="speed" aria-label="재생 속도">
+      <option value="0.5">0.5×</option>
+      <option value="1" selected>1×</option>
+      <option value="2">2×</option>
+    </select>
+    <button id="overview">전체 보기</button>
+    <label><input type="checkbox" id="tour" checked> 카메라 따라가기</label>
+    <label><input type="checkbox" id="cut" checked> 단면 보기</label>
+  </div>
+</div>
+
+<div id="info" class="panel"></div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+
+/* ------------------------------------------------------------------
+   Stage data — sources:
+   resources/manufacturing/eq-08-chamfering.md (equipment + step order, 2026-11-11),
+   resources/manufacturing/60-termination-and-plating.md (§1 chamfering),
+   wiki/concepts/barrel-chamfering-mlcc.md.
+   (g) = general practice with no source. (snippet, 미확인) = seen only in a search snippet.
+   STAGES indices never change (animation keys on them); new stages are appended, order is in FLOW.
+------------------------------------------------------------------- */
+const c = (...k) => k.map((x) => `<code>[${x}]</code>`).join('');
+const G = '<span class="g">(g)</span>';
+const SN = '<span class="g">(snippet, 미확인)</span>';
+const STAGES = [
+  { name: '드럼 장입', en: 'Drum charging',
+    desc: `회전 배럴 경로입니다. 소성 칩과 연마 미디어를 호퍼에서 달아 슈트로 드럼에 넣고 물을 채웁니다 ${c('us10020117')}. 날카로운 모서리는 이후 취급 중 칩끼리 부딪히면 깨지거나 금이 갑니다 ${c('us10020117')}. 이 페이지는 소성 칩으로 그렸지만, 최근 특허 다수는 소성 전 그린 칩을 연마한 뒤 씻고 말려서 소성합니다 ${c('us11978592', 'us11037731')}.`,
+    equip: [`배럴 용기 ${c('us10020117')}`, `칩 계량 호퍼·미디어 호퍼 (로드셀) ${G}`, `장입 슈트 ${G}`, `급수 탱크·펌프·배관 ${G}`],
+    params: [`칩 + 연마 미디어 + 액체를 함께 장입 ${c('us10020117')}`, `미디어: 전융 알루미나 + 텅스텐 카바이드 50/50, 40 mesh ${c('us5712758')}`, `예시 칩: 소성 후 2.0 × 1.25 × 0.6 mm ${c('us5712758')}`, `사이드 마진을 붙인 그린 칩은 연마 중 계면 균열·박리 위험 ${c('us10020117')}`, `이 예에는 칩 : 미디어 : 액체 비율이 없음 (원심 배럴 예: 미디어/칩 질량비 0.1–6 ${c('jp2010283164a')})`] },
+  { name: '회전 배럴 연마', en: 'Rotary barrel',
+    desc: `배럴이 돌면 내용물이 올라가는 쪽 벽을 타고 오르다 표면을 따라 미끄러져 내립니다. 이때 칩과 미디어가 서로 비벼져 모서리와 능선이 둥글어집니다. 한 배치에 12 h 가까이 걸리는 것이 이 방식의 약점으로 꼽힙니다 ${c('us8932108')}.`,
+    equip: [`회전 배럴: 칩과 미디어를 작은 상자에 밀봉해 돌림 ${c('us10957489', 'us10020117')}`, `다각형 드럼·A형 받침대·베어링 ${G}`, `구동 모터 + 감속기, 제어반 ${G}`],
+    params: [`12 h × 78 rpm → 모서리 R 0.13 mm ${c('us5712758')}`, `6 h → R 0.08 mm ${c('us5712758')}`, `목표 R ≥ 0.10 mm, 선호 0.13–0.15 mm (2.0 × 1.25 × 0.6 mm 소성 칩) ${c('us5712758')}`, `기존 수평 배럴: 한 배치 최대 12 h ${c('us8932108')}`, '애니메이션 회전 속도는 실제 78 rpm보다 느리게 그림'] },
+  { name: '진동 배럴 연마', en: 'Vibratory barrel',
+    desc: `용기를 돌리는 대신 진동시키는 방식도 씁니다 ${c('us10020117', 'us11049660')}. 링 모양 보울 안에서 내용물이 나선을 그리며 돌고, 그동안 칩끼리, 칩과 미디어가 서로 갈립니다. 진동 장치의 세부 구조는 같은 업계의 다른 공정(단자 소부 뒤 표면 처리) 특허에서 가져왔습니다 ${c('us10957489')}. 이 경로의 장입은 회전 배럴과 같다고 보고 따로 그리지 않았습니다.`,
+    equip: [`진동 배럴 ${c('us10020117')}`, `탄성체 위 진동판 + 편심 추 모터 ${c('us10957489')}`, `진동 센서(가속도 / 레이저 변위) → 모터 제어 ${c('us10957489')}`, `용기 안쪽 우레탄·고무 코팅 ${c('us10957489')}`, `링형 보울 모양 ${G}`],
+    params: [`방식: 용기 회전 또는 진동 ${c('us10020117')}`, `참고 (면취가 아닌 표면 처리 예): 용기 고유 진동수에 공진, 23 Hz, 미디어 가속도 2.5–20 G, 5 h ${c('us10957489')}`, '면취용 진동 배럴의 진폭·주파수·시간은 문헌에 없음'] },
+  { name: '배출 · 미디어 분리', en: 'Discharge & media separation',
+    desc: `연마가 끝난 탱크(또는 드럼)를 열어 내용물을 진동 스크린에 붓습니다. 미디어 지름을 칩 끝면 대각선보다 작게 잡아 두면 그물 체로 칩과 미디어를 쉽게 가를 수 있습니다 ${c('us10957489')}. 미디어는 망을 빠져 회수통으로 떨어지고, 칩은 망 위를 타고 바스켓으로 갑니다. 위에서 물을 뿌려 찌꺼기를 씻어 냅니다 ${G}.`,
+    equip: [`그물 체 (진동 스크린) ${c('us10957489')}`, `진동 모터 2대·스프링 지지 ${G}`, `미디어 회수통 ${G}`, `헹굼 스프레이 바 ${G}`, `틸팅 투입 장치 ${G}`, `샤워식 분리기·미디어 자동 회수 ${SN} ${c('tipton-periph-snippet')}`],
+    params: [`미디어 지름 < 칩 끝면 대각선 ${c('us10957489')}`, `예: 미디어 0.4–1.0 mm, 칩 1.0 × 0.5 × 0.5 mm (표면 처리 예) ${c('us10957489')}`, `예: 미디어 40 mesh, 칩 2.0 × 1.25 × 0.6 mm ${c('us5712758')}`, '스크린 눈 크기·진동 조건은 문헌에 없음'] },
+  { name: '세척', en: 'Wash',
+    desc: `바스켓째 세척조에 담갔다 올리기를 되풀이해 남은 연마 찌꺼기와 액을 씻습니다. 특허는 "물 같은 세척액으로 씻고 말린다"고만 적습니다 ${c('us11978592')}.`,
+    equip: [`세척조 + 다공 바스켓 ${G}`, `갠트리 호이스트 ${G}`, `오버플로 박스·급수 배관 ${G}`],
+    params: [`세척액: 물 등 ${c('us11978592', 'jp2010283164a')}`, `그린 칩이 물에 닿으면 Ba²⁺가 녹아 나와 내전압·수명이 나빠질 수 있음 → Ba 포화 용액에서 연마한 출원 예 ${c('jp2010283164a')}`, `소성 칩도 물이 전극·세라믹 계면에 스미면 박리·IR 저하 ${c('us6367134')}`, '세척 온도·시간·초음파 여부는 문헌에 없음'] },
+  { name: '모서리 R · 칩핑 측정', en: 'Corner R & chipping check',
+    desc: `단면을 현미경으로 보고 모서리 모양을 잽니다. 한 특허는 칩 길이 방향 가운데를 자른 단면에서, 두 면의 접선이 만나는 점 S부터 곡면이 끝나는 점까지의 거리를 Ra(측면 쪽)와 Rb(주면 쪽)로 정하고 50개 평균을 냈습니다 ${c('us11037731')}. 칩핑(이 빠짐) 불량률도 함께 봅니다.`,
+    equip: [`측정 현미경 + 모니터 ${G}`, `외관(칩핑) 확인 ${c('us11037731')}`],
+    params: [`Rb/Ra > 3.0 → 칩핑 0 %, 비교예 Rb/Ra 1.9–2.7 → 칩핑 10–80 % (L 1.0 × W 0.5 mm, T 40–80 µm) ${c('us11037731')}`, `R ≥ 0.10 mm에서 열충격 불량 감소 ${c('us5712758')}`, `R 0.13 mm + 2층 단자: −55/125 °C 1000 사이클 후 불량 0 ${c('us5712758')}`, `면취 없음 또는 R 0.08 mm: 수백 사이클 안에 불량 ${c('us5712758')}`, '모니터 그림은 대칭 R(원)으로 단순화'] },
+  { name: '배럴 탱크 충전', en: 'Barrel-tank charging',
+    desc: `원심 배럴 경로입니다. 저울 위에 빈 육각 탱크를 세우고 칩과 미디어를 질량으로 달아 넣은 뒤, 물과 컴파운드를 붓습니다. 탱크 안쪽은 우레탄으로 덧대어 있습니다 ${c('jp2010283164a')}. 그림은 소성 칩이지만, 최근 특허 다수는 그린 칩을 이 장치로 연마한 뒤 씻고 말려서 소성합니다 ${c('us11978592', 'us11037731')}.`,
+    equip: [`육각 탱크, 안쪽 우레탄 ${c('jp2010283164a')}`, `저울(로드셀)·표시기 ${G}`, `칩·미디어 소형 호퍼, 슬라이드 게이트 ${G}`, `물 + 컴파운드 탱크, 정량 펌프, 노즐 ${G}`],
+    params: [`예: 그린 칩 500 g + 미디어 1000 g ${c('jp2010283164a')}`, `미디어/칩 질량비 0.1–6 ${c('jp2010283164a')}`, `미디어: 알루미나·실리카계 구 2 mm (권장 1–5 mm) ${c('jp2010283164a')}; 알루미나·지르코니아 구, 지름 ≈ 칩 두께의 0.1–0.3배 ${c('us11037731')}`, `채움량: 탱크 부피의 10–50 vol % ${c('us9687954')}`, `액: 그린 칩은 바인더를 녹이지 않는 물 ${c('us11037731')}; 물 1000 cc + 컴파운드 20 g (금속 부품 시험) ${c('us9283647')}`, `건식(액체 없음)도 있음: 소성 칩에 물이 스미는 것을 막지만 ${c('us6367134')}, 완충이 없어 칩핑이 늘 수 있음 ${c('jp2010283164a')}`] },
+  { name: '뚜껑 체결 · 장착', en: 'Lid clamp & mount',
+    desc: `탱크에 뚜껑을 덮고 캠 레버로 잠근 뒤, 슬라이딩 도어를 열고 터렛 자리에 끼웁니다. 도어를 닫으면 터렛이 천천히 한 바퀴 돌고, 센서가 뚜껑이 모두 잠겼는지 봅니다. 하나라도 안 잠겼으면 연마로 넘어가지 않고 멈춥니다 ${c('us12103132')}.`,
+    equip: [`뚜껑 클램프: 편심 캠 + 레버 ${c('us12103132')}`, `근접 스위치(탱크 위치) + 레이저 투·수광기(클램프 위치) ${c('us12103132')}`, `슬라이딩 도어 ${c('us9687954')}`, `경광등 ${G}`, `탱크 옮기기는 단순화해 그림 ${G}`],
+    params: [`장치당 탱크 4개 ${c('us9283647', 'us12103132', 'us9687954')}`, `확인: 저속 1회전 → 이상 없으면 고속 ${c('us12103132')}`, `뚜껑 미고정 → 터렛 정지 (인터록) ${c('us12103132')}`, `용기는 밀폐한 뒤 돌림 ${c('us11049660')}`] },
+  { name: '예비 연마 (저 G)', en: 'Pre-polish, low G',
+    desc: `터렛이 천천히 돌고(공전), 각 탱크는 반대 방향으로 돕니다(자전). 낮은 원심 가속도로 먼저 모서리를 다듬고 본 연마로 넘어가는 2단 방식이, MLCC처럼 단단하고 깨지기 쉬운 부품용으로 제안돼 있습니다 ${c('us9687954')}. 이 특허 장치는 이때 장치 전체를 30–70° 기울이지만, 모형에서는 기울임 기구를 뺐습니다.`,
+    equip: [`터렛 + 탱크 4개 (공전·자전 반대 방향) ${c('us9283647', 'us9687954')}`, `구동 모터 + 벨트·풀리, 인버터 속도 제어 ${c('us9687954')}`, `터치 패널: 시간·속도·기울기·가감속 ${c('us9687954')}`, `탱크 축 중심의 고무 충돌 방지재 ${c('us9687954')}`, `기울임용 전동 서보 실린더 ${c('us9687954')} (모형 생략)`],
+    params: [`1단: 0.3–1.0 G (또는 0.3–0.5 G), 기울기 30–70° ${c('us9687954')}`, `대상 예: MLCC, 인덕터, 수정 진동자 ${c('us9687954')}`, `목적: 균열·칩핑·찍힘 줄이기 ${c('us9687954')}`, `다른 실시예: 클러치 + 별도 모터로 탱크만 자전시켜 먼저 모서리를 둥글게 ${c('us9687954')}`] },
+  { name: '본 연마 (고 G)', en: 'Main polish, high G',
+    desc: '속도를 올리면 칩과 미디어가 탱크 바깥 벽 쪽에 눌린 채 층을 이뤄 미끄러지고, 서로 비벼지며 모서리와 능선이 둥글어집니다. 끝나면 감속해 멈추고 탱크를 꺼냅니다.',
+    equip: [`같은 장치 (터렛·탱크·구동부) ${c('us9687954')}`, `공전 반지름 0.21 m, 3.4 L 육각 탱크 (금속 부품 시험기) ${c('us9283647')}`, `바깥 벽 쪽 내용물 층은 모식 ${G}`],
+    params: [`2단: 1.5–6.0 G, 기울기 0–30° ${c('us9687954')}`, `그린 칩: 3.0–25 G 권장, 예 3 G ${c('jp2010283164a')}`, `약 10 G (일반 설명) ${c('us12103132')}`, `F = 4π²N²R/g; 금속 시험 F 9.4–43.5, 자전/공전 비 n/N −1 ~ −0.07 ${c('us9283647')}`, `시간 약 1–60 min ${c('us11037731')}; 시험 15–960 min ${c('jp2010283164a')}`, `건식 원심: 판·포트 150 rpm 같은 방향, 소성 후 R ≈ 70 µm 목표 ${c('us6367134')}`, 'G 값은 장치·부품·정의가 달라 서로 바로 비교하기 어려움'] },
+  { name: '원심 탈수 · 건조', en: 'Spin dry',
+    desc: `씻은 칩을 다공 바스켓째 건조기에 넣고 돌립니다. 원심력으로 물이 구멍 밖으로 튀어 나가고, 온풍으로 남은 물기를 말립니다. MLCC 특허는 "씻고 말린다"까지만 적고 건조기 종류는 밝히지 않습니다 ${c('us11978592')}.`,
+    equip: [`원심 건조기 (작은 부품용) ${c('rosler-dryers-pfi')}`, `다공 바스켓 + 구동 모터 ${G}`, `히터 + 원심력 방식 ${SN} ${c('tipton-periph-snippet')}`, `하우징·배수구·뚜껑 ${G}`],
+    params: [`작은 부품을 얼룩 없이, 서로 엉키지 않게 말림 ${c('rosler-dryers-pfi')}`, '회전수·온도·시간: 문헌 없음'] },
+  { name: '열풍 건조', en: 'Hot-air dry',
+    desc: '원심 건조 대신, 호이스트로 바스켓을 열풍 건조기에 넣고 히터와 송풍 팬으로 말릴 수도 있습니다. 바스켓은 세척조에서 바로 옮겨 갑니다.',
+    equip: [`열풍 건조기: 히터·송풍 팬·배기 덕트 ${G}`, `열흡인식 건조기 ${SN} ${c('tipton-periph-snippet')}`, `갠트리 호이스트 ${G}`],
+    params: [`세척 후 건조 ${c('us11978592', 'jp2010283164a')}`, '온도·시간은 문헌에 없음'] },
+  { name: '단면 시료 준비', en: 'Cross-section prep',
+    desc: '로트에서 시료 칩을 뽑아 수지에 묻고, 회전 정반에서 갈아 칩 길이 방향 가운데 단면을 드러냅니다. 어디를 재는지는 특허에 있지만 자르고 가는 방법은 없어서, 연마기는 일반적인 단면 연마 장비로 그렸습니다.',
+    equip: [`단면 연마기: 회전 정반 + 시료 홀더 + 급수 ${G}`, `수지 마운트 시료 ${G}`],
+    params: [`측정면: L 방향 가운데에서 자른 W–T 단면 ${c('us11037731')}`, `시료 수: 50개 평균 ${c('us11037731')}`, '절단·연마·관찰 방법은 문헌에 없음'] },
+];
+const NS = STAGES.length;
+// Process order. Barrel type and dryer type are the two documented choices:
+// centrifugal [us9687954][jp2010283164a][us11037731], rotary [us5712758], vibratory [us10020117];
+// centrifugal dryer [rosler-dryers-pfi] vs hot-air (g / snippet).
+const FLOW = [
+  { fork: 'polish', title: '연마 방식', def: 'cent', opts: [
+    { key: 'cent', label: '원심 배럴', steps: [6, 7, 8, 9] },
+    { key: 'rotary', label: '회전 배럴', steps: [0, 1] },
+    { key: 'vib', label: '진동 배럴', steps: [2] },
+  ] },
+  3, 4,
+  { fork: 'dry', title: '건조 방식', def: 'spin', opts: [
+    { key: 'spin', label: '원심 건조', steps: [10] },
+    { key: 'hot', label: '열풍 건조', steps: [11] },
+  ] },
+  12, 5,
+];
+const STAGE_DUR = 10;
+
+/* ------------------------------ renderer ------------------------------ */
+const host = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.82;
+host.appendChild(renderer.domElement);
+
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.setSize(window.innerWidth, window.innerHeight);
+labelRenderer.domElement.className = 'labels';
+host.appendChild(labelRenderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x8e9aa5);
+scene.fog = new THREE.Fog(0x8e9aa5, 45, 115);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
+
+const OVER_P = new THREE.Vector3(1.5, 15, 27), OVER_T = new THREE.Vector3(1.5, 1.2, 0);
+const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 400);
+camera.position.copy(OVER_P);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.copy(OVER_T);
+controls.enableDamping = true;
+controls.maxPolarAngle = Math.PI / 2 - 0.04;
+controls.minDistance = 1.2;
+controls.maxDistance = 70;
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x5b646d, 0.55));
+const sun = new THREE.DirectionalLight(0xfff6ea, 2.4);
+sun.position.set(14, 32, 22);
+sun.castShadow = true;
+sun.shadow.mapSize.set(4096, 4096);
+Object.assign(sun.shadow.camera, { left: -34, right: 34, top: 22, bottom: -22, near: 1, far: 90 });
+sun.shadow.bias = -0.0004;
+sun.shadow.normalBias = 0.03;
+scene.add(sun);
+
+/* ------------------------------ materials ------------------------------ */
+const std = (o) => new THREE.MeshStandardMaterial(o);
+const M = {
+  steel: std({ color: 0xd8dce0, metalness: 1.0, roughness: 0.22 }),
+  steelB: std({ color: 0xbfc5ca, metalness: 0.9, roughness: 0.38 }),
+  steelIn: std({ color: 0x8d949b, metalness: 0.85, roughness: 0.5, side: THREE.BackSide }),
+  dark: std({ color: 0x2c3137, metalness: 0.4, roughness: 0.6 }),
+  motor: std({ color: 0x2c5d8e, metalness: 0.35, roughness: 0.42 }),
+  motorG: std({ color: 0x8b949c, metalness: 0.55, roughness: 0.45 }),
+  paint: std({ color: 0xe4e7ea, metalness: 0.1, roughness: 0.55 }),
+  paintBlue: std({ color: 0x3b6f9e, metalness: 0.2, roughness: 0.5 }),
+  yellow: std({ color: 0xf0b400, metalness: 0.2, roughness: 0.5 }),
+  pump: std({ color: 0x3f7d5a, metalness: 0.3, roughness: 0.45 }),
+  rubber: std({ color: 0x1b1b1b, metalness: 0.0, roughness: 0.85 }),
+  drum: std({ color: 0x2f62b5, metalness: 0.3, roughness: 0.45 }),
+  liner: std({ color: 0x3a3f45, metalness: 0.0, roughness: 0.9, side: THREE.BackSide }),
+  chip: std({ color: 0xb59f78, metalness: 0.05, roughness: 0.55 }),
+  alu: std({ color: 0xf3f1ea, metalness: 0.0, roughness: 0.35 }),
+  wc: std({ color: 0x585d63, metalness: 0.75, roughness: 0.32 }),
+  water: std({ color: 0x9cc9e6, metalness: 0.0, roughness: 0.06, transparent: true, opacity: 0.42, depthWrite: false, side: THREE.DoubleSide }),
+  air: std({ color: 0xdff3ff, emissive: 0x8fd0ff, emissiveIntensity: 0.9, roughness: 0.3 }),
+  bubble: std({ color: 0xffffff, metalness: 0.0, roughness: 0.05, transparent: true, opacity: 0.55 }),
+  glass: std({ color: 0xd8ecf5, metalness: 0.0, roughness: 0.05, transparent: true, opacity: 0.3 }),
+  screen: std({ color: 0x0b1a26, emissive: 0x2a8cd6, emissiveIntensity: 0.6, roughness: 0.3 }),
+  heat: std({ color: 0x40200c, emissive: 0xff6a1a, emissiveIntensity: 0, roughness: 0.5 }),
+  lamp: std({ color: 0xffffff, emissive: 0xf4fbff, emissiveIntensity: 1.2, roughness: 0.3 }),
+};
+// Pipes / casings turn see-through in cutaway mode so the flow is visible.
+const pipeMat = std({ color: 0xd2d7dc, metalness: 0.95, roughness: 0.25, transparent: true, opacity: 0.5, depthWrite: false });
+
+function holeTexture(n, rx = 1, ry = 1) {
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const x = c.getContext('2d');
+  x.fillStyle = '#fff'; x.fillRect(0, 0, 128, 128); x.fillStyle = '#000';
+  const s = 128 / n;
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+    x.beginPath(); x.arc(s * (i + 0.5) + (j % 2 ? s / 2 : 0), s * (j + 0.5), s * 0.3, 0, Math.PI * 2); x.fill();
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rx, ry);
+  return t;
+}
+const perfMat = (rx, ry) => std({ color: 0xcfd4d8, metalness: 0.9, roughness: 0.35, alphaMap: holeTexture(8, rx, ry), alphaTest: 0.5, side: THREE.DoubleSide });
+
+/* ------------------------------ helpers ------------------------------ */
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const CUT_CYL = Math.PI / 4, CUT_SPH = 3 * Math.PI / 4, CUT_TL = 1.5 * Math.PI, FULL = Math.PI * 2;
+const cutParts = [], fullParts = [];
+const rotors = [], levels = [], pipes = [], updaters = [];
+const FY = 0.32; // floor-level pipe height
+const sm = (t) => { t = Math.min(1, Math.max(0, t)); return t * t * (3 - 2 * t); };
+
+function mk(geo, mat, cast = true) { const m = new THREE.Mesh(geo, mat); m.castShadow = cast; m.receiveShadow = true; return m; }
+function put(parent, m, x = 0, y = 0, z = 0) { m.position.set(x, y, z); parent.add(m); return m; }
+const cyl = (r1, r2, h, seg = 32, open = false, ts = 0, tl = FULL) => new THREE.CylinderGeometry(r1, r2, h, seg, 1, open, ts, tl);
+const box = (x, y, z) => new THREE.BoxGeometry(x, y, z);
+const along = (geo, axis) => { if (axis === 'x') geo.rotateZ(-Math.PI / 2); if (axis === 'z') geo.rotateX(Math.PI / 2); return geo; };
+
+// Builds a cutaway variant (front quadrant removed, inner face shaded) and a full variant.
+function pair(parent, geoFn, cutStart, matOut, matIn, pos) {
+  const gc = geoFn(cutStart, CUT_TL);
+  const a = mk(gc, matOut), b = mk(gc, matIn, false), f = mk(geoFn(0, FULL), matOut);
+  for (const m of [a, b, f]) { m.position.copy(pos); parent.add(m); }
+  cutParts.push(a, b); fullParts.push(f);
+}
+function rim(parent, R, tube, y, mat) {
+  const gc = new THREE.TorusGeometry(R, tube, 8, 64, CUT_TL); gc.rotateX(Math.PI / 2); gc.rotateY(5 * Math.PI / 4);
+  const gf = new THREE.TorusGeometry(R, tube, 8, 64); gf.rotateX(Math.PI / 2);
+  const a = put(parent, mk(gc, mat), 0, y, 0), f = put(parent, mk(gf, mat), 0, y, 0);
+  cutParts.push(a); fullParts.push(f);
+}
+// A wall that is glass in cutaway mode and solid otherwise.
+function cutWall(parent, geo, solidMat, x, y, z) {
+  const a = put(parent, mk(geo, M.glass, false), x, y, z), f = put(parent, mk(geo, solidMat), x, y, z);
+  cutParts.push(a); fullParts.push(f);
+}
+function label(text, pos, cls = 'tag', stage = null) {
+  const d = document.createElement('div'); d.className = cls; d.innerHTML = text;
+  if (stage !== null) d.addEventListener('click', () => jumpTo(stage));
+  const o = new CSS2DObject(d); o.position.copy(pos); scene.add(o); return d;
+}
+
+// Merge a group's static direct-child meshes that share a material (and shadow flag) into one mesh
+// each, to cut draw calls. Skips cutaway/full variants, instanced meshes, meshes with children and
+// anything flagged userData.keep (animated transform / visibility).
+function mergeStatic(group) {
+  const buckets = new Map();
+  for (const m of group.children) {
+    if (!m.isMesh || m.isInstancedMesh || m.children.length || m.userData.keep || cutParts.includes(m) || fullParts.includes(m)) continue;
+    const key = m.material.uuid + (m.castShadow ? '|s' : '');
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key).push(m);
+  }
+  for (const list of buckets.values()) {
+    if (list.length < 2) continue;
+    const geos = list.map((m) => { m.updateMatrix(); const g = m.geometry.clone(); g.applyMatrix4(m.matrix); return g; });
+    const merged = mergeGeometries(geos, false);
+    geos.forEach((g) => g.dispose());
+    if (!merged) continue;
+    group.add(mk(merged, list[0].material, list[0].castShadow));
+    for (const m of list) group.remove(m);
+  }
+  return group;
+}
+
+function vMotor(scale = 1) {
+  const g = new THREE.Group();
+  put(g, mk(box(0.5, 0.32, 0.5), M.motorG), 0, 0.16, 0);
+  put(g, mk(cyl(0.2, 0.2, 0.55, 28), M.motor), 0, 0.6, 0);
+  for (let k = 0; k < 18; k++) {
+    const a = k / 18 * FULL, f = mk(box(0.02, 0.5, 0.05), M.motor);
+    f.position.set(Math.cos(a) * 0.215, 0.6, Math.sin(a) * 0.215); f.rotation.y = -a; g.add(f);
+  }
+  put(g, mk(cyl(0.21, 0.21, 0.16, 28), M.motorG), 0, 0.96, 0);
+  put(g, mk(cyl(0.06, 0.06, 0.03, 16), M.dark), 0, 1.05, 0);
+  put(g, mk(box(0.16, 0.14, 0.14), M.motor), 0.26, 0.64, 0);
+  g.scale.setScalar(scale);
+  return mergeStatic(g);
+}
+function hMotor(len = 0.42, r = 0.15) {
+  const g = new THREE.Group();
+  put(g, mk(along(cyl(r, r, len, 24), 'x'), M.motor), 0, 0, 0);
+  for (let k = 0; k < 14; k++) {
+    const a = k / 14 * FULL, f = mk(box(len * 0.9, 0.02, 0.045), M.motor);
+    f.position.set(0, Math.cos(a) * (r + 0.012), Math.sin(a) * (r + 0.012)); f.rotation.x = a; g.add(f);
+  }
+  put(g, mk(along(cyl(r + 0.01, r + 0.01, 0.12, 24), 'x'), M.motorG), len / 2 + 0.06, 0, 0);
+  put(g, mk(box(0.12, 0.12, 0.12), M.motor), 0, r + 0.06, 0);
+  put(g, mk(box(len * 0.7, 0.05, r * 1.6), M.dark), 0, -r - 0.02, 0);
+  return mergeStatic(g);
+}
+
+/* ------------------------------ tank ------------------------------ */
+function makeTank(o) {
+  const { x = 0, z = 0, r = 1, h = 1.8, legH = 1.0, liquidMat = M.water, lvl = null } = o;
+  const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
+  const hd = 0.32 * r, y0 = legH + hd, y1 = y0 + h;
+  pair(g, (s, l) => cyl(r, r, h, 64, true, s, l), CUT_CYL, M.steel, M.steelIn, V(0, y0 + h / 2, 0));
+  pair(g, (s, l) => { const q = new THREE.SphereGeometry(r, 64, 12, s, l, Math.PI / 2, Math.PI / 2); q.scale(1, 0.32, 1); return q; }, CUT_SPH, M.steel, M.steelIn, V(0, y0, 0));
+  pair(g, (s, l) => { const q = new THREE.SphereGeometry(r, 64, 12, s, l, 0, Math.PI / 2); q.scale(1, 0.32, 1); return q; }, CUT_SPH, M.steel, M.steelIn, V(0, y1, 0));
+  rim(g, r + 0.012, 0.03, y1, M.steelB);
+  rim(g, r + 0.01, 0.022, y0, M.steelB);
+  for (let k = 0; k < 4; k++) {
+    const a = Math.PI / 4 + k * Math.PI / 2, lx = Math.cos(a) * r * 1.07, lz = Math.sin(a) * r * 1.07;
+    put(g, mk(cyl(0.05, 0.05, y0 + 0.3, 12), M.steelB), lx, (y0 + 0.3) / 2, lz);
+    put(g, mk(box(0.2, 0.03, 0.2), M.steelB), lx, 0.015, lz);
+  }
+  const hy = y1 + 0.32 * r * Math.sqrt(1 - 0.55 * 0.55);
+  put(g, mk(cyl(0.065, 0.065, 0.28, 16), M.steel), 0.55 * r, hy + 0.12, 0);
+  put(g, mk(cyl(0.12, 0.12, 0.035, 20), M.steelB), 0.55 * r, hy + 0.27, 0);
+  put(g, mk(cyl(0.065, 0.065, 0.2, 16), M.steel), 0, legH - 0.06, 0);
+  put(g, mk(cyl(0.12, 0.12, 0.035, 20), M.steelB), 0, legH - 0.16, 0);
+  put(g, mk(cyl(0.09, 0.09, 0.05, 16), M.glass), -0.3 * r, hy + 0.03, -0.35 * r);
+  const outlet = V(x, legH - 0.18, z);
+  const L = new THREE.Group(); L.position.y = y0; g.add(L);
+  const lr = r * 0.965;
+  put(L, mk(cyl(lr, lr, 1, 64, true, CUT_CYL, CUT_TL), liquidMat, false), 0, 0.5, 0);
+  const cap = put(L, new THREE.Mesh(new THREE.CircleGeometry(lr, 64, -Math.PI / 4, CUT_TL), liquidMat), 0, 1, 0);
+  cap.rotation.x = -Math.PI / 2;
+  for (const th of [CUT_CYL, -CUT_CYL]) {
+    const pl = put(L, new THREE.Mesh(new THREE.PlaneGeometry(lr, 1), liquidMat), lr / 2 * Math.sin(th), 0.5, lr / 2 * Math.cos(th));
+    pl.rotation.y = th - Math.PI / 2;
+  }
+  const lh = new THREE.SphereGeometry(lr, 48, 10, CUT_SPH, CUT_TL, Math.PI / 2, Math.PI / 2); lh.scale(1, 0.32, 1);
+  const headLiq = put(g, new THREE.Mesh(lh, liquidMat), 0, y0, 0);
+  const T = { g, x, z, r, h, y0, y1, legH, outlet, L, headLiq };
+  if (lvl) levels.push({ T, ...lvl });
+  return T;
+}
+
+/* ------------------------------ pipes ------------------------------ */
+function roundedPath(pts, rc = 0.3) {
+  const path = new THREE.CurvePath();
+  let prev = pts[0].clone();
+  for (let i = 1; i < pts.length - 1; i++) {
+    const a = pts[i - 1], p = pts[i], b = pts[i + 1];
+    const din = p.clone().sub(a).normalize(), dout = b.clone().sub(p).normalize();
+    const r = Math.min(rc, p.distanceTo(a) / 2, p.distanceTo(b) / 2);
+    const pA = p.clone().addScaledVector(din, -r), pB = p.clone().addScaledVector(dout, r);
+    if (prev.distanceTo(pA) > 1e-4) path.add(new THREE.LineCurve3(prev.clone(), pA));
+    path.add(new THREE.QuadraticBezierCurve3(pA, p.clone(), pB));
+    prev = pB;
+  }
+  path.add(new THREE.LineCurve3(prev, pts[pts.length - 1].clone()));
+  return path;
+}
+function dedupe(pts) { return pts.filter((p, i) => i === 0 || p.distanceTo(pts[i - 1]) > 1e-3); }
+function flange(pos, dir, r) {
+  const f = mk(cyl(r * 1.9, r * 1.9, 0.045, 20), M.steelB);
+  f.position.copy(pos); f.quaternion.setFromUnitVectors(V(0, 1, 0), dir.clone().normalize()); scene.add(f);
+}
+function valve(pos, r) {
+  put(scene, mk(new THREE.SphereGeometry(r * 1.7, 16, 12), M.steelB), pos.x, pos.y, pos.z);
+  put(scene, mk(cyl(0.02, 0.02, 0.25, 8), M.steelB), pos.x, pos.y + 0.14, pos.z);
+  const hw = put(scene, mk(new THREE.TorusGeometry(0.11, 0.015, 8, 24), M.yellow), pos.x, pos.y + 0.27, pos.z);
+  hw.rotation.x = Math.PI / 2;
+}
+function makePipe(pts, { stages = [], r = 0.06, speed = 1.4, mat = M.air, valveAt = 0.12, reverse = false, when = null } = {}) {
+  pts = dedupe(pts);
+  const path = roundedPath(pts);
+  const len = path.getLength();
+  const tube = mk(new THREE.TubeGeometry(path, Math.max(40, Math.round(len * 14)), r, 12, false), pipeMat, false);
+  scene.add(tube);
+  flange(pts[0], pts[1].clone().sub(pts[0]), r);
+  flange(pts[pts.length - 1], pts[pts.length - 1].clone().sub(pts[pts.length - 2]), r);
+  if (valveAt !== null) valve(path.getPointAt(valveAt), r);
+  const samples = path.getSpacedPoints(Math.max(60, Math.round(len * 30)));
+  const n = Math.max(6, Math.round(len * 3.2));
+  const inst = new THREE.InstancedMesh(new THREE.SphereGeometry(r * 0.75, 10, 8), mat, n);
+  inst.instanceMatrix.setUsage(THREE.DynamicDrawUsage); inst.frustumCulled = false; inst.visible = false;
+  scene.add(inst);
+  const P = { samples, len, inst, n, stages, speed, reverse, when };
+  pipes.push(P);
+  return P;
+}
+function route(a, b, riseX, { lane = null, over = null } = {}) {
+  const ln = lane ?? a.z, topY = over ?? b.y + 0.55;
+  return [a.clone(), V(a.x, FY, a.z), V(a.x, FY, ln), V(riseX, FY, ln), V(riseX, FY, b.z), V(riseX, topY, b.z), V(b.x, topY, b.z), b.clone()];
+}
+function makePump(x, z, rot = Math.PI / 2) {
+  const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = rot; scene.add(g);
+  put(g, mk(box(1.15, 0.07, 0.38), M.dark), 0.42, 0.035, 0);
+  put(g, mk(along(cyl(0.17, 0.17, 0.14, 32), 'x'), M.pump), 0, FY, 0);
+  put(g, mk(box(0.12, FY - 0.1, 0.18), M.pump), 0, (FY - 0.1) / 2 + 0.07, 0);
+  put(g, mk(along(cyl(0.065, 0.065, 0.28, 16), 'x'), M.pump), 0.2, FY, 0);
+  put(g, mk(box(0.2, 0.22, 0.24), M.yellow), 0.42, FY, 0);
+  const m = hMotor(0.44, 0.15); m.position.set(0.76, FY, 0); g.add(m);
+  return mergeStatic(g);
+}
+
+/* ------------------------------ particle sets ------------------------------ */
+// Chips: two instanced meshes (sharp box / rounded box) so a chip can switch from sharp to chamfered.
+// Chip and media sizes are exaggerated so they are visible.
+const _o = new THREE.Object3D();
+function chipSet(parent, n, s = 1) {
+  const W = 0.13 * s, H = 0.05 * s, D = 0.08 * s;
+  const sharp = new THREE.InstancedMesh(new THREE.BoxGeometry(W, H, D), M.chip, n);
+  const round = new THREE.InstancedMesh(new RoundedBoxGeometry(W, H, D, 3, 0.021 * s), M.chip, n);
+  for (const m of [sharp, round]) { m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.frustumCulled = false; m.castShadow = true; parent.add(m); }
+  return {
+    n,
+    at(i, x, y, z, rx, ry, rz, vis, rounded) {
+      _o.position.set(x, y, z); _o.rotation.set(rx, ry, rz);
+      _o.scale.setScalar(vis && !rounded ? 1 : 1e-4); _o.updateMatrix(); sharp.setMatrixAt(i, _o.matrix);
+      _o.scale.setScalar(vis && rounded ? 1 : 1e-4); _o.updateMatrix(); round.setMatrixAt(i, _o.matrix);
+    },
+    done() { sharp.instanceMatrix.needsUpdate = true; round.instanceMatrix.needsUpdate = true; },
+    show(v) { sharp.visible = v; round.visible = v; },
+  };
+}
+function mediaSet(parent, n, r = 0.024) {
+  const h = Math.floor(n / 2);
+  const geo = new THREE.SphereGeometry(r, 8, 6);
+  const a = new THREE.InstancedMesh(geo, M.alu, h), b = new THREE.InstancedMesh(geo, M.wc, n - h);
+  for (const m of [a, b]) { m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.frustumCulled = false; parent.add(m); }
+  return {
+    n,
+    at(i, x, y, z, vis) {
+      _o.position.set(x, y, z); _o.rotation.set(0, 0, 0); _o.scale.setScalar(vis ? 1 : 1e-4); _o.updateMatrix();
+      if (i < h) a.setMatrixAt(i, _o.matrix); else b.setMatrixAt(i - h, _o.matrix);
+    },
+    done() { a.instanceMatrix.needsUpdate = true; b.instanceMatrix.needsUpdate = true; },
+    show(v) { a.visible = v; b.visible = v; },
+  };
+}
+const rnd = (() => { let s = 11; return () => (s = (s * 16807) % 2147483647) / 2147483647; })();
+// Linear keyframe interpolation: keys = [[u, x, y], ...]
+function keyed(keys, u, out) {
+  let k = 0; while (k < keys.length - 2 && u > keys[k + 1][0]) k++;
+  const a = keys[k], b = keys[k + 1], f = Math.min(1, Math.max(0, (u - a[0]) / Math.max(1e-6, b[0] - a[0])));
+  out.x = a[1] + (b[1] - a[1]) * f; out.y = a[2] + (b[2] - a[2]) * f; return out;
+}
+
+/* ------------------------------ building ------------------------------ */
+(function building() {
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const x = c.getContext('2d');
+  x.fillStyle = '#56645e'; x.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 900; i++) { x.fillStyle = `rgba(255,255,255,${Math.random() * 0.035})`; x.fillRect(Math.random() * 256, Math.random() * 256, 2, 2); }
+  x.strokeStyle = 'rgba(40,50,46,.35)'; x.lineWidth = 2; x.strokeRect(0, 0, 256, 256);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(18, 8); t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 8;
+  const floor = mk(new THREE.PlaneGeometry(72, 32), std({ map: t, roughness: 0.62, metalness: 0.0 }), false);
+  floor.rotation.x = -Math.PI / 2; floor.position.x = 1.5; scene.add(floor);
+  for (const zz of [3.6, 5.0]) put(scene, mk(box(60, 0.006, 0.1), M.yellow, false), 1.5, 0.004, zz);
+  put(scene, mk(box(72, 11, 0.3), std({ color: 0xa7afb6, roughness: 0.9 })), 1.5, 5.5, -7.5);
+  for (let i = -3; i <= 3; i++) {
+    put(scene, mk(box(0.5, 11, 0.5), std({ color: 0x5a6b7b, roughness: 0.6, metalness: 0.3 })), 1.5 + i * 11, 5.5, -7.1);
+    put(scene, mk(box(7, 2.0, 0.05), std({ color: 0xe8f1f8, emissive: 0xcfe3f2, emissiveIntensity: 0.55 }), false), 1.5 + i * 11 + 5.5, 7.8, -7.34);
+  }
+  put(scene, mk(box(72, 0.4, 0.4), std({ color: 0x5a6b7b, roughness: 0.6 })), 1.5, 10.6, -7.1);
+})();
+
+/* ================================ STATIONS ================================ */
+/* -- S1 rotary barrel (built first: S0 feeds into it) -- */
+const DRUM_X = -7.5, CY = 1.75, DR = 0.82, DL = 2.0;
+const drumRot = { obj: null, axis: 'x', run: [1], w: 2.2, cur: 0 };
+const drum = (() => {
+  const g = new THREE.Group(); g.position.set(DRUM_X, 0, 0); scene.add(g);
+  put(g, mk(box(4.6, 0.12, 1.8), M.dark), 0.4, 0.06, 0);
+  // A-frame stands + bearing blocks
+  for (const sx of [-1, 1]) {
+    const xs = sx * (DL / 2 + 0.45), hgt = CY - 0.12;
+    for (const sz of [-0.5, 0.5]) {
+      const leg = put(g, mk(box(0.14, Math.hypot(hgt, sz), 0.14), M.paintBlue), xs, 0.12 + hgt / 2, sz / 2);
+      leg.rotation.x = Math.atan2(-sz, hgt);
+    }
+    put(g, mk(box(0.1, 0.08, 0.9), M.paintBlue), xs, 0.7, 0);
+    put(g, mk(box(0.3, 0.24, 0.36), M.steelB), xs, CY, 0);
+    put(g, mk(box(0.38, 0.05, 0.44), M.steelB), xs, CY - 0.14, 0);
+    for (const sz of [-0.13, 0.13]) put(g, mk(cyl(0.025, 0.025, 0.06, 8), M.dark), xs, CY + 0.14, sz);
+  }
+  // static cutaway shell: hexagonal prism with the top-front faces removed
+  const shell = (s, l, seg, r = DR) => along(cyl(r, r, DL, seg, true, s, l), 'x');
+  const ca = put(g, mk(shell(Math.PI / 6, 4 * Math.PI / 3, 4), M.steel), 0, CY, 0);
+  const cb = put(g, mk(shell(Math.PI / 6, 4 * Math.PI / 3, 4, DR * 0.985), M.liner, false), 0, CY, 0);
+  cutParts.push(ca, cb);
+  // rotating parts
+  const rotor = new THREE.Group(); rotor.position.set(0, CY, 0); g.add(rotor);
+  drumRot.obj = rotor; rotors.push(drumRot);
+  const fs = put(rotor, mk(shell(0, FULL, 6), M.steel), 0, 0, 0); fullParts.push(fs);
+  const ap = DR * Math.cos(Math.PI / 6);
+  const hatch = put(rotor, mk(box(0.75, 0.05, 0.5), M.steelB), 0, ap + 0.025, 0); fullParts.push(hatch);
+  for (const sx of [-0.3, 0.3]) { const cl = put(rotor, mk(box(0.08, 0.08, 0.6), M.dark), sx, ap + 0.06, 0); fullParts.push(cl); }
+  for (const sx of [-1, 1]) {
+    put(rotor, mk(along(cyl(DR + 0.07, DR + 0.07, 0.06, 48), 'x'), M.steelB), sx * (DL / 2 + 0.03), 0, 0);
+    for (let k = 0; k < 12; k++) {
+      const a = k / 12 * FULL;
+      put(rotor, mk(along(cyl(0.025, 0.025, 0.05, 8), 'x'), M.dark), sx * (DL / 2 + 0.07), Math.cos(a) * (DR - 0.02), Math.sin(a) * (DR - 0.02));
+    }
+    put(rotor, mk(along(cyl(0.07, 0.07, 0.65, 16), 'x'), M.steel), sx * (DL / 2 + 0.33), 0, 0);
+    put(rotor, mk(along(cyl(0.16, 0.16, 0.08, 6), 'x'), M.steelB), sx * (DL / 2 + 0.1), 0, 0);
+  }
+  // drive: reducer + motor on a pedestal (+x side), coupling guard
+  put(g, mk(box(1.25, CY - 0.27, 0.6), M.paintBlue), 2.3, (CY - 0.27) / 2 + 0.12, 0);
+  put(g, mk(box(0.45, 0.52, 0.5), M.motorG), 1.95, CY, 0);
+  put(g, mk(box(0.22, 0.3, 0.3), M.yellow), 1.68, CY, 0);
+  const hm = hMotor(0.5, 0.17); hm.position.set(2.55, CY, 0); g.add(hm);
+  // safety fence behind the drum
+  for (const xx of [-1.6, 0, 1.6]) put(g, mk(box(0.06, 1.6, 0.06), M.yellow), xx, 0.8, -1.25);
+  put(g, mk(box(3.2, 0.06, 0.06), M.yellow), 0, 1.6, -1.25);
+  const fence = put(g, mk(new THREE.PlaneGeometry(3.2, 1.45), perfMat(10, 5), false), 0, 0.8, -1.25);
+  // control cabinet with HMI
+  put(g, mk(box(0.7, 1.7, 0.45), M.paint), 2.4, 0.85, -1.15);
+  put(g, mk(box(0.5, 0.36, 0.04), M.dark), 2.4, 1.3, -0.91);
+  const c = document.createElement('canvas'); c.width = 256; c.height = 160;
+  const hmiTex = new THREE.CanvasTexture(c); hmiTex.colorSpace = THREE.SRGBColorSpace;
+  put(g, new THREE.Mesh(new THREE.PlaneGeometry(0.44, 0.28), std({ map: hmiTex, emissive: 0xffffff, emissiveMap: hmiTex, emissiveIntensity: 0.9 })), 2.4, 1.3, -0.885);
+  for (const [xx, col] of [[2.25, 0x37c871], [2.4, 0xffb547], [2.55, 0xe2483a]]) put(g, mk(cyl(0.035, 0.035, 0.04, 16), std({ color: col, emissive: col, emissiveIntensity: 0.4 })), xx, 0.95, -0.91).rotation.x = Math.PI / 2;
+  updaters.push((dt, s, p, t) => {
+    if (Math.floor(t * 6) === hmiTex.userData.f) return;
+    hmiTex.userData.f = Math.floor(t * 6);
+    const x = c.getContext('2d'), on = s === 1;
+    x.fillStyle = '#071521'; x.fillRect(0, 0, 256, 160);
+    x.fillStyle = '#7fc7ff'; x.font = 'bold 15px system-ui'; x.fillText('ROTARY BARREL', 12, 24);
+    x.fillStyle = on ? '#ffb547' : '#4b6a80'; x.font = 'bold 13px system-ui'; x.fillText(on ? 'RUN' : s === 0 ? 'LOAD' : 'STOP', 196, 24);
+    x.fillStyle = '#9db0c2'; x.font = '12px system-ui'; x.fillText('문헌 예: 78 rpm, 12 h', 12, 50);
+    const hrs = s === 1 ? p * 12 : s > 1 && ROUTE.polish === 'rotary' ? 12 : 0;
+    x.strokeStyle = '#2b4a60'; x.lineWidth = 10; x.beginPath(); x.moveTo(14, 78); x.lineTo(242, 78); x.stroke();
+    x.strokeStyle = '#ffb547'; x.beginPath(); x.moveTo(14, 78); x.lineTo(14 + 228 * hrs / 12, 78); x.stroke();
+    x.fillStyle = '#e9eef3'; x.font = 'bold 20px system-ui'; x.fillText(`${hrs.toFixed(1)} h / 12 h`, 12, 118);
+    x.fillStyle = '#9db0c2'; x.font = '11px system-ui'; x.fillText('경과 시간은 애니메이션으로 압축', 12, 144);
+    hmiTex.needsUpdate = true;
+  });
+
+  // liquid: circular segment, tilted by the rotation
+  const Rl = DR * 0.84, hY = -DR * 0.3, beta = Math.asin(hY / Rl);
+  const sh = new THREE.Shape();
+  sh.moveTo(Rl * Math.cos(Math.PI - beta), hY);
+  sh.absarc(0, 0, Rl, Math.PI - beta, 2 * Math.PI + beta, false);
+  sh.lineTo(Rl * Math.cos(Math.PI - beta), hY);
+  const lg = new THREE.ExtrudeGeometry(sh, { depth: DL * 0.96, bevelEnabled: false, curveSegments: 32 });
+  lg.translate(0, 0, -DL * 0.48); lg.rotateY(Math.PI / 2);
+  const liq = put(g, new THREE.Mesh(lg, M.water), 0, CY, 0); liq.userData.keep = true;
+
+  // bed of chips + media: each particle rides up the rising wall, then cascades down the free surface
+  const NC = 200, NM = 520;
+  const chips = chipSet(g, NC), media = mediaSet(g, NM, 0.024);
+  const mk1 = (big) => ({ rr: DR * (0.22 + 0.55 * Math.sqrt(rnd())), u: rnd(), x: (rnd() - 0.5) * (DL - 0.3), sp: 0.75 + rnd() * 0.5,
+    rx: rnd() * 6, ry: rnd() * 6, rz: rnd() * 6, j: rnd() * 0.05 });
+  const sc = Array.from({ length: NC }, () => mk1(true)), smd = Array.from({ length: NM }, () => mk1(false));
+  const PA = -0.75, PB = 1.15, RIDE = 0.62;
+  const out = { y: 0, z: 0 };
+  function bed(q) {
+    if (q.u < RIDE) {
+      const ph = PA + (PB - PA) * (q.u / RIDE);
+      out.y = -q.rr * Math.cos(ph); out.z = -q.rr * Math.sin(ph);
+    } else {
+      const k = (q.u - RIDE) / (1 - RIDE);
+      const yb = -q.rr * Math.cos(PB), zb = -q.rr * Math.sin(PB), ya = -q.rr * Math.cos(PA), za = -q.rr * Math.sin(PA);
+      const yc = (ya + yb) / 2 + 0.18, zc = (za + zb) / 2;
+      const a = (1 - k) * (1 - k), b = 2 * (1 - k) * k, cc = k * k;
+      out.y = a * yb + b * yc + cc * ya; out.z = a * zb + b * zc + cc * za;
+    }
+    return out;
+  }
+  updaters.push((dt, s, p) => {
+    const on = s === 0 || s === 1;
+    chips.show(on); media.show(on);
+    liq.visible = (s === 0 && p > 0.3) || s === 1;
+    liq.rotation.x = 0.45 * Math.min(1, drumRot.cur / drumRot.w);
+    if (!on) return;
+    const fill = s === 0 ? sm(p / 0.85) : 1;
+    const adv = drumRot.cur * 0.085;
+    for (let i = 0; i < NC; i++) {
+      const q = sc[i]; q.u = (q.u + dt * adv * q.sp) % 1;
+      q.rx += dt * drumRot.cur * q.sp * 1.4; q.rz += dt * drumRot.cur * 0.9;
+      const b = bed(q);
+      chips.at(i, q.x, CY + b.y + q.j, b.z, q.rx, q.ry, q.rz, i / NC < fill, s === 1 && i / NC < p);
+    }
+    for (let i = 0; i < NM; i++) {
+      const q = smd[i]; q.u = (q.u + dt * adv * q.sp) % 1;
+      const b = bed(q);
+      media.at(i, q.x, CY + b.y + q.j, b.z, i / NM < fill);
+    }
+    chips.done(); media.done();
+  });
+  mergeStatic(g);
+  return { g };
+})();
+
+/* -- S0 charging: two weigh hoppers over an open chute, water tank + pump -- */
+const charge = (() => {
+  const A = V(-13.2, 3.05, 0), B = V(-8.0, CY + DR + 0.3, 0.05);
+  function hopper(x, fillMat) {
+    const g = new THREE.Group(); g.position.set(x, 0, 0); scene.add(g);
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) put(g, mk(box(0.1, 4.05, 0.1), M.yellow), sx * 0.5, 2.02, sz * 0.5);
+    for (const yy of [2.2, 4.0]) {
+      for (const sz of [-1, 1]) put(g, mk(box(1.1, 0.1, 0.1), M.yellow), 0, yy, sz * 0.5);
+      for (const sx of [-1, 1]) put(g, mk(box(0.1, 0.1, 1.1), M.yellow), sx * 0.5, yy, 0);
+    }
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) {      // load cells
+      put(g, mk(cyl(0.05, 0.05, 0.08, 12), M.steelB), sx * 0.36, 4.09, sz * 0.36);
+      put(g, mk(box(0.18, 0.03, 0.06), M.steelB), sx * 0.43, 4.14, sz * 0.36);
+    }
+    put(g, mk(cyl(0.42, 0.42, 0.8, 32), M.steel), 0, 4.55, 0);
+    put(g, mk(cyl(0.42, 0.09, 0.62, 32), M.steel), 0, 3.84, 0);
+    put(g, mk(new THREE.TorusGeometry(0.42, 0.025, 8, 36), M.steelB), 0, 4.95, 0).rotation.x = Math.PI / 2;
+    put(g, mk(cyl(0.44, 0.44, 0.04, 32), M.steelB), 0, 4.97, 0);
+    put(g, mk(box(0.18, 0.18, 0.18), M.steelB), 0, 3.42, 0);            // slide gate
+    put(g, mk(box(0.32, 0.06, 0.08), M.paintBlue), 0.2, 3.42, 0);
+    put(g, mk(box(0.16, 0.12, 0.1), M.motorG), 0.3, 3.85, 0.3);          // vibrator
+    put(g, mk(box(0.24, 0.18, 0.05), M.dark), 0.58, 2.7, 0.0);           // weigh indicator
+    return mergeStatic(g);
+  }
+  hopper(-13.2); hopper(-12.0);
+  // open trough chute
+  const dir = B.clone().sub(A), L = dir.length(); dir.normalize();
+  const sg = new THREE.Group(); sg.position.copy(A); sg.quaternion.setFromUnitVectors(V(1, 0, 0), dir); scene.add(sg);
+  put(sg, mk(box(L, 0.025, 0.36), M.steel), L / 2, 0, 0);
+  for (const sz of [-0.18, 0.18]) put(sg, mk(box(L, 0.15, 0.02), M.steel), L / 2, 0.07, sz);
+  mergeStatic(sg);
+  for (const xx of [-11.2, -10.0]) {
+    const yy = A.y + (xx - A.x) * (B.y - A.y) / (B.x - A.x);
+    put(scene, mk(box(0.08, yy, 0.08), M.steelB), xx, yy / 2, 0);
+    put(scene, mk(box(0.22, 0.03, 0.22), M.steelB), xx, 0.015, 0);
+  }
+  // streams: chips from hopper 1, media from hopper 2, both slide down and drop into the drum
+  const mkPath = (x0) => { const p = new THREE.CurvePath();
+    const yS = A.y + (x0 - A.x) * (B.y - A.y) / (B.x - A.x) + 0.05;
+    p.add(new THREE.LineCurve3(V(x0, 3.4, 0), V(x0, yS, 0)));
+    p.add(new THREE.LineCurve3(V(x0, yS, 0), V(B.x, B.y + 0.05, B.z)));
+    p.add(new THREE.LineCurve3(V(B.x, B.y + 0.05, B.z), V(B.x + 0.3, CY - 0.25, 0.05)));
+    return p.getSpacedPoints(160); };
+  const pc = mkPath(-13.2), pm = mkPath(-12.0);
+  const chips = chipSet(scene, 70), media = mediaSet(scene, 180, 0.026);
+  const sd = (n) => Array.from({ length: n }, () => ({ u: rnd(), z: (rnd() - 0.5) * 0.24, y: rnd() * 0.05, r: rnd() * 6 }));
+  const sc = sd(70), smd = sd(180);
+  const tmp = new THREE.Vector3();
+  const along160 = (pts, u) => { const f = u * (pts.length - 1), k = Math.floor(f); return tmp.lerpVectors(pts[k], pts[Math.min(pts.length - 1, k + 1)], f - k); };
+  updaters.push((dt, s, p, t) => {
+    const on = s === 0 && p > 0.04 && p < 0.86;
+    chips.show(on); media.show(on);
+    if (!on) return;
+    for (let i = 0; i < 70; i++) {
+      const q = sc[i], u = (q.u + t * 0.22) % 1, v = along160(pc, u);
+      chips.at(i, v.x, v.y + q.y, v.z + q.z * (u > 0.08 ? 1 : 0.3), q.r + t * 3, q.r, 0, true, false);
+    }
+    for (let i = 0; i < 180; i++) {
+      const q = smd[i], u = (q.u + t * 0.26) % 1, v = along160(pm, u);
+      media.at(i, v.x, v.y + q.y, v.z + q.z * (u > 0.08 ? 1 : 0.3), true);
+    }
+    chips.done(); media.done();
+  });
+  // water tank + pump + line into the drum
+  const tank = makeTank({ x: -13.6, z: 2.4, r: 0.5, h: 0.9, legH: 0.7, lvl: { fill: 4, drain: 0, lo: 0.2, hi: 0.78, route: 'rotary' } });
+  makePump(-11.6, 2.4);
+  makePipe(route(tank.outlet, V(-7.0, CY + DR + 0.25, 0.3), -9.3, { over: 3.55 }), { stages: [0], r: 0.045, speed: 1.6 });
+  return { tank };
+})();
+
+/* -- S2 vibratory barrel (alternative) -- */
+class Spring extends THREE.Curve {
+  constructor(h = 0.4, r = 0.07, turns = 6) { super(); this.h = h; this.r = r; this.turns = turns; }
+  getPoint(t, tgt = new THREE.Vector3()) { const a = FULL * this.turns * t; return tgt.set(this.r * Math.cos(a), this.h * t, this.r * Math.sin(a)); }
+}
+const vibRot = { obj: null, axis: 'y', run: [2], w: 22, cur: 0 };
+const vib = (() => {
+  const X = -1.5;
+  const g = new THREE.Group(); g.position.set(X, 0, 0); scene.add(g);
+  put(g, mk(cyl(1.12, 1.12, 0.04, 48), M.dark), 0, 0.02, 0);
+  put(g, mk(cyl(1.0, 1.08, 0.36, 48), M.paintBlue), 0, 0.22, 0);
+  const sgeo = new THREE.TubeGeometry(new Spring(0.4, 0.07, 6), 140, 0.016, 6, false);
+  for (let k = 0; k < 10; k++) {
+    const a = k / 10 * FULL;
+    put(g, mk(sgeo, M.steelB), 0.84 * Math.sin(a), 0.4, 0.84 * Math.cos(a));
+    put(g, mk(cyl(0.1, 0.1, 0.03, 16), M.dark), 0.84 * Math.sin(a), 0.41, 0.84 * Math.cos(a));
+  }
+  // vibrating assembly
+  const bowl = new THREE.Group(); g.add(bowl);
+  const RC = 0.66, RH = 0.34, YC = 1.15;
+  const prof = [V(0.32, 1.52, 0)];
+  for (let k = 0; k <= 20; k++) { const a = Math.PI + k / 20 * Math.PI; prof.push(new THREE.Vector2(RC + RH * Math.cos(a), YC + RH * Math.sin(a))); }
+  prof.push(new THREE.Vector2(1.0, 1.52));
+  const pts = prof.map((v) => new THREE.Vector2(v.x, v.y));
+  pair(bowl, (s, l) => new THREE.LatheGeometry(pts, 64, s, l), CUT_CYL, M.steel, M.steelIn, V(0, 0, 0));
+  rim(bowl, 1.0, 0.03, 1.52, M.steelB);
+  rim(bowl, 0.32, 0.025, 1.52, M.steelB);
+  put(bowl, mk(new THREE.SphereGeometry(0.32, 32, 8, 0, FULL, 0, Math.PI / 2), M.steelB), 0, 1.52, 0).scale.y = 0.35;
+  put(bowl, mk(cyl(0.98, 0.98, 0.06, 48), M.steelB), 0, 0.78, 0);
+  // discharge gate on the outer wall
+  put(bowl, mk(box(0.3, 0.32, 0.12), M.steelB), 1.02, 1.2, 0).rotation.y = Math.PI / 2;
+  put(bowl, mk(box(0.06, 0.06, 0.3), M.yellow), 1.1, 1.42, 0);
+  // vibration sensor on the rim (acceleration / laser displacement → motor controller) [us10957489]
+  put(bowl, mk(box(0.1, 0.08, 0.1), M.yellow), -0.72, 1.57, -0.72);
+  put(bowl, mk(cyl(0.012, 0.012, 0.5, 6), M.dark), -0.72, 1.36, -0.82);
+  // vertical motor with eccentric weights (top and bottom)
+  put(bowl, mk(cyl(0.17, 0.17, 0.32, 24), M.motor), 0, 0.58, 0);
+  const ecc = new THREE.Group(); bowl.add(ecc); vibRot.obj = ecc; rotors.push(vibRot);
+  for (const yy of [0.45, 0.72]) put(ecc, mk(cyl(0.23, 0.23, 0.05, 24, false, 0, Math.PI), M.yellow), 0, yy, 0);
+  // liquid surface (annulus), cut / full variants
+  const liqG = new THREE.Group(); bowl.add(liqG);
+  const mkRing = (ts, tl) => { const r = new THREE.RingGeometry(0.34, 0.97, 64, 1, ts, tl); r.rotateX(-Math.PI / 2); return r; };
+  const lc = put(liqG, new THREE.Mesh(mkRing(CUT_CYL - Math.PI / 2, CUT_TL), M.water), 0, 1.12, 0);
+  const lf = put(liqG, new THREE.Mesh(mkRing(0, FULL), M.water), 0, 1.12, 0);
+  cutParts.push(lc); fullParts.push(lf);
+  // contents: precess around the ring while rolling in the trough cross-section
+  const NC = 200, NM = 420;
+  const chips = chipSet(bowl, NC), media = mediaSet(bowl, NM, 0.024);
+  const sd = (n) => Array.from({ length: n }, () => ({ phi: rnd() * FULL, psi: rnd() * FULL, rho: 0.04 + 0.23 * Math.sqrt(rnd()), sp: 0.7 + rnd() * 0.6, r: rnd() * 6 }));
+  const sc = sd(NC), smd = sd(NM);
+  const pos = (q) => { const rr = RC + q.rho * Math.cos(q.psi), yy = 0.99 + 0.6 * q.rho * Math.sin(q.psi);
+    return [rr * Math.sin(q.phi), yy, rr * Math.cos(q.phi)]; };
+  updaters.push((dt, s, p, t) => {
+    const on = s === 2, k = Math.min(1, vibRot.cur / vibRot.w);
+    bowl.position.y = 0.012 * Math.sin(t * 47) * k;
+    bowl.position.x = 0.008 * Math.sin(t * 47 + 1.3) * k;
+    bowl.rotation.y = 0.012 * Math.sin(t * 47 + 0.6) * k;
+    chips.show(on); media.show(on); liqG.visible = on;
+    if (!on) return;
+    for (let i = 0; i < NC; i++) {
+      const q = sc[i]; q.phi += dt * k * 0.32 * q.sp; q.psi -= dt * k * 1.6 * q.sp; q.r += dt * k * 2;
+      const [x, y, z] = pos(q);
+      chips.at(i, x, y, z, q.r, q.r * 0.7, q.r * 0.3, true, i / NC < p);
+    }
+    for (let i = 0; i < NM; i++) {
+      const q = smd[i]; q.phi += dt * k * 0.32 * q.sp; q.psi -= dt * k * 1.6 * q.sp;
+      const [x, y, z] = pos(q);
+      media.at(i, x, y, z, true);
+    }
+    chips.done(); media.done();
+  });
+  // small control box on a post
+  put(g, mk(box(0.06, 1.2, 0.06), M.steelB), 1.4, 0.6, -0.9);
+  put(g, mk(box(0.4, 0.5, 0.22), M.paint), 1.4, 1.35, -0.9);
+  put(g, mk(new THREE.PlaneGeometry(0.26, 0.14), M.screen, false), 1.4, 1.45, -0.785);
+  mergeStatic(g);
+  return { bowl };
+})();
+
+/* -- S3 vibrating screen media separator -- */
+const SIEVE_X = 4.5;
+const sieve = (() => {
+  const g = new THREE.Group(); g.position.set(SIEVE_X, 0, 0); scene.add(g);
+  put(g, mk(box(3.2, 0.1, 1.5), M.dark), 0, 0.05, 0);
+  const DY = 1.35, TILT = 0.09;
+  const deckY = (xl) => DY + 0.035 - Math.sin(TILT) * xl;
+  // posts with spring mounts
+  const sgeo = new THREE.TubeGeometry(new Spring(0.22, 0.06, 5), 100, 0.014, 6, false);
+  for (const sx of [-1.05, 1.05]) for (const sz of [-0.62, 0.62]) {
+    const top = deckY(sx) - 0.42;
+    put(g, mk(box(0.14, top, 0.14), M.paintBlue), sx, top / 2, sz);
+    put(g, mk(box(0.22, 0.03, 0.22), M.steelB), sx, top + 0.01, sz);
+    put(g, mk(sgeo, M.steelB), sx, top + 0.02, sz);
+  }
+  // vibrating deck
+  const deck = new THREE.Group(); deck.position.set(0, DY, 0); deck.rotation.z = -TILT; g.add(deck);
+  const scr = put(deck, mk(new THREE.PlaneGeometry(2.4, 1.0), perfMat(14, 6), false), 0, 0.03, 0); scr.rotation.x = -Math.PI / 2;
+  for (const sz of [-0.53, 0.53]) put(deck, mk(box(2.5, 0.28, 0.04), M.steelB), 0, 0.12, sz);
+  put(deck, mk(box(0.04, 0.28, 1.1), M.steelB), -1.23, 0.12, 0);
+  for (const xx of [-0.6, 0, 0.6]) put(deck, mk(box(0.04, 0.04, 1.06), M.steelB), xx, 0.0, 0);
+  put(deck, mk(box(2.5, 0.06, 0.06), M.steelB), 0, -0.14, -0.55);
+  put(deck, mk(box(2.5, 0.06, 0.06), M.steelB), 0, -0.14, 0.55);
+  for (const sz of [-0.68, 0.68]) { const m = hMotor(0.4, 0.13); m.position.set(0, 0.0, sz); deck.add(m); }
+  // chip discharge lip
+  put(deck, mk(box(0.5, 0.025, 1.0), M.steel), 1.42, -0.02, 0).rotation.z = -0.45;
+  // fixed under-pan funnel + media bin
+  const fg = cyl(1.2, 0.16, 0.42, 4, true); fg.rotateY(Math.PI / 4); fg.scale(1, 1, 0.62);
+  put(g, mk(fg, M.steelB), 0, 0.93, 0);
+  put(g, mk(cyl(0.42, 0.42, 0.55, 28, true), M.drum), 0, 0.31, 0);
+  put(g, mk(cyl(0.42, 0.42, 0.03, 28), M.drum), 0, 0.05, 0);
+  put(g, mk(new THREE.TorusGeometry(0.42, 0.02, 8, 32), M.drum), 0, 0.58, 0).rotation.x = Math.PI / 2;
+  const mediaPile = put(g, mk(cyl(0.38, 0.38, 1, 28), M.wc), 0, 0.1, 0); mediaPile.userData.keep = true;
+  // chip basket at the deck end
+  const BX = 2.05;
+  const bk = new THREE.Group(); bk.position.set(BX, 0.35, 0); g.add(bk);
+  const pm = perfMat(4, 3);
+  for (const sz of [-0.35, 0.35]) put(bk, mk(new THREE.PlaneGeometry(0.7, 0.6), pm, false), 0, 0, sz);
+  for (const sx of [-0.35, 0.35]) put(bk, mk(new THREE.PlaneGeometry(0.7, 0.6), pm, false), sx, 0, 0).rotation.y = Math.PI / 2;
+  put(bk, mk(box(0.72, 0.03, 0.72), M.steelB), 0, -0.3, 0);
+  for (const sx of [-0.35, 0.35]) for (const sz of [-0.35, 0.35]) put(bk, mk(box(0.025, 0.62, 0.025), M.steelB), sx, 0, sz);
+  const chipPile = put(bk, mk(box(0.66, 1, 0.66), M.chip), 0, -0.28, 0);
+  // spray bar on a portal
+  for (const sx of [-1.35, 1.35]) {
+    put(g, mk(box(0.08, 2.2, 0.08), M.steelB), sx, 1.1, -0.85);
+    put(g, mk(box(0.08, 0.08, 0.9), M.steelB), sx, 2.18, -0.42);
+  }
+  put(g, mk(along(cyl(0.035, 0.035, 2.75, 12), 'x'), M.steel), 0, 2.12, 0);
+  const NOZ = [-0.9, -0.45, 0, 0.45, 0.9];
+  for (const nx of NOZ) put(g, mk(cyl(0.025, 0.012, 0.08, 10), M.steelB), nx, 2.06, 0);
+  makePipe([V(SIEVE_X + 1.9, FY, -2.0), V(SIEVE_X + 1.9, 2.12, -2.0), V(SIEVE_X + 1.9, 2.12, 0), V(SIEVE_X + 1.38, 2.12, 0)], { stages: [3], r: 0.04, speed: 1.8 });
+  // tilting feed tote (barrel discharge)
+  for (const sz of [-0.5, 0.5]) put(g, mk(box(0.1, 2.15, 0.1), M.yellow), -1.55, 1.07, sz);
+  put(g, mk(box(0.1, 0.1, 1.1), M.yellow), -1.55, 2.12, 0);
+  put(g, mk(box(0.25, 0.25, 0.22), M.motorG), -1.55, 2.12, 0.62);
+  const tote = new THREE.Group(); tote.position.set(-1.3, 2.05, 0); g.add(tote);
+  const TW = 0.6, TH = 0.5;
+  put(tote, mk(box(TW, 0.03, 0.62), M.steel), -TW / 2, -TH, 0);
+  for (const sz of [-0.31, 0.31]) put(tote, mk(box(TW, TH, 0.03), M.steel), -TW / 2, -TH / 2, sz);
+  for (const sx of [0, -TW]) put(tote, mk(box(0.03, TH, 0.62), M.steel), sx, -TH / 2, 0);
+  const toteLoad = put(tote, mk(box(TW - 0.06, 0.3, 0.56), M.chip), -TW / 2, -TH + 0.17, 0);
+  // particles: chips ride the deck into the basket; media fall through into the bin; water drops from nozzles
+  const NC = 150, NM = 260, NW = 90;
+  const chips = chipSet(g, NC), media = mediaSet(g, NM, 0.026);
+  const drops = new THREE.InstancedMesh(new THREE.SphereGeometry(0.018, 6, 5), M.air, NW);
+  drops.instanceMatrix.setUsage(THREE.DynamicDrawUsage); drops.frustumCulled = false; g.add(drops);
+  const sc = Array.from({ length: NC }, () => ({ u: rnd(), z: (rnd() - 0.5) * 0.85, r: rnd() * 6 }));
+  const smd = Array.from({ length: NM }, () => ({ u: rnd(), z: (rnd() - 0.5) * 0.85, xd: -0.95 + rnd() * 1.4, k: rnd() }));
+  const sw = Array.from({ length: NW }, () => ({ u: rnd(), n: Math.floor(rnd() * NOZ.length), dx: (rnd() - 0.5) * 0.3, dz: (rnd() - 0.5) * 0.5 }));
+  const P0x = -1.25, P0y = 1.95;
+  const chipKeys = [[0, P0x, P0y], [0.12, -1.0, deckY(-1.0)], [0.74, 1.15, deckY(1.15)], [0.84, 1.55, 1.1], [1, BX, 0.4]];
+  const o2 = { x: 0, y: 0 };
+  const tilt = (p) => p < 0.04 ? 0 : p < 0.18 ? sm((p - 0.04) / 0.14) : p < 0.8 ? 1 : sm(1 - (p - 0.8) / 0.14);
+  updaters.push((dt, s, p, t) => {
+    const on = s === 3, a = on ? tilt(p) : 0;
+    tote.rotation.z = -1.95 * a;
+    toteLoad.scale.y = on ? Math.max(0.05, 1 - Math.max(0, (p - 0.18) / 0.62)) : 1;
+    toteLoad.visible = ![4, 5, 10, 11, 12].includes(s);
+    deck.position.y = DY + (on ? 0.008 * Math.sin(t * 52) : 0);
+    const pile = s === 3 ? sm((p - 0.25) / 0.6) : s > 3 ? 1 : 0;
+    chipPile.scale.y = Math.max(0.001, pile * 0.32); chipPile.position.y = -0.28 + pile * 0.16; chipPile.visible = pile > 0.01 && s === 3;
+    mediaPile.scale.y = Math.max(0.001, pile * 0.3); mediaPile.position.y = 0.06 + pile * 0.15; mediaPile.visible = pile > 0.01 && s === 3;
+    const flow = on && p > 0.17 && p < 0.84;
+    chips.show(flow); media.show(flow); drops.visible = on;
+    if (on) {
+      for (let i = 0; i < NW; i++) {
+        const q = sw[i], u = (q.u + t * 1.3) % 1, nx = NOZ[q.n] + q.dx * u;
+        _o.position.set(nx, 2.03 - (2.03 - deckY(nx) - 0.03) * u, q.dz * u); _o.rotation.set(0, 0, 0); _o.scale.setScalar(1); _o.updateMatrix();
+        drops.setMatrixAt(i, _o.matrix);
+      }
+      drops.instanceMatrix.needsUpdate = true;
+    }
+    if (!flow) return;
+    const jig = 0.012 * Math.abs(Math.sin(t * 52));
+    for (let i = 0; i < NC; i++) {
+      const q = sc[i], u = (q.u + t * 0.16) % 1;
+      keyed(chipKeys, u, o2);
+      const zf = u < 0.12 ? u / 0.12 : u > 0.84 ? 0.4 : 1;
+      chips.at(i, o2.x, o2.y + (u > 0.12 && u < 0.74 ? jig : 0), q.z * zf * 0.9, q.r + t * (u < 0.74 ? 4 : 1), q.r, 0, true, true);
+    }
+    for (let i = 0; i < NM; i++) {
+      const q = smd[i], u = (q.u + t * 0.2) % 1;
+      const keys = [[0, P0x, P0y], [0.12, -1.0, deckY(-1.0)], [0.12 + 0.3 * q.k + 0.05, q.xd, deckY(q.xd) - 0.02], [0.78, q.xd * 0.35, 0.9], [1, q.xd * 0.1, 0.45]];
+      keyed(keys, u, o2);
+      const zf = u < 0.12 ? u / 0.12 : u > 0.6 ? 0.45 * (1 - (u - 0.6)) : 1;
+      media.at(i, o2.x, o2.y + (u > 0.12 && u < 0.5 ? jig : 0), q.z * zf, true);
+    }
+    chips.done(); media.done();
+  });
+  toteLoad.userData.keep = true; chipPile.userData.keep = true;
+  [g, deck, tote, bk].forEach(mergeStatic);
+  return {};
+})();
+
+/* -- S4 wash tank + gantry hoist + hot-air dryer -- */
+const WASH_X = 10.5;
+const wash = (() => {
+  const g = new THREE.Group(); g.position.set(WASH_X, 0, 0); scene.add(g);
+  const TX = -0.95, DXr = 1.0;
+  // wash tank (front wall see-through in cutaway)
+  for (const sx of [-0.6, 0.6]) for (const sz of [-0.45, 0.45]) put(g, mk(box(0.08, 0.6, 0.08), M.steelB), TX + sx, 0.3, sz);
+  put(g, mk(box(1.34, 0.05, 1.04), M.steel), TX, 0.62, 0);
+  put(g, mk(box(1.34, 0.85, 0.04), M.steel), TX, 1.03, -0.5);
+  for (const sx of [-0.65, 0.65]) put(g, mk(box(0.04, 0.85, 1.04), M.steel), TX + sx, 1.03, 0);
+  cutWall(g, box(1.34, 0.85, 0.04), M.steel, TX, 1.03, 0.5);
+  put(g, mk(box(1.4, 0.04, 0.08), M.steelB), TX, 1.46, 0.5);
+  put(g, mk(box(1.4, 0.04, 0.08), M.steelB), TX, 1.46, -0.5);
+  put(g, mk(box(1.24, 0.66, 0.94), M.water, false), TX, 0.97, 0);
+  put(g, mk(box(0.25, 0.15, 0.2), M.steelB), TX + 0.75, 1.3, -0.2);   // overflow weir box
+  valve(V(WASH_X + TX - 0.3, 0.5, 0.58), 0.04);
+  makePipe([V(WASH_X - 2.3, FY, -1.6), V(WASH_X - 2.3, 1.75, -1.6), V(WASH_X - 2.3, 1.75, -0.3), V(WASH_X + TX - 0.45, 1.75, -0.3), V(WASH_X + TX - 0.45, 1.42, -0.3)], { stages: [4], r: 0.04, speed: 1.6 });
+  // dryer cabinet with open top, lid, heaters, fan
+  const DB = 0.12, DH = 1.3;
+  put(g, mk(box(1.2, 0.06, 1.0), M.paint), DXr, DB, 0);
+  put(g, mk(box(1.2, DH, 0.05), M.paint), DXr, DB + DH / 2, -0.48);
+  for (const sx of [-0.58, 0.58]) put(g, mk(box(0.05, DH, 1.0), M.paint), DXr + sx, DB + DH / 2, 0);
+  cutWall(g, box(1.2, DH, 0.05), M.paint, DXr, DB + DH / 2, 0.48);
+  put(g, mk(box(1.1, 0.03, 0.9), perfMat(8, 6), false), DXr, 0.5, 0);           // rack
+  const heaters = [];
+  for (let k = 0; k < 4; k++) heaters.push(put(g, mk(along(cyl(0.025, 0.025, 1.05, 10), 'x'), M.heat), DXr, 0.3, -0.33 + k * 0.22));
+  const glow = new THREE.PointLight(0xff7a2a, 0, 3.2); glow.position.set(DXr, 0.8, 0); g.add(glow);
+  const lid = new THREE.Group(); lid.position.set(DXr, DB + DH, -0.5); g.add(lid);
+  put(lid, mk(box(1.22, 0.06, 1.02), M.paint), 0, 0.03, 0.51);
+  put(lid, mk(box(0.3, 0.04, 0.05), M.dark), 0, 0.07, 0.95);
+  // side fan housing
+  put(g, mk(box(0.3, 0.6, 0.6), M.paint), DXr + 0.75, 0.9, 0);
+  const fan = new THREE.Group(); fan.position.set(DXr + 0.91, 0.9, 0); g.add(fan);
+  for (let k = 0; k < 5; k++) { const a = k / 5 * FULL, b = put(fan, mk(box(0.02, 0.22, 0.07), M.dark), 0, Math.cos(a) * 0.11, Math.sin(a) * 0.11); b.rotation.x = -a; }
+  put(g, mk(new THREE.TorusGeometry(0.25, 0.015, 8, 32), M.steelB), DXr + 0.92, 0.9, 0).rotation.set(0, Math.PI / 2, 0);
+  rotors.push({ obj: fan, axis: 'x', run: [11], w: 18, cur: 0 });
+  put(g, mk(cyl(0.12, 0.12, 1.4, 20), M.steelB), DXr + 0.4, DB + DH + 0.7, -0.38);   // exhaust duct
+  put(g, mk(box(0.32, 0.4, 0.12), M.dark), DXr - 0.35, 1.0, 0.56);                  // control box
+  const lampG = std({ color: 0x37c871, emissive: 0x37c871, emissiveIntensity: 0 });
+  put(g, mk(cyl(0.035, 0.035, 0.04, 16), lampG), DXr - 0.35, 1.12, 0.63).rotation.x = Math.PI / 2;
+  // gantry hoist
+  for (const sx of [-1.85, 1.85]) {
+    for (const sz of [-0.8, 0.8]) put(g, mk(box(0.12, 3.3, 0.12), M.yellow), sx, 1.65, sz);
+    put(g, mk(box(0.12, 0.14, 1.72), M.yellow), sx, 3.3, 0);
+  }
+  put(g, mk(box(3.85, 0.04, 0.24), M.yellow), 0, 3.42, 0);
+  put(g, mk(box(3.85, 0.04, 0.24), M.yellow), 0, 3.18, 0);
+  put(g, mk(box(3.85, 0.24, 0.03), M.yellow), 0, 3.3, 0);
+  const trolley = new THREE.Group(); g.add(trolley);
+  put(trolley, mk(box(0.36, 0.22, 0.34), M.paintBlue), 0, 3.04, 0);
+  const tm = hMotor(0.28, 0.08); tm.position.set(0, 3.04, 0.26); trolley.add(tm);
+  const cable = put(trolley, mk(cyl(0.012, 0.012, 1, 6), M.dark), 0, 2.5, 0);
+  const basket = new THREE.Group(); g.add(basket);
+  const pm = perfMat(4, 3);
+  for (const sz of [-0.25, 0.25]) put(basket, mk(new THREE.PlaneGeometry(0.6, 0.45), pm, false), 0, 0, sz);
+  for (const sx of [-0.3, 0.3]) put(basket, mk(new THREE.PlaneGeometry(0.5, 0.45), pm, false), sx, 0, 0).rotation.y = Math.PI / 2;
+  put(basket, mk(box(0.62, 0.03, 0.52), M.steelB), 0, -0.225, 0);
+  for (const sx of [-0.3, 0.3]) for (const sz of [-0.25, 0.25]) put(basket, mk(box(0.02, 0.47, 0.02), M.steelB), sx, 0, sz);
+  const bail = put(basket, mk(new THREE.TorusGeometry(0.3, 0.012, 6, 24, Math.PI), M.steelB), 0, 0.225, 0);
+  put(basket, mk(box(0.56, 0.14, 0.46), M.chip), 0, -0.14, 0);
+  const UPY = 2.35, DIPY = 0.95, DRYY = 0.8;
+  // bubbles while dipping
+  const NB = 40, bub = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 8, 6), M.bubble, NB);
+  bub.instanceMatrix.setUsage(THREE.DynamicDrawUsage); bub.frustumCulled = false; g.add(bub);
+  const sb = Array.from({ length: NB }, () => ({ x: (rnd() - 0.5) * 1.1, z: (rnd() - 0.5) * 0.8, y: rnd(), s: 0.012 + rnd() * 0.02, v: 0.5 + rnd() }));
+  updaters.push((dt, s, p, t) => {
+    let bx = TX, by = UPY, lidA = 0, heat = 0;
+    if (s === 4) {            // wash: lower, agitate up and down, lift and drip
+      if (p < 0.06) by = UPY;
+      else if (p < 0.16) by = UPY + (DIPY - UPY) * sm((p - 0.06) / 0.1);
+      else if (p < 0.74) by = DIPY + 0.12 * Math.abs(Math.sin((p - 0.16) * 40));
+      else if (p < 0.86) by = DIPY + (UPY - DIPY) * sm((p - 0.74) / 0.12);
+    } else if (s === 11) {    // hot-air dry: carry basket to the cabinet, close lid, heat
+      if (p < 0.16) bx = TX + (DXr - TX) * sm(p / 0.16);
+      else if (p < 0.28) { bx = DXr; by = UPY + (DRYY - UPY) * sm((p - 0.16) / 0.12); }
+      else { bx = DXr; by = DRYY; }
+      lidA = p < 0.05 ? sm(p / 0.05) : p < 0.28 ? 1 : p < 0.36 ? 1 - sm((p - 0.28) / 0.08) : p < 0.9 ? 0 : sm((p - 0.9) / 0.08);
+      heat = p > 0.36 && p < 0.92 ? sm((p - 0.36) / 0.08) : 0;
+    }
+    basket.position.set(bx, by, 0);
+    trolley.position.x = bx;
+    const top = by + 0.225 + 0.3, len = 2.93 - top;
+    cable.scale.y = Math.max(0.01, len); cable.position.y = top + len / 2;
+    lid.rotation.x = -1.9 * lidA;
+    for (const h of heaters) h.material.emissiveIntensity = heat * 2.2;
+    glow.intensity = heat * 5;
+    lampG.emissiveIntensity = heat > 0 ? 1.2 : 0.1;
+    const bon = s === 4 && p > 0.15 && p < 0.76;
+    bub.visible = bon;
+    if (bon) {
+      for (let i = 0; i < NB; i++) {
+        const q = sb[i]; q.y = (q.y + dt * q.v * 0.6) % 1;
+        _o.position.set(TX + q.x, 0.66 + q.y * 0.62, q.z); _o.rotation.set(0, 0, 0); _o.scale.setScalar(q.s); _o.updateMatrix(); bub.setMatrixAt(i, _o.matrix);
+      }
+      bub.instanceMatrix.needsUpdate = true;
+    }
+  });
+  cable.userData.keep = true;
+  [g, lid, trolley, basket].forEach(mergeStatic);
+  return {};
+})();
+
+/* -- S5 inspection bench: measuring microscope + monitor -- */
+const INS_X = 16;
+const insp = (() => {
+  const g = new THREE.Group(); g.position.set(INS_X, 0, 0); scene.add(g);
+  put(g, mk(box(2.0, 0.05, 0.9), std({ color: 0x31373e, roughness: 0.4 })), 0, 0.9, 0);
+  for (const sx of [-0.92, 0.92]) for (const sz of [-0.38, 0.38]) put(g, mk(box(0.05, 0.88, 0.05), M.steelB), sx, 0.44, sz);
+  put(g, mk(box(0.25, 0.5, 0.5), M.dark), 0.7, 0.26, 0);   // PC
+  // microscope
+  const MX = -0.4, TY = 0.925;
+  put(g, mk(box(0.42, 0.07, 0.46), M.paint), MX, TY + 0.035, -0.02);
+  put(g, mk(cyl(0.045, 0.045, 0.62, 16), M.paint), MX, TY + 0.38, -0.18);
+  put(g, mk(box(0.12, 0.14, 0.24), M.paint), MX, TY + 0.62, -0.1);
+  const head = new THREE.Group(); head.position.set(MX, TY + 0.66, 0.02); g.add(head);
+  put(head, mk(box(0.16, 0.12, 0.16), M.paint), 0, 0, 0);
+  for (const sx of [-0.035, 0.035]) {
+    const ep = put(head, mk(cyl(0.022, 0.022, 0.16, 16), M.dark), sx, 0.1, 0.07); ep.rotation.x = 0.6;
+  }
+  put(head, mk(cyl(0.035, 0.03, 0.14, 16), M.steelB), 0, -0.13, 0);   // objective
+  put(head, mk(new THREE.TorusGeometry(0.045, 0.012, 8, 24), M.lamp), 0, -0.21, 0).rotation.x = Math.PI / 2;
+  put(head, mk(cyl(0.02, 0.02, 0.12, 10), M.dark), 0.02, 0.12, -0.08);   // camera port
+  for (const sx of [-1, 1]) put(g, mk(along(cyl(0.035, 0.035, 0.03, 16), 'x'), M.dark), MX + sx * 0.08, TY + 0.5, -0.12);
+  const stage = new THREE.Group(); stage.position.set(MX, TY + 0.1, 0.03); g.add(stage);
+  put(stage, mk(box(0.26, 0.03, 0.22), M.steelB), 0, 0, 0);
+  put(stage, mk(box(0.14, 0.008, 0.1), M.rubber), 0, 0.019, 0);
+  const tiny = chipSet(stage, 12, 0.22);
+  for (let i = 0; i < 12; i++) tiny.at(i, -0.05 + (i % 4) * 0.033, 0.027, -0.03 + Math.floor(i / 4) * 0.03, 0, 0, 0, true, true);
+  tiny.done();
+  // sample trays on the bench
+  for (let k = 0; k < 3; k++) put(g, mk(box(0.2, 0.02, 0.14), M.rubber), -0.85, TY + 0.01 + k * 0.025, 0.2);
+  // monitor with corner image
+  const mon = new THREE.Group(); mon.position.set(0.45, TY, -0.05); mon.rotation.y = -0.25; g.add(mon);
+  put(mon, mk(box(0.22, 0.02, 0.16), M.dark), 0, 0.01, 0);
+  put(mon, mk(box(0.05, 0.3, 0.04), M.dark), 0, 0.16, -0.02);
+  put(mon, mk(box(0.78, 0.5, 0.04), M.dark), 0, 0.5, 0);
+  const c = document.createElement('canvas'); c.width = 512; c.height = 320;
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+  put(mon, new THREE.Mesh(new THREE.PlaneGeometry(0.72, 0.45), std({ map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.85 })), 0, 0.5, 0.021);
+  put(g, mk(box(0.42, 0.02, 0.14), M.dark), 0.4, TY + 0.01, 0.28);   // keyboard
+  // monitor image: chip corner at three states (unchamfered, 6 h, 12 h) — R values from [us5712758]
+  const PX = 900;  // px per mm
+  updaters.push((dt, s, p, t) => {
+    stage.position.x = MX + (s === 5 ? 0.015 * Math.sin(t * 0.8) : 0);
+    if (Math.floor(t * 5) === tex.userData.f) return;
+    tex.userData.f = Math.floor(t * 5);
+    const x = c.getContext('2d');
+    const ph = s === 5 ? (p < 0.33 ? 0 : p < 0.66 ? 1 : 2) : 2;
+    const R = [0, 0.08, 0.13][ph], r = R * PX;
+    x.fillStyle = '#0d1116'; x.fillRect(0, 0, 512, 320);
+    const X0 = 360, Y0 = 90;
+    x.save(); x.beginPath(); x.moveTo(0, Y0); x.lineTo(X0 - r, Y0);
+    if (r > 0) x.arcTo(X0, Y0, X0, Y0 + r, r);
+    x.lineTo(X0, 320); x.lineTo(0, 320); x.closePath();
+    const gr = x.createLinearGradient(0, Y0, 0, 320); gr.addColorStop(0, '#d8c39b'); gr.addColorStop(1, '#8e7a58');
+    x.fillStyle = gr; x.fill(); x.restore();
+    x.setLineDash([6, 6]); x.strokeStyle = 'rgba(255,143,107,.8)'; x.lineWidth = 2;
+    x.beginPath(); x.moveTo(X0 - 150, Y0); x.lineTo(X0, Y0); x.lineTo(X0, Y0 + 150); x.stroke();
+    if (r > 0) { x.strokeStyle = '#8fd0ff'; x.beginPath(); x.arc(X0 - r, Y0 + r, r, 0, FULL); x.stroke(); }
+    x.setLineDash([]);
+    if (r > 0) {
+      x.strokeStyle = '#8fd0ff'; x.beginPath(); x.moveTo(X0 - r, Y0 + r); x.lineTo(X0 - r + r * 0.707, Y0 + r - r * 0.707); x.stroke();
+    }
+    x.fillStyle = '#e9eef3'; x.font = 'bold 22px system-ui';
+    x.fillText(ph === 0 ? '면취 전 (샤프 모서리)' : ph === 1 ? '6 h · R 0.08 mm' : '12 h · R 0.13 mm', 16, 34);
+    x.font = '15px system-ui'; x.fillStyle = '#9db0c2'; x.fillText('[us5712758] 2.0×1.25×0.6 mm 예', 16, 58);
+    const ok = R >= 0.10;
+    x.fillStyle = ph === 0 ? '#9db0c2' : ok ? '#37c871' : '#ff8f6b';
+    x.font = 'bold 17px system-ui'; x.fillText(ph === 0 ? '기준 R ≥ 0.10 mm' : ok ? '기준 R ≥ 0.10 mm 충족' : '기준 R ≥ 0.10 mm 미달', 16, 300);
+    x.fillStyle = '#e9eef3'; x.fillRect(400, 292, 90, 4); x.font = '14px system-ui'; x.fillText('0.1 mm', 420, 286);
+    tex.needsUpdate = true;
+  });
+  [g, head, mon].forEach(mergeStatic);
+  return {};
+})();
+
+/* -- S6–S9 centrifugal (planetary) barrel: tank-charging bench + turret machine --
+   Turret with 4 hexagonal tanks, revolution + counter-rotation [us9283647][us6367134];
+   lid cam-lever clamp + lid-fix detection, low-speed check turn [us12103132];
+   sliding door, belt drive with inverter, touch panel, rubber member on tank axis [us9687954];
+   urethane-lined hexagonal tank [jp2010283164a]. Representative structure, not a specific model. */
+const CEN_X = -4.4, CEN_Z = -4.7, CY2 = 1.3, RR = 0.52, HB = 0.22, BL = 0.8, DOCK = 0.48;
+const BENCH = V(CEN_X + 2.2, 0, CEN_Z + 0.15);
+const urethane = std({ color: 0xc98a2c, metalness: 0.0, roughness: 0.7, side: THREE.BackSide });
+const lampMat = (col) => std({ color: col, emissive: col, emissiveIntensity: 0.05, roughness: 0.4 });
+function hmiScreen(parent, w, h, cw, ch, x, y, z) {
+  const cv = document.createElement('canvas'); cv.width = cw; cv.height = ch;
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+  put(parent, new THREE.Mesh(new THREE.PlaneGeometry(w, h), std({ map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.9 })), x, y, z);
+  return { cv, tex, ctx: cv.getContext('2d') };
+}
+const cent = (() => {
+  const g = new THREE.Group(); g.position.set(CEN_X, 0, CEN_Z); scene.add(g);
+  // enclosure: plinth, side/back walls, roof, front frame; the front door slides open to the left
+  put(g, mk(box(2.3, 0.12, 1.9), M.dark), 0, 0.06, -0.1);
+  for (const sx of [-1.1, 1.1]) put(g, mk(box(0.05, 2.4, 1.7), M.paint), sx, 1.32, -0.1);
+  put(g, mk(box(2.25, 2.4, 0.05), M.paint), 0, 1.32, -0.95);
+  put(g, mk(box(2.3, 0.06, 1.8), M.paint), 0, 2.55, -0.1);
+  put(g, mk(box(2.2, 0.33, 0.05), M.paint), 0, 0.285, 0.75);
+  put(g, mk(box(2.2, 0.2, 0.05), M.paint), 0, 2.42, 0.75);
+  for (const sx of [-0.925, 0.925]) put(g, mk(box(0.35, 1.9, 0.05), M.paint), sx, 1.37, 0.75);
+  put(g, mk(box(3.25, 0.05, 0.07), M.steelB), -0.72, 2.37, 0.84);          // door rail
+  const door = new THREE.Group(); door.position.z = 0.8; g.add(door);
+  cutWall(door, box(1.56, 1.88, 0.04), M.paint, 0, 1.38, 0);                // glass in cutaway mode
+  for (const sy of [0.46, 2.3]) put(door, mk(box(1.56, 0.05, 0.05), M.steelB), 0, sy, 0.01);   // door frame
+  for (const sx of [-0.755, 0.755]) put(door, mk(box(0.05, 1.88, 0.05), M.steelB), sx, 1.38, 0.01);
+  put(door, mk(box(0.03, 0.28, 0.04), M.dark), 0.66, 1.4, 0.05);
+  // turret: back plate, hub, front spider; fixed sun gear behind the plate
+  const tur = new THREE.Group(); tur.position.y = CY2; g.add(tur);
+  put(tur, mk(along(cyl(0.82, 0.82, 0.05, 40), 'z'), M.steelB), 0, 0, -0.47);
+  put(tur, mk(along(cyl(0.1, 0.1, 0.96, 16), 'z'), M.steel), 0, 0, 0);
+  put(tur, mk(along(cyl(0.15, 0.15, 0.05, 6), 'z'), M.steelB), 0, 0, 0.47);
+  for (let k = 0; k < 4; k++) {
+    const a = k * Math.PI / 2, arm = put(tur, mk(box(RR - 0.2, 0.07, 0.04), M.steelB), Math.cos(a) * (RR - 0.2) / 2, Math.sin(a) * (RR - 0.2) / 2, 0.47);
+    arm.rotation.z = a;
+  }
+  put(g, mk(along(cyl(0.38, 0.38, 0.04, 28), 'z'), M.dark), 0, CY2, -0.56);
+  // 4 tanks as instanced parts (shell, urethane liner, back cap, lid glass/solid, clamp, rubber rod, planet gear)
+  const hexGeo = [
+    [along(cyl(HB, HB, BL, 6, true), 'z'), M.steel, null, true],
+    [along(cyl(HB * 0.93, HB * 0.93, BL * 0.98, 6, true), 'z'), urethane, null, false],
+    [along(cyl(HB * 1.04, HB * 1.04, 0.03, 6), 'z').translate(0, 0, -BL / 2 - 0.015), M.steelB, null, false],
+    [along(cyl(HB * 1.08, HB * 1.08, 0.035, 6), 'z').translate(0, 0, BL / 2 + 0.018), M.glass, cutParts, false],
+    [along(cyl(HB * 1.08, HB * 1.08, 0.035, 6), 'z').translate(0, 0, BL / 2 + 0.018), M.steelB, fullParts, false],
+    [box(HB * 2.3, 0.05, 0.04).translate(0, 0, BL / 2 + 0.058), M.dark, null, false],
+    [along(cyl(0.028, 0.028, BL * 0.94, 8), 'z'), M.rubber, null, false],
+    [along(cyl(0.14, 0.14, 0.04, 14), 'z').translate(0, 0, -0.56), M.steelB, null, false],
+  ];
+  const bm = hexGeo.map(([geo, mat, list, cast]) => {
+    const m = new THREE.InstancedMesh(geo, mat, 4); m.castShadow = cast; m.receiveShadow = true;
+    m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.frustumCulled = false; tur.add(m);
+    if (list) list.push(m);
+    return m;
+  });
+  function setTanks(spin, hide0) {
+    for (let k = 0; k < 4; k++) {
+      const a = k * Math.PI / 2;
+      _o.position.set(Math.cos(a) * RR, Math.sin(a) * RR, 0); _o.rotation.set(0, 0, spin);
+      _o.scale.setScalar(k === 0 && hide0 ? 1e-4 : 1); _o.updateMatrix();
+      for (const m of bm) m.setMatrixAt(k, _o.matrix);
+    }
+    for (const m of bm) m.instanceMatrix.needsUpdate = true;
+  }
+  // drive behind the back wall: motor, pulleys, belt
+  put(g, mk(along(cyl(0.16, 0.16, 0.45, 20), 'z'), M.motor), 0, 0.42, -1.35);
+  put(g, mk(box(0.3, 0.1, 0.4), M.dark), 0, 0.21, -1.35);
+  put(g, mk(along(cyl(0.05, 0.05, 0.12, 10), 'z'), M.steel), 0, CY2, -1.0);
+  const pBig = put(g, mk(along(cyl(0.24, 0.24, 0.06, 24), 'z'), M.steelB), 0, CY2, -1.06);
+  put(pBig, mk(box(0.4, 0.04, 0.07), M.dark), 0, 0, 0);
+  const pSm = put(g, mk(along(cyl(0.08, 0.08, 0.06, 16), 'z'), M.steelB), 0, 0.42, -1.06);
+  put(pSm, mk(box(0.12, 0.03, 0.07), M.dark), 0, 0, 0);
+  for (const sx of [-1, 1]) {
+    const x0 = sx * 0.08, x1 = sx * 0.24, dy = CY2 - 0.42, len = Math.hypot(x1 - x0, dy);
+    const bt = put(g, mk(box(0.02, len, 0.05), M.rubber), (x0 + x1) / 2, (0.42 + CY2) / 2, -1.06);
+    bt.rotation.z = -Math.atan2(x1 - x0, dy);
+  }
+  // inverter / control cabinet (left), touch panel (right), signal tower, lid-fix sensors
+  put(g, mk(box(0.4, 1.7, 0.55), M.paint), 1.38, 0.85, -0.62);
+  put(g, mk(new THREE.PlaneGeometry(0.16, 0.1), M.screen, false), 1.38, 1.45, -0.342);
+  put(g, mk(box(0.06, 1.3, 0.06), M.steelB), 1.45, 0.65, 0.55);
+  const pan = new THREE.Group(); pan.position.set(1.45, 1.45, 0.58); pan.rotation.y = -0.35; g.add(pan);
+  put(pan, mk(box(0.52, 0.38, 0.07), M.dark), 0, 0, 0);
+  const hmi = hmiScreen(pan, 0.46, 0.3, 256, 168, 0, 0, 0.036);
+  put(g, mk(cyl(0.02, 0.02, 0.3, 8), M.steelB), 0.85, 2.73, 0.55);
+  const lamps = [0xe2483a, 0xffb547, 0x37c871].map((col, i) => {
+    const m = lampMat(col); put(g, mk(cyl(0.06, 0.06, 0.09, 16), m), 0.85, 2.92 + i * 0.095, 0.55); return m;
+  });
+  put(g, mk(box(0.08, 0.08, 0.1), M.dark), -0.71, CY2 - RR - 0.05, 0.6);       // laser emitter
+  put(g, mk(box(0.08, 0.08, 0.1), M.dark), 0.71, CY2 - RR - 0.05, 0.6);        // receiver
+  const beam = put(g, mk(along(cyl(0.006, 0.006, 1.34, 6), 'x'), std({ color: 0xff2a2a, emissive: 0xff2a2a, emissiveIntensity: 2 }), false), 0, CY2 - RR - 0.05, 0.6);
+  put(g, mk(cyl(0.025, 0.025, 0.12, 10), M.yellow), 0, CY2 + 0.9, -0.47);       // proximity switch over the turret rim
+  // particles inside the 4 tanks (turret frame): bed pressed to the outer wall when spinning, to the floor at rest
+  const PER_C = 45, PER_M = 110;
+  const tChips = chipSet(tur, PER_C * 4, 0.7), tMedia = mediaSet(tur, PER_M * 4, 0.017);
+  const seed = (n, per) => Array.from({ length: n }, (_, i) => ({ k: Math.floor(i / per), f: (i % per) / per, u: rnd(),
+    rw: 0.1 + rnd() * 0.05, z: (rnd() - 0.5) * (BL - 0.14), sp: 0.7 + rnd() * 0.6, r: rnd() * 6 }));
+  const sc = seed(PER_C * 4, PER_C), smd = seed(PER_M * 4, PER_M);
+  const A = 1.0;
+  function bedXY(q, beta, out) {
+    let phi, rho;
+    if (q.u < 0.6) { phi = -A + 2 * A * q.u / 0.6; rho = q.rw; }
+    else { const v = (q.u - 0.6) / 0.4; phi = A - 2 * A * v; rho = q.rw * (1 - 0.5 * Math.sin(Math.PI * v)); }
+    const a = q.k * Math.PI / 2;
+    out.x = Math.cos(a) * RR + rho * Math.cos(beta + phi); out.y = Math.sin(a) * RR + rho * Math.sin(beta + phi);
+    return out;
+  }
+  const o3 = { x: 0, y: 0 };
+  let turA = 0, turW = 0, parkA = 0, hmiF = -1;
+  updaters.push((dt, s, p, t) => {
+    // turret: parked (multiple of 2π) while a tank is charged/mounted, one slow check turn, then low G → high G
+    if (s === 6 || (s === 7 && p < 0.6)) {
+      turW = 0; parkA = Math.ceil(turA / FULL - 1e-3) * FULL;
+      turA += (parkA - turA) * Math.min(1, dt * 3);
+    } else if (s === 7) { turW = 0; turA = parkA + FULL * sm((p - 0.6) / 0.38); }
+    else {
+      const wT = s === 8 ? 1.4 : s === 9 ? 4.2 : 0;
+      turW += (wT - turW) * Math.min(1, dt * 1.2); turA += turW * dt;
+    }
+    tur.rotation.z = turA;
+    setTanks(-2 * turA, s === 6 || (s === 7 && p < DOCK));
+    pBig.rotation.z = turA; pSm.rotation.z = turA * 3;
+    const open = s !== 7 ? 0 : p < 0.1 ? 0 : p < 0.18 ? sm((p - 0.1) / 0.08) : p < 0.5 ? 1 : p < 0.58 ? 1 - sm((p - 0.5) / 0.08) : 0;
+    door.position.x = -1.5 * open;
+    const check = s === 7 && p > 0.6 && p < 0.99;
+    beam.visible = check;
+    lamps[0].emissiveIntensity = 0.05;
+    lamps[1].emissiveIntensity = check || (s === 7 && open > 0) ? 1.6 : 0.05;
+    lamps[2].emissiveIntensity = s === 8 || s === 9 ? 1.6 : 0.05;
+    // contents
+    const on = s >= 6 && s <= 9;
+    tChips.show(on); tMedia.show(on);
+    if (on) {
+      const kG = Math.min(1, turW / 1.2), gA = -Math.PI / 2 - turA;
+      const adv = dt * (0.12 + turW * 0.22);
+      for (const [set, arr] of [[tChips, sc], [tMedia, smd]]) {
+        const isChip = set === tChips;
+        for (let i = 0; i < arr.length; i++) {
+          const q = arr[i], a = q.k * Math.PI / 2;
+          const vis = q.k > 0 || s >= 8 || (s === 7 && p >= DOCK);
+          if (turW > 0.05) q.u = (q.u + adv * q.sp) % 1;
+          const dx = (1 - kG) * Math.cos(gA) + kG * Math.cos(a), dy = (1 - kG) * Math.sin(gA) + kG * Math.sin(a);
+          bedXY(q, Math.atan2(dy, dx), o3);
+          if (isChip) {
+            if (turW > 0.05) q.r += dt * turW * q.sp;
+            const rounded = (s === 8 && q.f < 0.3 * p) || (s === 9 && q.f < 0.3 + 0.7 * p);
+            set.at(i, o3.x, o3.y, q.z, q.r, q.r * 0.7, q.r * 0.4, vis, rounded);
+          } else set.at(i, o3.x, o3.y, q.z, vis);
+        }
+        set.done();
+      }
+    }
+    // touch panel
+    const f = Math.floor(t * 5);
+    if (f === hmiF) return;
+    hmiF = f;
+    const x = hmi.ctx;
+    x.fillStyle = '#071521'; x.fillRect(0, 0, 256, 168);
+    x.fillStyle = '#7fc7ff'; x.font = 'bold 15px system-ui'; x.fillText('원심 배럴', 12, 24);
+    const mode = s === 6 ? ['탱크 충전', 'STOP'] : s === 7 ? (p < 0.6 ? ['탱크 장착', 'DOOR'] : ['뚜껑 확인 · 저속 1회전', 'CHECK'])
+      : s === 8 ? ['1단 예비 연마', 'RUN'] : s === 9 ? ['2단 본 연마', 'RUN'] : ['대기', 'STOP'];
+    x.fillStyle = mode[1] === 'RUN' ? '#37c871' : mode[1] === 'STOP' ? '#4b6a80' : '#ffb547';
+    x.font = 'bold 13px system-ui'; x.fillText(mode[1], 196, 24);
+    x.fillStyle = '#e9eef3'; x.font = 'bold 17px system-ui'; x.fillText(mode[0], 12, 54);
+    x.fillStyle = '#9db0c2'; x.font = '12px system-ui';
+    x.fillText(s === 8 ? '문헌 범위 0.3–1.0 G' : s === 9 ? '문헌 범위 1.5–6.0 G' : s === 7 && p >= 0.6 ? '뚜껑 미고정 시 정지' : ' ', 12, 78);
+    x.strokeStyle = '#2b4a60'; x.lineWidth = 10; x.beginPath(); x.moveTo(14, 104); x.lineTo(242, 104); x.stroke();
+    x.strokeStyle = '#ffb547'; x.beginPath(); x.moveTo(14, 104); x.lineTo(14 + 228 * Math.min(1, turW / 4.2), 104); x.stroke();
+    x.fillStyle = '#9db0c2'; x.font = '11px system-ui'; x.fillText('공전 속도 (애니메이션 기준, 실제값 아님)', 12, 130);
+    x.fillText('G 범위 출처 [us9687954]', 12, 152);
+    hmi.tex.needsUpdate = true;
+  });
+
+  /* charging bench: platform scale, chip and media hoppers, water + compound dosing */
+  const b = new THREE.Group(); b.position.copy(BENCH); scene.add(b);
+  put(b, mk(box(1.3, 0.05, 0.9), M.steelB), 0, 0.82, 0);
+  for (const sx of [-0.6, 0.6]) for (const sz of [-0.4, 0.4]) put(b, mk(box(0.05, 0.8, 0.05), M.steelB), sx, 0.4, sz);
+  put(b, mk(box(0.5, 0.05, 0.5), M.dark), -0.15, 0.87, 0);
+  put(b, mk(box(0.3, 0.22, 0.07), M.dark), 0.4, 0.96, 0.36);
+  const sclScr = hmiScreen(b, 0.26, 0.15, 192, 112, 0.4, 0.97, 0.396);
+  for (const sx of [-0.6, 0.3]) put(b, mk(box(0.06, 1.55, 0.06), M.yellow), sx, 1.62, -0.4);
+  put(b, mk(box(0.96, 0.06, 0.06), M.yellow), -0.15, 2.37, -0.4);
+  const HOP = [-0.31, 0.01];   // hopper x (bench frame); outlets drop into the tank opening
+  for (const hx of HOP) {
+    put(b, mk(box(0.05, 0.05, 0.42), M.yellow), hx, 2.37, -0.19);
+    put(b, mk(cyl(0.12, 0.12, 0.25, 24), M.steel), hx, 2.2, 0);
+    put(b, mk(cyl(0.12, 0.03, 0.18, 24), M.steel), hx, 1.985, 0);
+    put(b, mk(box(0.1, 0.025, 0.08), M.paintBlue), hx, 1.885, 0);
+  }
+  // moving tank: upright on the scale while charging, then lidded, laid horizontal and pushed into slot 0
+  const T0 = V(BENCH.x - 0.15, 0.895 + BL / 2, BENCH.z);
+  const tank = new THREE.Group(); tank.position.copy(T0); scene.add(tank);
+  put(tank, mk(cyl(HB, HB, BL, 6, true), M.steel), 0, 0, 0);
+  put(tank, mk(cyl(HB * 0.93, HB * 0.93, BL * 0.98, 6, true), urethane, false), 0, 0, 0);
+  put(tank, mk(cyl(HB * 1.04, HB * 1.04, 0.03, 6), M.steelB), 0, -BL / 2 - 0.015, 0);
+  put(tank, mk(cyl(0.028, 0.028, BL * 0.94, 8), M.rubber), 0, 0, 0);
+  const lid = new THREE.Group(); tank.add(lid);
+  const lidGeo = cyl(HB * 1.08, HB * 1.08, 0.035, 6);
+  const lc = put(lid, mk(lidGeo, M.glass, false), 0, 0, 0), lf = put(lid, mk(lidGeo, M.steelB), 0, 0, 0);
+  cutParts.push(lc); fullParts.push(lf);
+  const clampT = put(lid, mk(box(HB * 2.3, 0.04, 0.05), M.dark), 0, 0.04, 0);
+  const LID_ASIDE = V(0.5, 0.845 - T0.y + 0.018, 0), LID_ON = V(0, BL / 2 + 0.018, 0);
+  const tLiq = put(tank, mk(cyl(HB * 0.9, HB * 0.9, 1, 6), M.water, false), 0, 0, 0);
+  const kChips = chipSet(tank, 40, 0.7), kMedia = mediaSet(tank, 100, 0.017);
+  const pile = (n, y0, y1) => Array.from({ length: n }, () => { const a = rnd() * FULL, r = 0.045 + Math.sqrt(rnd()) * 0.1;
+    return { x: Math.cos(a) * r, z: Math.sin(a) * r, y: -BL / 2 + y0 + rnd() * (y1 - y0), r: rnd() * 6 }; });
+  const pc = pile(40, 0.03, 0.12), pmd = pile(100, 0.05, 0.2);
+  const OUT_Y = 1.88 - T0.y;
+  const keys7 = [[0.12, T0, 0], [0.2, V(T0.x, 1.35, BENCH.z + 0.55), 0], [0.3, V(T0.x, 1.6, CEN_Z + 1.45), Math.PI / 2],
+    [0.4, V(CEN_X + RR, CY2, CEN_Z + 1.45), Math.PI / 2], [DOCK, V(CEN_X + RR, CY2, CEN_Z), Math.PI / 2]];
+  // dosing tank + metering pump + line to a nozzle over the tank opening
+  const WT = V(BENCH.x + 0.98, 0, BENCH.z - 0.15);
+  const wt = new THREE.Group(); wt.position.copy(WT); scene.add(wt);
+  pair(wt, (s0, l) => cyl(0.24, 0.24, 0.7, 32, true, s0, l), CUT_CYL, M.steel, M.steelIn, V(0, 0.85, 0));
+  put(wt, mk(cyl(0.245, 0.245, 0.03, 32), M.steelB), 0, 1.21, 0);
+  put(wt, mk(cyl(0.245, 0.245, 0.03, 32), M.steelB), 0, 0.5, 0);
+  for (let k = 0; k < 3; k++) { const a = k / 3 * FULL + 0.4; put(wt, mk(cyl(0.025, 0.025, 0.5, 8), M.steelB), Math.cos(a) * 0.22, 0.25, Math.sin(a) * 0.22); }
+  const wl = put(wt, mk(cyl(0.232, 0.232, 1, 32, false, CUT_CYL, CUT_TL), M.water, false), 0, 0.8, 0);
+  const PZ = BENCH.z + 0.32;
+  put(scene, mk(box(0.32, 0.06, 0.22), M.dark), WT.x + 0.12, 0.03, PZ);
+  put(scene, mk(along(cyl(0.085, 0.085, 0.1, 20), 'x'), M.pump), WT.x, FY, PZ);
+  put(scene, mk(along(cyl(0.07, 0.07, 0.22, 16), 'x'), M.motor), WT.x + 0.19, FY, PZ);
+  makePipe([V(WT.x, 0.49, WT.z), V(WT.x, FY, WT.z), V(WT.x, FY, PZ), V(WT.x, 2.05, PZ), V(T0.x, 2.05, PZ), V(T0.x, 2.05, BENCH.z + 0.12), V(T0.x, 1.84, BENCH.z + 0.12)],
+    { stages: [6], r: 0.03, speed: 1.4, valveAt: 0.08, when: (p) => p > 0.7 && p < 0.95 });
+  const NDp = 14, dd = new THREE.InstancedMesh(new THREE.SphereGeometry(0.012, 6, 5), M.air, NDp);
+  dd.instanceMatrix.setUsage(THREE.DynamicDrawUsage); dd.frustumCulled = false; scene.add(dd);
+  const ddq = Array.from({ length: NDp }, () => ({ u: rnd(), dx: (rnd() - 0.5) * 0.02 }));
+  const tv = new THREE.Vector3();
+  let sclF = -1;
+  updaters.push((dt, s, p, t) => {
+    const tOn = s === 6 || (s === 7 && p < DOCK);
+    tank.visible = tOn;
+    // lid + clamp
+    const le = s === 7 ? sm(p / 0.08) : 0;
+    lid.position.lerpVectors(LID_ASIDE, LID_ON, le); lid.position.y += 0.35 * Math.sin(Math.PI * le);
+    clampT.rotation.y = s === 7 ? 1.0 * (1 - sm((p - 0.08) / 0.04)) : 1.0;
+    // tank path
+    if (s === 7) {
+      let k = 0; while (k < keys7.length - 2 && p > keys7[k + 1][0]) k++;
+      const A0 = keys7[k], B0 = keys7[k + 1], e = sm((p - A0[0]) / (B0[0] - A0[0]));
+      tank.position.lerpVectors(A0[1], B0[1], e); tank.rotation.x = A0[2] + (B0[2] - A0[2]) * e;
+    } else { tank.position.copy(T0); tank.rotation.x = 0; }
+    // liquid in the open tank and in the dosing tank
+    const lh = s === 6 ? 0.42 * sm((p - 0.72) / 0.22) : s === 7 && p < 0.2 ? 0.42 : 0;
+    tLiq.visible = tOn && lh > 0.005; tLiq.scale.y = Math.max(0.001, lh); tLiq.position.y = -BL / 2 + lh / 2;
+    const wh = s === 6 ? 0.6 - 0.3 * sm((p - 0.72) / 0.22) : s === 7 ? 0.3 : 0.6;
+    wl.scale.y = wh; wl.position.y = 0.515 + wh / 2;
+    // chips and media fall from the hoppers into the tank
+    kChips.show(tOn); kMedia.show(tOn);
+    if (tOn) {
+      const fall = (q, i, n, t0, t1, hx) => {
+        const ti = t0 + (t1 - t0) * i / n;
+        if (s === 7 || p >= ti) return [q.x, q.y, q.z, true];
+        if (p < ti - 0.05) return [0, 0, 0, false];
+        const f = (p - (ti - 0.05)) / 0.05, ox = hx - (-0.15);
+        return [ox + (q.x - ox) * f, OUT_Y + (q.y - OUT_Y) * f * f, q.z * f, true];
+      };
+      for (let i = 0; i < 40; i++) { const [x, y, z, v] = fall(pc[i], i, 40, 0.12, 0.4, HOP[0]); kChips.at(i, x, y, z, pc[i].r, pc[i].r, 0, v, false); }
+      for (let i = 0; i < 100; i++) { const [x, y, z, v] = fall(pmd[i], i, 100, 0.42, 0.68, HOP[1]); kMedia.at(i, x, y, z, v); }
+      kChips.done(); kMedia.done();
+    }
+    // dosing drops from the nozzle
+    const dOn = s === 6 && p > 0.72 && p < 0.95;
+    dd.visible = dOn;
+    if (dOn) {
+      for (let i = 0; i < NDp; i++) {
+        const q = ddq[i], u = (q.u + t * 2.2) % 1, yTop = 1.78, yBot = 0.895 + 0.03 + lh;
+        _o.position.set(T0.x + q.dx, yTop - (yTop - yBot) * u, BENCH.z + 0.12 + q.dx); _o.rotation.set(0, 0, 0); _o.scale.setScalar(1); _o.updateMatrix();
+        dd.setMatrixAt(i, _o.matrix);
+      }
+      dd.instanceMatrix.needsUpdate = true;
+    }
+    // scale display
+    const f = Math.floor(t * 5);
+    if (f === sclF) return;
+    sclF = f;
+    const mc = s === 6 ? 500 * sm((p - 0.12) / 0.3) : s === 7 ? 500 : 0, mm = s === 6 ? 1000 * sm((p - 0.42) / 0.28) : s === 7 ? 1000 : 0;
+    const x = sclScr.ctx;
+    x.fillStyle = '#071521'; x.fillRect(0, 0, 192, 112);
+    x.fillStyle = '#9db0c2'; x.font = '12px system-ui'; x.fillText('저울 · 문헌 예 [jp2010283164a]', 8, 18);
+    x.fillStyle = '#e9eef3'; x.font = 'bold 17px system-ui';
+    x.fillText(`칩 ${Math.round(mc)} g`, 8, 46); x.fillText(`미디어 ${Math.round(mm)} g`, 8, 72);
+    x.fillStyle = '#9db0c2'; x.font = '12px system-ui'; x.fillText(s === 6 && p > 0.7 ? '물 + 컴파운드 투입 (양 미상)' : ' ', 8, 98);
+    sclScr.tex.needsUpdate = true;
+  });
+  beam.userData.keep = true; tLiq.userData.keep = true; wl.userData.keep = true;
+  [g, tur, door, pan, b, tank, wt].forEach(mergeStatic);
+  return {};
+})();
+
+/* -- S10 centrifugal (spin) dryer: perforated basket in a housing, heater + duct [rosler-dryers-pfi] -- */
+const SPIN_X = 13.75, SPIN_Z = 0.35;
+const spin = (() => {
+  const g = new THREE.Group(); g.position.set(SPIN_X, 0, SPIN_Z); scene.add(g);
+  const RH = 0.46, HH = 0.72, Y0 = 0.28, RB = 0.36, BH = 0.5;
+  put(g, mk(box(1.15, Y0, 1.15), M.paint), 0, Y0 / 2, 0);
+  pair(g, (s0, l) => cyl(RH, RH, HH, 40, true, s0, l), CUT_CYL, M.steel, M.steelIn, V(0, Y0 + HH / 2, 0));
+  rim(g, RH + 0.012, 0.025, Y0 + HH, M.steelB);
+  put(g, mk(cyl(RH, RH, 0.02, 40), M.steelB), 0, Y0 + 0.01, 0);
+  const bk = new THREE.Group(); bk.position.y = Y0 + 0.05; g.add(bk);
+  put(bk, mk(cyl(RB, RB, BH, 28, true), perfMat(10, 3), false), 0, BH / 2, 0);
+  put(bk, mk(cyl(RB, RB, 0.025, 28), M.steelB), 0, 0.012, 0);
+  put(bk, mk(new THREE.TorusGeometry(RB, 0.014, 6, 32), M.steelB), 0, BH, 0).rotation.x = Math.PI / 2;
+  put(bk, mk(cyl(0.05, 0.05, 0.16, 12), M.steelB), 0, 0.08, 0);
+  const lid = new THREE.Group(); lid.position.set(0, Y0 + HH + 0.02, -RH); g.add(lid);
+  put(lid, mk(cyl(RH + 0.03, RH + 0.03, 0.04, 40), M.steelB), 0, 0, RH);
+  put(lid, mk(box(0.22, 0.04, 0.05), M.dark), 0, 0.04, 2 * RH + 0.01);
+  put(g, mk(cyl(0.12, 0.12, 0.3, 20), M.motor), 0.43, Y0 + 0.15, 0.43);              // drive motor
+  put(g, mk(cyl(0.125, 0.125, 0.05, 20), M.motorG), 0.43, Y0 + 0.32, 0.43);
+  put(g, mk(along(cyl(0.03, 0.03, 0.3, 10), 'z'), M.steelB), -0.3, 0.1, 0.7);          // drain
+  const heatM = M.heat.clone();
+  put(g, mk(box(0.4, 0.38, 0.32), heatM), 0, 0.95, -RH - 0.32);                         // heater + blower box
+  put(g, mk(along(cyl(0.06, 0.06, 0.2, 12), 'z'), M.steelB), 0, 0.85, -RH - 0.08);      // duct into housing
+  put(g, mk(box(0.06, 0.9, 0.06), M.steelB), -0.62, 0.45, 0.3);
+  put(g, mk(box(0.3, 0.32, 0.12), M.paint), -0.62, 1.05, 0.3);
+  const lampS = lampMat(0x37c871); put(g, mk(cyl(0.03, 0.03, 0.04, 12), lampS), -0.62, 1.12, 0.37).rotation.x = Math.PI / 2;
+  const chips = chipSet(bk, 70, 0.75);
+  const sc = Array.from({ length: 70 }, () => ({ a: rnd() * FULL, r0: 0.07 + Math.sqrt(rnd()) * 0.24, y0: 0.04 + rnd() * 0.06, yw: 0.05 + rnd() * 0.38, r: rnd() * 6 }));
+  const ND = 60, drops = new THREE.InstancedMesh(new THREE.SphereGeometry(0.013, 6, 5), M.air, ND);
+  drops.instanceMatrix.setUsage(THREE.DynamicDrawUsage); drops.frustumCulled = false; g.add(drops);
+  const sd = Array.from({ length: ND }, () => ({ a: rnd() * FULL, y: Y0 + 0.12 + rnd() * 0.42, ph: rnd() }));
+  let w = 0;
+  updaters.push((dt, s, p, t) => {
+    const on = s === 10;
+    const open = !on ? 0 : p < 0.08 ? 1 : p < 0.16 ? 1 - sm((p - 0.08) / 0.08) : p < 0.86 ? 0 : sm((p - 0.86) / 0.08);
+    lid.rotation.x = -1.7 * open;
+    w += ((on && p > 0.18 && p < 0.82 ? 16 : 0) - w) * Math.min(1, dt * 1.5);
+    bk.rotation.y += w * dt;
+    const k = Math.min(1, w / 16);
+    heatM.emissiveIntensity = on && p > 0.18 && p < 0.86 ? 1.6 : 0;
+    lampS.emissiveIntensity = k > 0.05 ? 1.4 : 0.05;
+    chips.show(on); drops.visible = on && k > 0.3;
+    if (!on) return;
+    for (let i = 0; i < 70; i++) {
+      const q = sc[i], rr = q.r0 + (RB - 0.04 - q.r0) * k, yy = q.y0 + (q.yw - q.y0) * k;
+      chips.at(i, Math.cos(q.a) * rr, yy, Math.sin(q.a) * rr, q.r, q.a, 0, true, true);
+    }
+    chips.done();
+    if (!drops.visible) return;
+    for (let i = 0; i < ND; i++) {
+      const q = sd[i], f = (q.ph + t * 1.8) % 1, rr = RB + (RH - 0.03 - RB) * Math.min(1, f / 0.4), a = q.a + t * 0.6;
+      _o.position.set(Math.cos(a) * rr, Math.max(Y0 + 0.03, q.y - Math.max(0, f - 0.4) * 0.9), Math.sin(a) * rr);
+      _o.rotation.set(0, 0, 0); _o.scale.setScalar(1); _o.updateMatrix(); drops.setMatrixAt(i, _o.matrix);
+    }
+    drops.instanceMatrix.needsUpdate = true;
+  });
+  [g, bk, lid].forEach(mergeStatic);
+  return {};
+})();
+
+/* -- S12 cross-section prep: grinder-polisher (rotating platen, specimen holder, water feed) (g) -- */
+const POL_X = INS_X + 2.0, POL_Z = 0.15;
+const polisher = (() => {
+  const g = new THREE.Group(); g.position.set(POL_X, 0, POL_Z); scene.add(g);
+  put(g, mk(box(0.75, 0.82, 0.7), M.paint), 0, 0.41, 0);
+  put(g, mk(new THREE.PlaneGeometry(0.22, 0.12), M.screen, false), 0.18, 0.62, 0.352);
+  put(g, mk(cyl(0.34, 0.34, 0.12, 32, true), M.steelB), 0, 0.88, 0);
+  const pl = new THREE.Group(); pl.position.y = 0.86; g.add(pl);
+  put(pl, mk(cyl(0.28, 0.28, 0.04, 32), M.steelB), 0, 0, 0);
+  put(pl, mk(cyl(0.275, 0.275, 0.008, 32), std({ color: 0x2f4f46, roughness: 0.9 })), 0, 0.024, 0);
+  put(pl, mk(box(0.24, 0.01, 0.03), M.paint), 0.13, 0.03, 0);
+  rotors.push({ obj: pl, axis: 'y', run: [12], w: 7, cur: 0 });
+  put(g, mk(box(0.12, 0.75, 0.12), M.paint), 0.12, 1.2, -0.3);
+  put(g, mk(box(0.1, 0.1, 0.42), M.paint), 0.12, 1.52, -0.1);
+  put(g, mk(cyl(0.022, 0.022, 0.5, 10), M.steel), 0.12, 1.22, 0.05);
+  const hold = new THREE.Group(); hold.position.set(0.12, 1.15, 0.05); g.add(hold);
+  put(hold, mk(cyl(0.1, 0.1, 0.05, 24), M.steelB), 0, 0, 0);
+  const resin = std({ color: 0xd9b46a, roughness: 0.25, metalness: 0.0, transparent: true, opacity: 0.85 });
+  for (let k = 0; k < 3; k++) { const a = k / 3 * FULL; put(hold, mk(cyl(0.032, 0.032, 0.04, 16), resin), Math.cos(a) * 0.06, -0.045, Math.sin(a) * 0.06); }
+  const noz = put(g, mk(cyl(0.012, 0.012, 0.3, 8), M.steelB), -0.08, 1.05, -0.2); noz.rotation.z = 1.0;
+  const ND = 10, dr = new THREE.InstancedMesh(new THREE.SphereGeometry(0.011, 6, 5), M.air, ND);
+  dr.instanceMatrix.setUsage(THREE.DynamicDrawUsage); dr.frustumCulled = false; g.add(dr);
+  for (let k = 0; k < 2; k++) put(scene, mk(cyl(0.032, 0.032, 0.04, 16), resin), INS_X - 0.62 + k * 0.1, 0.945, -0.25);   // mounted samples on the bench
+  updaters.push((dt, s, p, t) => {
+    const on = s === 12, down = on ? (p < 0.08 ? 0 : p < 0.18 ? sm((p - 0.08) / 0.1) : p < 0.86 ? 1 : 1 - sm((p - 0.86) / 0.08)) : 0;
+    hold.position.y = 1.15 - 0.197 * down;
+    if (down > 0.95) hold.rotation.y += dt * 2.2;
+    dr.visible = on && down > 0.5;
+    if (!dr.visible) return;
+    for (let i = 0; i < ND; i++) {
+      const u = (i / ND + t * 1.5) % 1;
+      _o.position.set(-0.2, 0.98 - u * 0.09, -0.15 + u * 0.03); _o.rotation.set(0, 0, 0); _o.scale.setScalar(1); _o.updateMatrix(); dr.setMatrixAt(i, _o.matrix);
+    }
+    dr.instanceMatrix.needsUpdate = true;
+  });
+  [g, pl, hold].forEach(mergeStatic);
+  return {};
+})();
+
+/* ------------------------------ labels ------------------------------ */
+const stageAnchor = [V(-10.4, 4.3, 0), V(-7.5, 3.3, 0), V(-1.5, 2.4, 0), V(4.5, 2.9, 0), V(9.6, 3.95, 0), V(16, 2.15, 0),
+  V(BENCH.x + 0.6, 2.95, BENCH.z + 0.15), V(CEN_X + 1.0, 2.15, CEN_Z + 1.0), V(CEN_X - 1.3, 2.9, CEN_Z + 0.3), V(CEN_X, 3.9, CEN_Z - 0.5),
+  V(SPIN_X, 1.75, SPIN_Z), V(11.6, 3.95, 0), V(POL_X, 2.0, POL_Z)];
+const stageTags = STAGES.map((st, i) => label(`<b>${i + 1}</b>${st.name}`, stageAnchor[i], 'tag', i));
+const SUBS = [
+  [0, '칩 계량 호퍼', V(-13.2, 5.2, 0)], [0, '미디어 호퍼', V(-12.0, 5.2, 0)], [0, '장입 슈트', V(-9.6, 3.2, 0.3)], [0, '급수 탱크', V(-13.6, 2.7, 2.4)],
+  [1, '드럼 내부: 칩 + 미디어 + 액체', V(-7.5, 1.05, 0.9)], [1, '감속기·모터', V(-5.3, 2.25, 0)], [1, '제어반', V(-5.1, 1.85, -1.15)],
+  [2, '링형 보울', V(-1.5, 1.75, 1.05)], [2, '편심 추 모터', V(-1.5, 0.6, 1.15)], [2, '코일 스프링 (탄성 지지)', V(-0.65, 0.55, 0.6)], [2, '진동 센서', V(-2.25, 1.85, -0.72)],
+  [3, '틸팅 투입 (배럴 배출물)', V(3.2, 2.75, 0)], [3, '그물 체 (진동 스크린)', V(4.5, 1.6, 0.75)], [3, '미디어 회수통', V(4.5, 0.65, 0.55)], [3, '칩 바스켓', V(6.55, 0.95, 0.4)], [3, '헹굼 스프레이', V(5.4, 2.3, 0)],
+  [4, '세척조', V(9.55, 1.65, 0.6)], [4, '갠트리 호이스트', V(10.5, 3.6, 0.3)], [4, '오버플로 박스', V(10.3, 1.55, -0.2)],
+  [5, '측정 현미경', V(15.6, 1.75, 0.15)], [5, '모니터: 모서리 R', V(16.45, 1.6, 0.1)],
+  [6, '저울 (로드셀)', V(BENCH.x - 0.15, 0.98, BENCH.z + 0.3)], [6, '칩 호퍼', V(BENCH.x - 0.6, 2.25, BENCH.z)], [6, '미디어 호퍼', V(BENCH.x + 0.3, 2.25, BENCH.z)],
+  [6, '육각 탱크 (우레탄 라이닝)', V(BENCH.x - 0.15, 1.55, BENCH.z + 0.3)], [6, '물 + 컴파운드 탱크', V(BENCH.x + 0.98, 1.4, BENCH.z - 0.05)], [6, '정량 펌프', V(BENCH.x + 0.98, 0.55, BENCH.z + 0.4)],
+  [7, '뚜껑 클램프 (캠·레버)', V(BENCH.x - 0.15, 2.0, BENCH.z + 0.3)], [7, '슬라이딩 도어', V(CEN_X - 0.45, 2.15, CEN_Z + 0.85)], [7, '레이저 센서: 뚜껑 고정 확인', V(CEN_X, CY2 - RR - 0.2, CEN_Z + 0.65)],
+  [7, '근접 스위치', V(CEN_X, CY2 + 1.02, CEN_Z - 0.47)], [7, '경광등', V(CEN_X + 0.85, 3.2, CEN_Z + 0.6)],
+  [8, '터렛 (공전)', V(CEN_X - 0.6, CY2 + 0.75, CEN_Z + 0.5)], [8, '탱크 4개 (반대 방향 자전)', V(CEN_X + RR + 0.1, CY2 + 0.35, CEN_Z + 0.55)], [8, '터치 패널', V(CEN_X + 1.45, 1.78, CEN_Z + 0.6)],
+  [8, '인버터·제어반', V(CEN_X + 1.38, 1.85, CEN_Z - 0.35)], [8, '구동 모터·벨트 (뒤쪽)', V(CEN_X - 0.3, 2.75, CEN_Z - 1.15)],
+  [9, '탱크 안: 칩·미디어가 바깥 벽에 눌림', V(CEN_X + RR, CY2 - 0.3, CEN_Z + 0.55)], [9, '고무 충돌 방지재 (탱크 축)', V(CEN_X - RR, CY2 + 0.1, CEN_Z + 0.55)], [9, '터치 패널: 고 G', V(CEN_X + 1.45, 1.78, CEN_Z + 0.6)],
+  [10, '다공 바스켓 (회전)', V(SPIN_X, 0.75, SPIN_Z + 0.42)], [10, '하우징 · 배수', V(SPIN_X - 0.35, 0.2, SPIN_Z + 0.7)], [10, '히터 · 송풍', V(SPIN_X, 1.25, SPIN_Z - 0.78)], [10, '구동 모터', V(SPIN_X + 0.45, 0.8, SPIN_Z + 0.45)],
+  [11, '열풍 건조기', V(11.5, 1.7, 0.6)], [11, '히터', V(11.5, 0.45, 0.45)], [11, '송풍 팬', V(12.45, 1.25, 0)], [11, '갠트리 호이스트', V(10.5, 3.6, 0.3)],
+  [12, '연마 정반 (회전)', V(POL_X - 0.15, 0.98, POL_Z + 0.42)], [12, '시료 홀더', V(POL_X + 0.3, 1.3, POL_Z + 0.1)], [12, '급수 노즐', V(POL_X - 0.3, 1.2, POL_Z - 0.2)], [12, '수지 마운트 시료', V(INS_X - 0.57, 1.08, -0.25)],
+].map(([s, t, p]) => ({ s, el: label(t, p, 'sub') }));
+
+/* ------------------------------ UI ------------------------------ */
+/* ------------------------------ process flow (branches) ------------------------------
+   FLOW lists the steps in process order. A number is a STAGES index. An object
+   { i, label, mark } overrides the list label, or marks the step 'repeat' / 'parallel'.
+   A fork { fork, title, opts: [{ key, label, steps, note, onSelect }], def } is a point where the
+   line splits into alternative routes. Only the chosen option's steps play; an option
+   with no steps skips straight to the step after the fork.
+   STAGES indices never change: the animation code keys on them. */
+const ROUTE = {};
+FLOW.forEach((e) => { if (e.fork) ROUTE[e.fork] = e.def || e.opts[0].key; });
+const asStep = (x) => (typeof x === 'number' ? { i: x } : x);
+let SEQ = [];
+const forkStart = {};
+function buildSeq() {
+  SEQ = [];
+  for (const e of FLOW) {
+    if (!e.fork) { SEQ.push(asStep(e)); continue; }
+    forkStart[e.fork] = SEQ.length;
+    const o = e.opts.find((q) => q.key === ROUTE[e.fork]);
+    o.steps.forEach((x) => SEQ.push({ ...asStep(x), fork: e, opt: o }));
+  }
+}
+buildSeq();
+
+const ol = document.getElementById('stages');
+let seqBtns = [];
+function stepButton(step, n, onClick) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  const mk = step.mark === 'repeat' ? '<span class="mk">↻ 반복</span>' : step.mark === 'parallel' ? '<span class="mk">∥ 병행</span>' : '';
+  b.innerHTML = `<span class="n">${n}</span><span style="flex:1">${step.label || STAGES[step.i].name}${mk}<div class="bar"></div></span>`;
+  b.addEventListener('click', onClick);
+  return b;
+}
+function renderFlow() {
+  ol.innerHTML = ''; seqBtns = [];
+  let k = 0;
+  for (const e of FLOW) {
+    const li = document.createElement('li');
+    if (!e.fork) {
+      const kk = k++;
+      const b = stepButton(asStep(e), kk + 1, () => jumpK(kk));
+      seqBtns[kk] = b; li.appendChild(b); ol.appendChild(li); continue;
+    }
+    li.className = 'fork';
+    const head = document.createElement('div'); head.className = 'fork-head';
+    head.innerHTML = `<span class="fk">⑂ ${e.title}</span>`;
+    const seg = document.createElement('div'); seg.className = 'seg';
+    seg.setAttribute('role', 'radiogroup'); seg.setAttribute('aria-label', e.title);
+    for (const o of e.opts) {
+      const sb = document.createElement('button');
+      sb.type = 'button'; sb.textContent = o.label; sb.setAttribute('role', 'radio');
+      sb.setAttribute('aria-checked', String(ROUTE[e.fork] === o.key));
+      sb.addEventListener('click', () => { if (ROUTE[e.fork] !== o.key) setRoute(e.fork, o.key); });
+      seg.appendChild(sb);
+    }
+    head.appendChild(seg); li.appendChild(head);
+    for (const o of e.opts) {
+      const on = ROUTE[e.fork] === o.key;
+      const box = document.createElement('div'); box.className = `opt ${on ? 'on' : 'off'}`;
+      const lab = document.createElement('div'); lab.className = 'opt-label'; lab.textContent = o.label; box.appendChild(lab);
+      if (!o.steps.length) {
+        const sk = document.createElement('div'); sk.className = 'skip';
+        sk.textContent = o.note || '이 경로에서는 해당 단계를 거치지 않습니다.'; box.appendChild(sk);
+      }
+      for (const x of o.steps) {
+        const st = asStep(x);
+        if (on) { const kk = k++; const b = stepButton(st, kk + 1, () => jumpK(kk)); seqBtns[kk] = b; box.appendChild(b); }
+        else box.appendChild(stepButton(st, '·', () => setRoute(e.fork, o.key, st.i)));
+      }
+      li.appendChild(box);
+    }
+    ol.appendChild(li);
+  }
+  // 3D stage tags: number by the active route, fade stations the route skips.
+  const num = new Map();
+  SEQ.forEach((q, n) => { if (!num.has(q.i)) num.set(q.i, n + 1); });
+  stageTags.forEach((el, i) => {
+    el.classList.toggle('off', !num.has(i));
+    const b = el.querySelector('b'); if (b) b.textContent = num.has(i) ? num.get(i) : '·';
+  });
+}
+let curK = 0, lastK = -1;
+function jumpK(k) {
+  curK = ((k % SEQ.length) + SEQ.length) % SEQ.length;
+  simT = curK * STAGE_DUR + 0.01; lastK = -1;
+}
+function setRoute(fid, key, focus = null) {
+  ROUTE[fid] = key; buildSeq(); renderFlow();
+  const opt = FLOW.find((e) => e.fork === fid).opts.find((q) => q.key === key);
+  if (opt.onSelect) opt.onSelect();     // e.g. swap equipment shown for this route
+  let k = focus === null ? -1 : SEQ.findIndex((q) => q.i === focus);
+  if (k < 0) k = forkStart[fid];          // first step of the chosen option, or the step after the fork
+  jumpK(k);
+}
+// Jump by STAGES index (3D tag clicks). A station off the active route switches to its route.
+function jumpTo(i) {
+  const k = SEQ.findIndex((q) => q.i === i);
+  if (k >= 0) { jumpK(k); return; }
+  for (const e of FLOW) if (e.fork) for (const o of e.opts) {
+    if (o.steps.some((x) => asStep(x).i === i)) { setRoute(e.fork, o.key, i); return; }
+  }
+}
+renderFlow();
+const info = document.getElementById('info');
+if (window.innerHeight < 720 || window.innerWidth < 820) info.classList.add('collapsed');
+function renderInfo(k) {
+  const q = SEQ[k], st = STAGES[q.i];
+  info.innerHTML = `
+    <div class="head"><div><div class="kicker">STEP ${k + 1} / ${SEQ.length}${q.opt ? ` · ${q.fork.title}: ${q.opt.label}` : ''} · ${st.en}</div>
+    <h2>${q.label || st.name}</h2></div><button class="fold" id="fold">${info.classList.contains('collapsed') ? '펼치기' : '접기'}</button></div>
+    <div class="body">
+    <p>${st.desc}</p>
+    <h3>설비</h3><ul>${st.equip.map((e) => `<li>${e}</li>`).join('')}</ul>
+    <h3>공정 조건 (문헌 예)</h3><ul>${st.params.map((e) => `<li>${e}</li>`).join('')}</ul>
+    <h3>칩 모서리 단면 (모식도)</h3>
+    <div class="canvas-wrap"><canvas id="micro" width="600" height="250"></canvas>
+      <div class="cap" id="microCap"></div></div>
+    <h3>모서리 R vs 연마 시간 (문헌값)</h3>
+    <div class="canvas-wrap"><canvas id="rchart" width="600" height="230"></canvas>
+      <div class="cap">출처 <code>[us5712758]</code> · 2.0 × 1.25 × 0.6 mm 소성 칩, 알루미나/WC 40 mesh 미디어. 데이터는 두 점뿐이라 점 사이를 잇지 않았습니다 (곡선 모양은 문헌에 없음). 78 rpm은 12 h 조건에만 명시. 원심·진동 배럴의 R–시간 데이터는 읽은 문헌에 없습니다.</div></div>
+    <div class="foot">출처 키는 원자료 <code>resources/manufacturing/eq-08-chamfering.md</code> (설비·순서, 2026-11-11 조사), <code>resources/manufacturing/60-termination-and-plating.md</code> (§1 면취), 위키 <code>wiki/concepts/barrel-chamfering-mlcc.md</code> 기준입니다.
+      <span class="g">(g)</span>는 근거 문헌이 없는 일반 관행, <span class="g">(snippet, 미확인)</span>은 검색 요약에서만 본 내용입니다.
+      순서: 이 페이지는 소성 뒤 칩을 그렸지만, 여러 특허는 소성 전 그린 칩을 연마→세척→건조한 뒤 소성합니다 <code>[us11978592]</code><code>[us11037731]</code>. 두 번(그린·소성 후) 하는 예도 있습니다 <code>[us11037731]</code>.
+      설비 형상은 특정 제조사 모델이 아닌 대표 구조로 그렸고, 크기 비율은 실제와 다릅니다 (칩·미디어는 보이도록 크게, 회전·진동 속도는 실제와 다름).
+      소성 칩을 건식으로 갈아 내부 전극 끝을 드러내는 예 <code>[us6367134]</code>도 있지만, 모서리에서 전극이 드러나는 것을 결함으로 보는 특허 <code>[us11049660]</code>도 있어 칩 설계에 따라 다릅니다.</div></div>`;
+  document.getElementById('fold').addEventListener('click', () => {
+    info.classList.toggle('collapsed');
+    document.getElementById('fold').textContent = info.classList.contains('collapsed') ? '펼치기' : '접기';
+  });
+}
+
+let simT = 0.01, playing = true, speed = 1, autoTour = true, lastStage = -1;
+const playBtn = document.getElementById('play');
+playBtn.addEventListener('click', () => { playing = !playing; playBtn.textContent = playing ? '❚❚ 일시정지' : '▶ 재생'; });
+document.getElementById('speed').addEventListener('change', (e) => { speed = parseFloat(e.target.value); });
+const tourBox = document.getElementById('tour');
+tourBox.addEventListener('change', (e) => { autoTour = e.target.checked; if (autoTour) flyTo(lastStage); });
+document.getElementById('cut').addEventListener('change', (e) => setCut(e.target.checked));
+document.getElementById('overview').addEventListener('click', () => { autoTour = false; tourBox.checked = false; flyToView(OVER_P.clone(), OVER_T.clone()); });
+function setCut(on) {
+  cutParts.forEach((m) => { m.visible = on; });
+  fullParts.forEach((m) => { m.visible = !on; });
+  pipeMat.opacity = on ? 0.5 : 1; pipeMat.depthWrite = !on; pipeMat.transparent = on; pipeMat.needsUpdate = true;
+}
+setCut(true);
+
+/* ------------------------------ camera tour ------------------------------ */
+const VIEWS = [
+  [V(-9.6, 5.4, 9.6), V(-10.4, 2.2, 0)],
+  [V(-5.9, 4.0, 5.4), V(-7.5, 1.55, 0)],
+  [V(0.1, 3.9, 4.6), V(-1.5, 1.0, 0)],
+  [V(6.6, 4.3, 6.6), V(4.7, 1.3, 0)],
+  [V(11.2, 3.6, 5.0), V(9.8, 1.3, 0)],
+  [V(16.55, 2.25, 2.4), V(16.05, 1.2, 0)],
+  [V(0.4, 3.4, -1.4), V(-2.0, 1.4, -4.5)],
+  [V(-2.6, 3.4, 0.6), V(-3.4, 1.3, -4.3)],
+  [V(-1.9, 3.1, -0.4), V(-4.2, 1.3, -4.6)],
+  [V(-3.6, 2.2, -1.5), V(-4.4, 1.3, -4.7)],
+  [V(15.3, 3.1, 3.4), V(13.6, 0.8, 0.35)],
+  [V(12.9, 3.6, 4.2), V(11.3, 1.1, 0)],
+  [V(19.1, 2.3, 2.1), V(17.9, 1.0, 0.15)],
+];
+let tween = null;
+// Narrow (portrait) screens see less width, so pull the camera back along its view line.
+function viewScale() { const a = camera.aspect; return a < 0.8 ? 1.5 : a < 1.2 ? 1.25 : 1; }
+function flyToView(pos, tgt) {
+  const p1 = tgt.clone().add(pos.clone().sub(tgt).multiplyScalar(viewScale()));
+  tween = { p0: camera.position.clone(), t0: controls.target.clone(), p1, t1: tgt, k: 0 };
+}
+function flyTo(i) { if (i < 0) return; flyToView(VIEWS[i][0].clone(), VIEWS[i][1].clone()); }
+controls.addEventListener('start', () => { if (tween) tween = null; if (autoTour) { autoTour = false; tourBox.checked = false; } });
+
+/* ------------------------------ microview + chart canvases ------------------------------ */
+// Corner state per stage: before polishing / polishing [start, end] fraction of final R / done.
+const PRE_S = [0, 6, 7], POL_S = { 1: [0, 1], 2: [0, 1], 8: [0, 0.3], 9: [0.3, 1] };
+const MICRO_MSG = {
+  0: '날카로운 모서리 · 아직 연마 전', 6: '날카로운 모서리 · 탱크에 칩·미디어·액 충전', 7: '날카로운 모서리 · 탱크 밀폐 후 장착',
+  1: '회전 중 미디어가 모서리·능선을 갈아 둥글게 만듦', 2: '진동으로 같은 마모 작용 (조건 수치 없음)',
+  8: '낮은 G로 모서리를 먼저 살짝 다듬음 (진행 정도는 모식)', 9: '높은 G에서 미디어가 모서리·능선을 갈아 둥글게 만듦',
+  3: '미디어 분리 · 모서리 R 유지', 4: '세척 · 표면에 물이 묻음', 10: '원심 건조 · 표면 물기 제거', 11: '열풍 건조 · 표면 물기 제거',
+  12: '단면을 갈아 모서리 윤곽을 드러냄', 5: '모서리에 원을 맞춰 R 확인',
+};
+const mParts = Array.from({ length: 16 }, (_, i) => ({ th: rnd(), gap: 10 + rnd() * 90, sz: 8 + rnd() * 6, wc: i % 2 === 1, sp: 0.6 + rnd() * 0.8 }));
+const dropsM = Array.from({ length: 6 }, () => ({ x: 40 + rnd() * 240, s: 6 + rnd() * 6 }));
+function drawMicro(s, p, t) {
+  const cv = document.getElementById('micro'); if (!cv) return;
+  const x = cv.getContext('2d'), W = cv.width, H = cv.height;
+  x.clearRect(0, 0, W, H);
+  const pre = PRE_S.includes(s), pol = POL_S[s], withMedia = pre || !!pol;
+  x.fillStyle = withMedia ? '#1f2c36' : '#24282c'; x.fillRect(0, 0, W, H);
+  const X0 = 380, Y0 = 80, RMAX = 105;
+  const r = pre ? 0 : pol ? RMAX * (pol[0] + (pol[1] - pol[0]) * sm(p)) : RMAX;
+  // removed material (original sharp corner)
+  if (r > 1) {
+    x.fillStyle = 'rgba(255,143,107,.22)';
+    x.beginPath(); x.moveTo(X0 - r, Y0); x.lineTo(X0, Y0); x.lineTo(X0, Y0 + r); x.arc(X0 - r, Y0 + r, r, 0, -Math.PI / 2, true); x.closePath(); x.fill();
+    x.setLineDash([6, 6]); x.strokeStyle = 'rgba(255,143,107,.85)'; x.lineWidth = 2;
+    x.beginPath(); x.moveTo(X0 - r - 30, Y0); x.lineTo(X0, Y0); x.lineTo(X0, Y0 + r + 30); x.stroke(); x.setLineDash([]);
+  }
+  // chip body with faint layer lines
+  x.save(); x.beginPath(); x.moveTo(0, Y0); x.lineTo(X0 - r, Y0);
+  if (r > 0.5) x.arcTo(X0, Y0, X0, Y0 + r, r);
+  x.lineTo(X0, H); x.lineTo(0, H); x.closePath();
+  x.fillStyle = '#b59f78'; x.fill(); x.clip();
+  x.strokeStyle = 'rgba(80,70,55,.35)'; x.lineWidth = 2;
+  for (let yy = Y0 + 34; yy < H; yy += 16) { x.beginPath(); x.moveTo(0, yy); x.lineTo(X0 - 40, yy); x.stroke(); }
+  x.restore();
+  // media hitting the corner
+  if (withMedia) {
+    const mv = pre ? 0.05 : s === 8 ? 0.5 : 1;
+    for (const q of mParts) {
+      const th = -Math.PI / 2 - 0.45 + ((q.th + t * 0.12 * q.sp * mv) % 1) * (Math.PI / 2 + 0.9);
+      const gap = q.gap * (0.6 + 0.4 * Math.abs(Math.sin(t * 2 * q.sp * mv + q.th * 9)));
+      const cx = X0 - r + Math.cos(th) * (r + gap + q.sz), cy = Y0 + r + Math.sin(th) * (r + gap + q.sz);
+      x.fillStyle = q.wc ? '#6a7077' : '#efece4'; x.beginPath(); x.arc(cx, cy, q.sz, 0, FULL); x.fill();
+      if (gap < 18 && mv > 0.5) { x.strokeStyle = 'rgba(255,181,71,.8)'; x.lineWidth = 2; x.beginPath(); x.arc(X0 - r + Math.cos(th) * r, Y0 + r + Math.sin(th) * r, 6, 0, FULL); x.stroke(); }
+    }
+  }
+  if (s === 4 || s === 10 || s === 11) {
+    const wet = s === 4 ? sm(p / 0.4) : 1 - sm(p);
+    for (const d of dropsM) { const rr = d.s * wet; if (rr > 0.5) { x.fillStyle = 'rgba(160,210,240,.7)'; x.beginPath(); x.arc(d.x, Y0 - rr * 0.6, rr, Math.PI, 0); x.fill(); } }
+  }
+  if (s === 5) {
+    x.setLineDash([5, 5]); x.strokeStyle = '#8fd0ff'; x.lineWidth = 2;
+    x.beginPath(); x.arc(X0 - r, Y0 + r, r, 0, FULL); x.stroke(); x.setLineDash([]);
+    x.beginPath(); x.moveTo(X0 - r, Y0 + r); x.lineTo(X0 - r + r * 0.707, Y0 + r - r * 0.707); x.stroke();
+    x.fillStyle = '#8fd0ff'; x.font = 'bold 22px system-ui'; x.fillText('R', X0 - r + r * 0.25, Y0 + r - r * 0.45);
+  }
+  x.fillStyle = '#e9eef3'; x.font = '17px system-ui';
+  x.fillText('칩 본체 (단면)', 16, H - 16);
+  if (r > 1) { x.fillStyle = '#ffb59c'; x.fillText('깎여 나간 모서리', X0 + 12, Y0 - 12); }
+  if (withMedia) { x.fillStyle = '#9db0c2'; x.fillText(pre ? '미디어 + 액체' : '미디어 충돌·마찰', X0 + 40, Y0 + 150); }
+  const msg = MICRO_MSG[s];
+  const cap = document.getElementById('microCap'); if (cap) cap.textContent = `${msg} · 모식도, 축척 없음`;
+}
+function drawChart(s, p) {
+  const cv = document.getElementById('rchart'); if (!cv) return;
+  const x = cv.getContext('2d'), W = cv.width, H = cv.height;
+  x.clearRect(0, 0, W, H);
+  const L = 74, R = W - 20, T = 16, B = H - 42;
+  const X = (h) => L + h / 14 * (R - L), Y = (mm) => B - mm / 0.16 * (B - T);
+  // preferred band + threshold
+  x.fillStyle = 'rgba(255,181,71,.12)'; x.fillRect(L, Y(0.15), R - L, Y(0.13) - Y(0.15));
+  x.fillStyle = '#c99a52'; x.font = '15px system-ui'; x.textAlign = 'left'; x.fillText('선호 0.13–0.15', L + 6, Y(0.15) + 16);
+  x.setLineDash([8, 6]); x.strokeStyle = '#ff8f6b'; x.lineWidth = 2;
+  x.beginPath(); x.moveTo(L, Y(0.10)); x.lineTo(R, Y(0.10)); x.stroke(); x.setLineDash([]);
+  x.fillStyle = '#ff8f6b'; x.fillText('기준 R ≥ 0.10 mm', L + 6, Y(0.10) - 6);
+  // axes
+  x.strokeStyle = 'rgba(255,255,255,.3)'; x.lineWidth = 1;
+  x.beginPath(); x.moveTo(L, T); x.lineTo(L, B); x.lineTo(R, B); x.stroke();
+  x.fillStyle = '#9db0c2'; x.font = '16px system-ui'; x.textAlign = 'center';
+  for (const h of [0, 3, 6, 9, 12]) { x.fillRect(X(h), B, 1, 6); x.fillText(String(h), X(h), B + 22); }
+  x.textAlign = 'right'; x.fillText('연마 시간 (h)', R, B + 38);
+  x.textAlign = 'right';
+  for (const v of [0, 0.05, 0.10, 0.15]) { x.fillRect(L - 6, Y(v), 6, 1); x.fillText(v.toFixed(2), L - 10, Y(v) + 5); }
+  x.save(); x.translate(18, (T + B) / 2); x.rotate(-Math.PI / 2); x.textAlign = 'center'; x.fillText('R (mm)', 0, 0); x.restore();
+  // time cursor during rotary stage
+  const hrs = s === 1 ? p * 12 : null;
+  if (hrs !== null) {
+    x.strokeStyle = 'rgba(143,208,255,.6)'; x.lineWidth = 2; x.beginPath(); x.moveTo(X(hrs), T); x.lineTo(X(hrs), B); x.stroke();
+    x.fillStyle = '#8fd0ff'; x.textAlign = 'left'; x.font = '13px system-ui'; x.fillText('애니메이션 경과', Math.min(X(hrs) + 4, R - 100), T + 12);
+  }
+  // the two data points
+  const pts = [[6, 0.08, '6 h → 0.08', '#ff8f6b'], [12, 0.13, '12 h, 78 rpm → 0.13', '#ffb547']];
+  x.textAlign = 'left'; x.font = 'bold 15px system-ui';
+  for (const [h, v, t, col] of pts) {
+    const lit = hrs === null || hrs >= h - 0.05;
+    x.globalAlpha = lit ? 1 : 0.3;
+    x.fillStyle = col; x.beginPath(); x.arc(X(h), Y(v), 8, 0, FULL); x.fill();
+    x.fillText(t, h === 12 ? X(h) - 160 : X(h) + 12, h === 12 ? Y(v) - 14 : Y(v) + 6);
+  }
+  x.globalAlpha = 1;
+  x.fillStyle = '#9db0c2'; x.font = '13px system-ui'; x.textAlign = 'right'; x.fillText('데이터 2점 · 곡선 미상', R, B - 8);
+  x.textAlign = 'left';
+}
+
+/* ------------------------------ loop ------------------------------ */
+const clock = new THREE.Clock();
+const dmy = new THREE.Object3D();
+function levelAt(o, s, p) {
+  const { fill, drain, lo, hi } = o;
+  if (s === fill) return lo + (hi - lo) * sm(Math.min(1, p / 0.6));
+  if (s === drain) return hi - (hi - lo) * sm(Math.min(1, p / 0.7));
+  const hold = fill < drain ? (s > fill && s < drain) : (s > fill || s < drain);
+  return hold ? hi : lo;
+}
+let infoTick = 0;
+function frame() {
+  const dt = Math.min(clock.getDelta(), 0.05);
+  if (playing) simT += dt * speed;
+  const total = simT / STAGE_DUR;
+  const k = Math.floor(total) % SEQ.length, p = total - Math.floor(total), t = simT;
+  const s = SEQ[k].i;
+  if (k !== lastK) {
+    lastK = curK = k; lastStage = s;
+    seqBtns.forEach((b, n) => b.classList.toggle('active', n === k));
+    { // keep the active step visible in the list (horizontal on phones, scrolling panel on short screens)
+      const btn = seqBtns[k], list = document.getElementById('stages'), panel = document.getElementById('left');
+      if (btn) {
+        const br = btn.getBoundingClientRect();
+        if (list.scrollWidth > list.clientWidth + 2) { const lr = list.getBoundingClientRect(); list.scrollTo({ left: list.scrollLeft + br.left - lr.left - (list.clientWidth - br.width) / 2, behavior: 'smooth' }); }
+        if (panel.scrollHeight > panel.clientHeight + 2) { const pr = panel.getBoundingClientRect(); if (br.top < pr.top || br.bottom > pr.bottom) panel.scrollTo({ top: panel.scrollTop + br.top - pr.top - (panel.clientHeight - br.height) / 2, behavior: 'smooth' }); }
+      }
+    }
+    stageTags.forEach((el, i) => el.classList.toggle('active', i === s));
+    SUBS.forEach((q) => q.el.classList.toggle('show', q.s === s));
+    renderInfo(k);
+    if (autoTour) flyTo(s);
+  }
+  seqBtns.forEach((b, n) => { b.querySelector('.bar').style.width = n === k ? `${p * 100}%` : '0'; });
+
+  for (const r of rotors) {
+    const target = r.run.includes(s) ? r.w : 0;
+    r.cur += (target - r.cur) * Math.min(1, dt * 1.5);
+    r.obj.rotation[r.axis] += r.cur * dt;
+  }
+  for (const o of levels) {
+    const l = o.route && ROUTE.polish !== o.route ? o.hi : levelAt(o, s, p);
+    o.T.L.scale.y = Math.max(0.001, l * o.T.h);
+    o.T.L.visible = l > 0.01; o.T.headLiq.visible = l > 0.005;
+  }
+  for (const P of pipes) {
+    const on = P.stages.includes(s) && (!P.when || P.when(p));
+    P.inst.visible = on;
+    if (!on) continue;
+    const ns = P.samples.length - 1;
+    for (let i = 0; i < P.n; i++) {
+      let u = (i / P.n + (t * P.speed) / P.len) % 1;
+      if (P.reverse) u = 1 - u;
+      const f = u * ns, k = Math.floor(f), a = P.samples[k], b = P.samples[Math.min(ns, k + 1)];
+      dmy.position.lerpVectors(a, b, f - k); dmy.updateMatrix(); P.inst.setMatrixAt(i, dmy.matrix);
+    }
+    P.inst.instanceMatrix.needsUpdate = true;
+  }
+  for (const u of updaters) u(dt, s, p, t);
+
+  if (tween) {
+    tween.k = Math.min(1, tween.k + dt / 2.2);
+    const e = sm(tween.k);
+    camera.position.lerpVectors(tween.p0, tween.p1, e);
+    controls.target.lerpVectors(tween.t0, tween.t1, e);
+    if (tween.k >= 1) tween = null;
+  }
+  infoTick += dt;
+  if (infoTick > 1 / 30) { infoTick = 0; drawMicro(s, p, t); drawChart(s, p); }
+
+  controls.update();
+  renderer.render(scene, camera);
+  labelRenderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight); labelRenderer.setSize(window.innerWidth, window.innerHeight);
+});
+document.getElementById('loading').remove();
+frame();
+</script>
+</body>
+</html>

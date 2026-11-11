@@ -263,6 +263,7 @@ A catalog of all pages in this wiki, organized by category. See [[overview]] for
 - [[mlcc-printing-lamination-research-notes]] — 2026-11 patent survey: electrode printing, stacking, cutting, side margin (~18 docs).
 - [[mlcc-termination-plating-research-notes]] — 2026-11 patent + NASA survey: chamfer, Cu termination firing, Ni/Sn plating (10 docs).
 - [[mlcc-test-sort-packaging-research-notes]] — 2026-11 vendor + NASA survey: test handlers, screening, burn-in, tape & reel (12 docs).
+- [[mlcc-process-equipment-research-notes]] — 2026-11-11 equipment & line-sequence survey for all 10 process steps (~150 patents / maker pages).
 
 ### Patents
 - [[us-4115493-murata-sakabe-1978-bme-foundational]] — Sakabe & Seno 1978; the foundational Ca-doped BaTiO₃ non-reducing dielectric that enabled Ni-electrode MLCC; expired 1997. Composition `{(Ba₁₋ₓCaₓ)O}ₘ(Ti₁₋ᵧZrᵧ)O₂` with m=1.005-1.03, x=0.02-0.22.

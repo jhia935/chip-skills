@@ -2,10 +2,11 @@
 title: MLCC Manufacturing Process (End-to-End)
 type: concept
 created: 2026-05-19
-updated: 2026-11-10
+updated: 2026-11-11
 status: complete
 importance: high
 sources:
+  - resources/manufacturing/eq-08-chamfering.md
   - escies-bme-mlcc-high-reliability.md
   - nasa-cracking-low-voltage-mlcc.md
   - octopart-tdk-cga8l3c0g-product-guide.md
@@ -36,7 +37,7 @@ A multi-step ceramic-electronic packaging pipeline that takes powder + paste + g
 8.  Binder burnout / debinding (200–600 °C, controlled atmosphere)
 9.  Sintering (1100–1300 °C, reducing atmosphere PO₂ 10⁻¹⁰–10⁻¹²)
 10. Re-oxidation anneal (~900–1100 °C, slightly higher PO₂)
-11. Corner rounding (tumble polish or barrel rounding to expose internal electrodes)
+11. Corner rounding (barrel polishing; many patents do this on green chips between 7 and 8 — see barrel-chamfering-mlcc)
 12. Termination (Cu paste dip → sinter → forms outer electrode)
 13. Ni barrier plating (electrolytic, 2–3 µm)
 14. Sn finish plating (matte tin, 5–10 µm; SnPb option for legacy)
@@ -111,6 +112,7 @@ World-wide MLCC production: **~2 trillion pieces/year** ([[escies-bme-mlcc-high-
 
 ## References
 - [[mlcc-slurry-tape-casting-research-notes]] · [[mlcc-printing-lamination-research-notes]] · [[mlcc-termination-plating-research-notes]] · [[mlcc-test-sort-packaging-research-notes]]: 2026-11 per-step survey
+- [[mlcc-process-equipment-research-notes]] — 2026-11-11 equipment and line-sequence survey (one notes file per step)
 - [[escies-bme-mlcc-high-reliability]]
 - [[nasa-cracking-low-voltage-mlcc]] — Section 2 has the most comprehensive open-literature process survey
 - [[octopart-tdk-cga8l3c0g-product-guide]] — vendor side

@@ -1,0 +1,2030 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MLCC 선별·테이핑 3D</title>
+<style>
+  :root {
+    --panel: rgba(15, 20, 27, 0.80);
+    --panel-line: rgba(255, 255, 255, 0.12);
+    --text: #e9eef3;
+    --muted: #9db0c2;
+    --accent: #ffb547;
+    --accent-ink: #1d1406;
+    --g: #8fd0ff;
+  }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #1b2229; color: var(--text);
+    font-family: system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; }
+  #scene { position: fixed; inset: 0; }
+  #scene canvas { display: block; }
+  .labels { position: absolute; inset: 0; pointer-events: none; }
+  .tag { pointer-events: auto; cursor: pointer; transform: translateY(-6px);
+    background: rgba(14, 18, 24, 0.84); color: var(--text); border: 1px solid rgba(255,255,255,.2);
+    border-radius: 999px; padding: 4px 10px; font-size: 12px; white-space: nowrap; transition: background .25s, color .25s; }
+  .tag b { color: var(--accent); margin-right: 4px; }
+  .tag.active { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .tag.active b { color: var(--accent-ink); }
+  .sub { pointer-events: none; font-size: 11px; padding: 2px 8px; border-radius: 6px;
+    background: rgba(255,255,255,.88); color: #1d242c; opacity: 0; transition: opacity .3s; white-space: nowrap; }
+  .sub.show { opacity: 1; }
+  .panel { position: fixed; background: var(--panel); border: 1px solid var(--panel-line); border-radius: 12px;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  #left { top: 16px; left: 16px; width: 268px; padding: 14px 14px 12px; }
+  #left h1 { font-size: 15px; margin: 0 0 2px; letter-spacing: -.01em; }
+  #left .sub-h { font-size: 11.5px; color: var(--muted); margin: 0 0 10px; }
+  #stages { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+  #stages button { width: 100%; text-align: left; background: transparent; color: var(--text); border: 0;
+    border-radius: 8px; padding: 6px 8px; font: inherit; font-size: 13px; cursor: pointer; display: flex; gap: 8px; align-items: center; }
+  #stages button:hover { background: rgba(255,255,255,.07); }
+  #stages button.active { background: rgba(255,181,71,.16); color: #fff; }
+  #stages .n { width: 20px; height: 20px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 11px;
+    background: rgba(255,255,255,.1); flex: none; }
+  #stages button.active .n { background: var(--accent); color: var(--accent-ink); }
+  #stages .bar { height: 2px; background: var(--accent); width: 0; border-radius: 2px; margin-top: 2px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; align-items: center; }
+  .controls button, .controls select { background: rgba(255,255,255,.08); color: var(--text); border: 1px solid var(--panel-line);
+    border-radius: 8px; padding: 5px 9px; font: inherit; font-size: 12px; cursor: pointer; }
+  .controls label { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 4px; cursor: pointer; }
+  #info { right: 16px; bottom: 16px; width: 390px; max-height: calc(100vh - 32px); overflow: auto; padding: 16px; box-sizing: border-box; }
+  #info .head { display: flex; justify-content: space-between; align-items: start; gap: 8px; }
+  #info .fold { background: rgba(255,255,255,.08); color: var(--text); border: 1px solid var(--panel-line); border-radius: 8px; padding: 3px 8px; font: inherit; font-size: 11.5px; cursor: pointer; flex: none; }
+  #info.collapsed .body { display: none; }
+  #info.collapsed h2 { margin-bottom: 0; }
+  #info .kicker { font-size: 11px; color: var(--accent); letter-spacing: .06em; text-transform: uppercase; }
+  #info h2 { font-size: 18px; margin: 2px 0 6px; }
+  #info p { font-size: 13px; line-height: 1.55; color: #d5dde5; margin: 0 0 10px; }
+  #info h3 { font-size: 11.5px; color: var(--muted); margin: 12px 0 5px; font-weight: 600; letter-spacing: .03em; }
+  #info ul { margin: 0; padding-left: 16px; font-size: 12.5px; line-height: 1.55; }
+  #info li { margin-bottom: 2px; }
+  #info code { font-size: 11px; color: var(--g); }
+  .g { color: #ffcf8a; font-size: 11px; }
+  .canvas-wrap { margin-top: 8px; background: rgba(0,0,0,.25); border-radius: 8px; padding: 6px; }
+  .canvas-wrap canvas { width: 100%; display: block; }
+  .cap { font-size: 10.5px; color: var(--muted); margin-top: 3px; }
+  .foot { font-size: 10.5px; color: var(--muted); margin-top: 12px; line-height: 1.5; border-top: 1px solid var(--panel-line); padding-top: 8px; }
+  /* process-flow branches */
+  #left { max-height: calc(100vh - 32px); overflow: auto; box-sizing: border-box; }
+  #stages li.fork { display: grid; gap: 3px; margin: 3px 0; padding: 6px 6px 6px 7px;
+    border: 1px dashed rgba(255,255,255,.2); border-radius: 10px; }
+  #stages .fork-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; flex-wrap: wrap; padding: 0 2px 2px; }
+  #stages .fk { font-size: 11.5px; color: var(--muted); font-weight: 600; }
+  #stages .seg { display: inline-flex; background: rgba(255,255,255,.07); border-radius: 999px; padding: 2px; gap: 2px; }
+  #stages .seg button { width: auto; display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 11.5px; color: var(--muted); }
+  #stages .seg button[aria-checked="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  #stages .opt { display: grid; gap: 2px; padding-left: 7px; border-left: 2px solid rgba(255,255,255,.14); }
+  #stages .opt.on { border-left-color: var(--accent); }
+  #stages .opt-label { font-size: 10.5px; color: var(--muted); padding: 1px 0 0 2px; }
+  #stages .opt.off > button { opacity: .45; }
+  #stages .opt.off .n { background: transparent; border: 1px dashed rgba(255,255,255,.3); }
+  #stages .skip { font-size: 11.5px; line-height: 1.45; color: var(--muted); padding: 3px 8px 4px; }
+  #stages .mk { font-size: 10.5px; color: var(--muted); margin-left: 5px; white-space: nowrap; }
+  .tag.off { opacity: .35; }
+  @media (max-width: 820px) {
+    #left { max-height: none; overflow: visible; }
+    #stages li.fork { display: flex; align-items: center; gap: 4px; padding: 3px 5px; margin: 0; }
+    #stages .fork-head { padding: 0; }
+    #stages .fk { display: none; }
+    #stages .opt { display: flex; gap: 4px; border-left: 0; padding-left: 0; }
+    #stages .opt.off, #stages .opt-label { display: none; }
+    #stages .skip { white-space: nowrap; padding: 0 4px; font-size: 11px; max-width: 46vw; overflow: hidden; text-overflow: ellipsis; }
+  }
+  #loading { position: fixed; inset: 0; display: grid; place-items: center; font-size: 14px; color: var(--muted); }
+  @media (max-width: 820px) {
+    #left { left: 8px; right: 8px; top: 8px; width: auto; padding: 10px; }
+    #left .sub-h { display: none; }
+    #stages { display: flex; overflow-x: auto; gap: 4px; }
+    #stages li { flex: none; }
+    #stages button { white-space: nowrap; padding: 5px 8px; }
+    #info { left: 8px; right: 8px; bottom: 8px; width: auto; max-height: 40vh; }
+  }
+</style>
+</head>
+<body>
+<div id="scene"></div>
+<div id="loading">3D 설비 모형을 불러오는 중…</div>
+
+<div id="left" class="panel">
+  <h1>MLCC 측정 · 선별 · 테이핑 공정</h1>
+  <p class="sub-h">도금을 마친 칩의 전수 측정(C/DF·IR·플래시)과 빈 분류, 유리 원판 외관 검사, 테이핑기(재측정·포켓 삽입·실링·권취), 박리 강도 검사와 포장까지 설비 3D 모형. 디에이징(기준 측정)과 번인(고신뢰)은 선택 경로입니다.</p>
+  <ol id="stages"></ol>
+  <div class="controls">
+    <button id="play">❚❚ 일시정지</button>
+    <select id="speed" aria-label="재생 속도">
+      <option value="0.5">0.5×</option>
+      <option value="1" selected>1×</option>
+      <option value="2">2×</option>
+    </select>
+    <button id="overview">전체 보기</button>
+    <label><input type="checkbox" id="tour" checked> 카메라 따라가기</label>
+    <label><input type="checkbox" id="cut" checked> 단면 보기</label>
+  </div>
+</div>
+
+<div id="info" class="panel"></div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+
+/* ------------------------------------------------------------------
+   Stage data — parameters come from the wiki:
+   wiki/concepts/production-test-and-screening-mlcc.md,
+   resources/manufacturing/80-test-sort-and-packaging.md,
+   resources/manufacturing/eq-10-test-sort-pack.md (equipment structure & step order),
+   wiki/queries/mlcc-process-substeps-and-equipment.md (§15–16). Source keys kept.
+   (g) = general industry practice, not backed by a corpus source.
+------------------------------------------------------------------- */
+const G = '<span class="g">(g)</span>';
+const K = (...ks) => ks.map((s) => `<code>[${s}]</code>`).join(' ');
+const UNV = '(검색 요약만, 미확인)';
+const STAGES = [
+  { name: '디에이징 베이크', en: 'De-aging bake (Class II reference)',
+    cam: [[-22.4, 4.3, 8.4], [-25.2, 1.4, 0]],
+    desc: 'Class II(강유전체) 칩의 용량은 마지막으로 T<sub>C</sub>를 넘은 뒤 시간이 지날수록 줄어듭니다(에이징). 기준값을 잴 때는 오븐에서 열처리해 도메인 상태를 되돌리고, 24시간 둔 뒤 측정합니다. 표본·실험실 기준 측정용 경로이고, 인라인 선별기는 이 절차 없이 바로 잽니다.',
+    equip: [`열처리 오븐 (150 °C) ${K('digikey-mlcc-meas')} · 순환 팬·배기 덕트 구조 ${G}`, `방치 랙 ${G}`, `LCR 미터 + 측정 지그 ${G}`],
+    params: [`150 °C (+0/−10) × 1 h → 24 ±2 h 방치 후 측정 ${K('digikey-mlcc-meas')}`, `Class II만 해당, C0G(Class I)는 불필요 ${K('digikey-mlcc-meas')}`, `Class II ≤10 µF: 1 kHz ±10%, 1.0 ±0.2 Vrms · >10 µF: 120 Hz ±20%, 0.5 ±0.2 Vrms ${K('tdk-faq-0008')} (검색 요약만, 미확인)`, '미해결: 인라인 선별값과 디에이징 기준값을 공장에서 어떻게 맞추는지는 자료 없음'] },
+  { name: '칩 공급', en: 'Feeder → turntable pockets',
+    cam: [[-10.6, 3.9, 5.9], [-12.4, 1.3, -0.1]],
+    desc: '도금을 마친 칩을 호퍼에서 진동 피더로 보내 한 방향·한 줄로 세웁니다. 리니어 트랙 끝은 턴테이블 가장자리에 바짝 붙어 있고, 포켓 안쪽 벽의 공기 구멍이 진공으로 칩을 하나씩 빨아들입니다. 턴테이블은 포켓 한 칸씩 끊어서 돌고(인덱스), 포켓마다 달린 전자 밸브가 진공(붙잡기)과 양압(불어내기)을 바꿉니다.',
+    equip: [`호퍼 → 진동 피더 → 리니어 트랙, 출구를 테이블 바로 옆에 ${K('us6479777')}`, `보울 형상 ${G} · 다른 예: 호퍼 + 진동 트레이(체 메시로 작은 칩 제거) + 깔때기 + 로딩 프레임 ${K('us5842579')}`, `외주 포켓 턴테이블, 포켓마다 공기 구멍 + 전자 선택 밸브(진공/양압) ${K('us6479777', 'us6448525')}`, `진공 구동 회전 핸들링 ${K('esi-allegro-xp-2020')} · 다른 구조: 약 60° 기울인 링 플레이트에 시트 4열, 아래 진공판 ${K('us5842579')} (모형은 수평 턴테이블)`],
+    params: [`0603–1210에서 최대 16,666 개/분 (1.0 M/h) ${K('esi-allegro-xp-2020')}`, `0201까지 최대 20,000 개/분 ${K('esi-allegro-web')} ${UNV}`, `Murata 사내 자동 측정 >10,000 개/분, 100% 선별 ${K('murata-meas-web')}`, `포켓 폭 1–수 mm, 위치 공차 약 1 mm ${K('us6479777')}`, `설비 요건: 진공 55 kPa, 압축공기 340 LPM ${K('esi-allegro-xp-2020')}`] },
+  { name: 'C / DF 측정', en: 'Capacitance & dissipation factor',
+    cam: [[-12.6, 3.5, 3.4], [-9.9, 1.3, -0.5]],
+    desc: '턴테이블이 한 칸 돌 때마다 칩이 측정 스테이션 아래에 멈추고, 상부 접점이 내려와 양 끝 전극에 닿습니다. 아래쪽은 진공이 칩을 붙잡고 하부 접점이 받칩니다. 용량(C)과 손실계수(DF)를 재며, 양산에서도 전수 측정합니다.',
+    equip: [`로터리 턴테이블 테스트 핸들러, 스테이션 최대 25개 ${K('esi-allegro-xp-2020')}`, `롤러 상부 접점(정압 설정) · BeCu/은/텅스텐 하부 접점, 펄스 구동 ${K('esi-allegro-xp-2020')}`, `특허 예: 약 30° 캔틸레버 판 상부 접점 + 스프링 포고 핀 하부 접점, 접점 모듈 5개 ${K('us5842579')}`, `승강 단자대가 내려와 단자 한 쌍이 양 끝 전극에 닿음 ${K('us6479777')}`, `C/DF 스테이션당 정전용량 미터 2대 ${K('esi-allegro-xp-2020')}`, `접점 공압 실린더·스테이션 마운트 형상 ${G}`],
+    params: [`C/DF 주파수 120 Hz / 1 kHz / 1 MHz ${K('esi-allegro-xp-2020')}`, `C·임피던스·ESR 전수 측정, ms 단위 접촉 ${K('murata-meas-web')}`, `특허 예는 마지막 스테이션에서 C를 한 번 더 확인 ${K('us5842579')}`, `고용량 칩은 신호원을 끌어내려 ALC가 없으면 C가 낮게 읽힘 (예: 10.08 µF vs 7.24 µF) ${K('tdk-faq-0008')} (미확인)`, 'Class I (1 MHz) 측정 조건은 읽은 자료에서 확인 안 됨'] },
+  { name: 'IR 충전 · 측정', en: 'Insulation resistance: charge, soak, measure',
+    cam: [[-6.3, 3.7, 3.8], [-9.0, 1.3, -0.6]],
+    desc: 'IR은 충전 전류와 흡수 전류가 가라앉은 뒤 남는 누설 전류로 판정합니다. 한 스테이션에서 기다리면 느리므로, 칩이 프리차지 → 프리소크 → IR 측정 스테이션을 차례로 지나는 동안 전압을 나눠 겁니다. 충전 초기 몇 ms의 전류로 긴 시간 뒤의 값을 예측하는 방법도 있습니다.',
+    equip: [`IR 프리차지 · 프리소크 · IR/전류 스테이션 ${K('esi-allegro-xp-2020')}`, `소스-측정 유닛 ${K('esi-allegro-xp-2020')}`, `전류 측정: 측정 증폭기 + 로그 증폭기 + A/D, 문턱값에서 증폭기 전환 ${K('us6448525')}`],
+    params: [`인가 2–600 V (옵션 1000 V), 충전 전류 2–250 mA, 측정 1 pA – 2 mA ${K('esi-allegro-xp-2020')}`, `특허 예: 저전압 IR (예: 50 V) → 정격 전압 소크 수백 ms → IR 재측정 ${K('us5842579')}`, `IR 예측: 충전 1–10 ms 전류로 약 60 s 값을 추정, 판정 시점 5–80 ms ${K('us6448525')}`, `고신뢰 스크린 IR: V<sub>R</sub>에서 2.0 ±0.1 min 후 판독, 3σ 이탈 기준 ${K('nepp-guidelines-2012')}`, '양산 소크 시간은 공개 자료 없음 (특허 예의 수백 ms만 확인)'] },
+  { name: '분류 · 빈 배출', en: 'Bin ejection',
+    cam: [[-9.4, 3.0, 6.4], [-9.4, 1.2, 1.3]],
+    desc: '측정이 끝난 칩이 판정 결과에 맞는 배출 위치에 오면, 포켓 아래 밸브가 공기를 짧게 불어 진공을 이기고 칩을 위로 밀어냅니다. 칩은 매니폴드 구멍에서 튜브를 타고 떨어져 빈에 모입니다. 공차 빈, 불량 빈, 재검 빈으로 나뉘고, 측정 데이터와 불량 모드는 상류 공정으로 되돌려 보냅니다.',
+    equip: [`공차 빈 ≤7 + 불량 빈 ≤7 + 재검 빈 1 ${K('esi-allegro-xp-2020')}`, `포켓 아래 공압 밸브 → 배출 매니폴드 → 튜브 → 분배판 → 빈 ${K('us5842579')}`, `배출 뒤 포켓에 남은 칩을 광센서로 감지(잼 감지) ${K('us5842579')}`, `튜브 배치·빈 트레이 형상 ${G}`, `측정 데이터 DB, 상류 공정 피드백 ${K('murata-meas-web')}`],
+    params: [`특허 예: 배출 구멍 44개 (11열 × 4링), 불량 5열 · 양품 5열 · 미배출 1열 ${K('us5842579')}`, `구형 모델은 5 + 3 + 1 빈 ${K('esi-allegro-web')} ${UNV}`, `균열에는 C가 가장 둔감, DF도 ~15% 증가에 그침 ${K('nepp-crack-teverovsky')}`, `핸들러 접점 자국·칩 손상이 설계 관심사 (저충격 핸들링) ${K('esi-allegro-xp-2020')}`] },
+  { name: '외관 검사', en: 'Appearance inspection (glass disk)',
+    cam: [[1.0, 3.6, 3.6], [-1.2, 1.5, -0.1]],
+    desc: '진동 피더가 칩을 길이 방향으로 세워 유리 원판 위에 간격을 두고 올립니다. 원판이 계속 도는 동안 적외선 센서가 칩을 감지하고, 엔코더 값으로 칩마다 위치를 따라갑니다. 위에서 윗면과 양 옆면을, 유리 아래에서 밑면을 찍고, 레이저 광절단으로 두께를 잽니다. 끝으로 에어 블로 세 곳이 양품, 두께 불량, 외관 불량으로 나눠 불어냅니다.',
+    equip: [`유리 원판 + 로터리 엔코더 + 적외선 감지 센서 ${K('us9404732')}`, `카메라 4대: 위 2대(트랙 안쪽·바깥쪽에서 양 옆면), 위 1대(윗면), 아래 1대(유리 너머 밑면). 끝면 카메라는 선택 ${K('us9404732')}`, `두께 측정: 청색 레이저 2개 광절단 + HDR CMOS 카메라 ${K('us9404732')}`, `에어 블로 3 + 회수 용기 3 ${K('us9404732')}`, `6면(앞뒤·위아래·좌우) 검사기 상용 ${K('tokyo-weld-dempa')}`, `다른 구조: 45° 기운 휠 2개로 칩을 넘겨 가며 거울로 6면 촬영 ${K('us6294747')}`, `링 조명·카메라 지지 형상 ${G}`],
+    params: [`원판 두께 1.2–5.0 mm, 속도 약 100 mm/s ${K('us9404732')}`, `레이저 400–500 nm, 입사각 10–43.5° (예 22.5°), 노출 약 240 µs ${K('us9404732')}`, `6면 검사 12,000 개/분 ${K('tokyo-weld-dempa')} · 휠 방식 70,000 개/h 이상 ${K('us6294747')}`, `검사 항목: 균열·깨짐·오염 ${K('tokyo-weld-dempa')}, 치수·형상·색 얼룩, 0.4 × 0.2 mm 칩까지 ${K('murata-meas-web')}`, `양품군만 테이핑, 박형 칩 예에서 릴 안 두께 편차 약 10 µm 이하 ${K('us9404732')}`, 'AOI 불량 분류·검출 누락률은 자료 없음'] },
+  { name: '번인 (고신뢰)', en: 'Burn-in, high-rel only',
+    cam: [[9.6, 3.9, 7.4], [6.6, 1.5, 0]],
+    desc: `우주·군용 같은 고신뢰 등급만 거치는 선택 경로입니다. 125 °C에서 정격의 2배 전압을 걸고 칩마다 누설 전류를 기록합니다. 전류를 감시하지 않으면 균열 칩이 단락 없이 통과할 수 있습니다. 우주 등급 흐름에서는 번인 앞에 납땜 딥과 C-SAM 초음파 검사가 있고(모형에서 생략), 번인 뒤에는 바로 포장하지 않고 2차 선별과 Group A 검사를 거칩니다 ${K('murata-space-2019')}.`,
+    equip: [`번인 오븐 + 전류 감시 랙 (위키 공정표) · 전류 로깅 ${K('nepp-guidelines-2012')}`, `오븐·보드·컨트롤러 형상 ${G}, 장비 제조사 자료 없음`, `C-SAM 초음파 검사: MIL-PRF-123 100%, M32535 T-case ≥0805 ${K('nepp-crack-teverovsky')} (모형에서 생략)`],
+    params: [`NEPP: 2×V<sub>R</sub>, 125 °C, 168 / 96 / 48 h (Level 1/2/3) ${K('nepp-guidelines-2012')}`, `MIL: M123·M32535 168–264 h, M55681 100 h @T<sub>max</sub> ${K('nepp-crack-teverovsky')}`, `판정: 종료 전류 < 10 nA 또는 1 h 값의 150% 미만, 로트 PDA 10/15/20% ${K('nepp-guidelines-2012')}`, `우주 등급 흐름: 납땜 딥 · C-SAM · 번인 · 2차 선별 · Group A ${K('murata-space-2019')}`, `고전압 BI는 초기 고장을 늘림, COTS+ 8 로트 중 3 로트 BI 불량 ${K('nepp-etw-2022')}`] },
+  { name: '포켓 삽입', en: 'Carrier tape feed & pocket insertion',
+    cam: [[17.2, 2.7, 2.3], [16.1, 1.3, -0.1]],
+    desc: '캐리어 테이프가 공급 릴에서 풀려 레일을 따라 들어오고, 스프로킷이 이송 구멍을 물어 한 피치씩 보냅니다. 턴테이블 포켓이 테이프 포켓 바로 위에 멈추면, 포켓 구멍으로 공기를 불어 칩을 테이프 포켓에 떨어뜨립니다. 바로 앞의 센서가 턴테이블 포켓이 비었는지 보고, 비었으면 테이프를 한 번 멈춰 빈 포켓을 남기지 않습니다.',
+    equip: [`공급 릴 + 가이드 레일 + 구동 롤러 · 스프로킷 핀 ${K('us6820401')}`, `에어 삽입 (턴테이블 → 테이프 포켓), 테이블과 테이프가 함께 멈춤 ${K('us6448525')}`, `빈 포켓 감지 센서 → 테이프 한 피치 정지 ${K('us6448525', 'us6479777')}`, `8 mm 종이 / 엠보스 테이프, EIA-481 ${K('johanson-tape-reel')}`, `다른 방식: 진공 픽 헤드로 집어 넣기 ${K('us6820401')} (반도체 트레이 예)`],
+    params: [`8 mm 엠보스 표: P0·P1 4.0 ±0.10 mm (기호 정의는 읽은 발췌에 없음) ${K('kemet-pack')}`, `포켓 안 칩 회전은 세 방향 모두 20° 이하 ${K('kemet-pack')}`, `종이: EIA 0603 이하·얇은 칩, 엠보스: 두껍거나 큰 칩 ${K('johanson-tape-reel')}`, '소형 칩 포켓 피치 2 mm는 검색 요약만 (미확인)'] },
+  { name: '플래시 (내전압)', en: 'Flash / DWV',
+    cam: [[-6.4, 3.4, 2.9], [-8.4, 1.4, -0.5]],
+    desc: '정격보다 높은 전압을 아주 짧게 걸어 절연이 약한 칩을 걸러냅니다(DWV). 저전압 MLCC는 파괴 전압이 정격의 10–100배라, 이 시험으로 잡히는 결함은 많지 않습니다. 스테이션 순서는 설비마다 달라서, 특허 예는 C/DF 바로 다음에 플래시를 겁니다. 모형은 IR 뒤에 두었습니다.',
+    equip: [`플래시 스테이션 + 소스-측정 유닛 ${K('esi-allegro-xp-2020')}`, `1 kV급은 HV 보호 (충전 전류 2–90 mA) ${K('esi-allegro-xp-2020')}`, `특허 순서: C/DF → 플래시 → 저전압 IR → 정격 소크 → IR → C 재확인 ${K('us5842579')}`],
+    params: [`특허 예: 정격의 약 2–2.5배, 40–50 ms ${K('us5842579')}`, `스크린 DWV 2.5×V<sub>R</sub> ${K('nepp-guidelines-2012')}`, `저전압 MLCC 파괴 전압 10–100×V<sub>R</sub>, 결함 검출력 약함 ${K('nepp-guidelines-2012')}`, `결함 부품 중 DWV에서 걸린 비율 약 20% ${K('nepp-crack-teverovsky')}`, '양산 플래시 체류 시간: 특허 예 외 공개 자료 없음'] },
+  { name: '테이핑기 공급 · 재측정', en: 'Taping machine: feed, re-measure, reject',
+    cam: [[17.0, 3.4, 2.0], [16.0, 1.4, -0.7]],
+    desc: '테이핑기에도 파츠 피더와 인덱스 턴테이블이 있습니다. 턴테이블 포켓이 진공으로 칩을 잡고 한 칸씩 돌며, 단자대가 내려와 용량과 IR을 한 번 더 잽니다. 불량 판정이 난 칩은 그 자리에서 공기로 불어내 회수함에 버립니다. 턴테이블과 테이프는 같은 피치로 함께 움직입니다.',
+    equip: [`파츠 피더 + 인덱스 턴테이블 (외주 포켓, 진공/양압 전환) ${K('us6448525', 'us6479777')}`, `용량 측정부 + IR 예측부 (승강 단자대) ${K('us6448525')}`, `불량 배출 (에어) + 회수함 ${K('us6448525', 'us6479777')}`, `측정·선별 겸용 테이핑기: 테이핑 전 전기 특성·외관 검사 ${K('tokyo-weld-dempa')}`, `옵션 예: 특성 검사 프로브, 5면 검사, 화상 정렬, 분류 ${K('shibuya-etm486')}`, `피더 보울 형상 ${G}`],
+    params: [`IR 예측: 충전 1–10 ms 전류로 약 60 s 값 추정 ${K('us6448525')}`, `측정·테이핑 5,000 개/분 ${K('tokyo-weld-dempa')}`, `검사 테이핑기 (반도체·SMD용) 500 개/분, 테이프 8 / 12 mm ${K('shibuya-etm486')}`, `칩 테이핑기 최대 1,300 개/분 @1005 ${K('jinsung-jt310')} ${UNV}`, '턴테이블 포켓 수·측정 전압: 특허에 없음'] },
+  { name: '포켓 검사', en: 'Pocket check before cover tape',
+    cam: [[17.9, 2.6, 1.7], [17.1, 1.45, 0]],
+    desc: '커버 테이프를 덮기 전에 테이프 위 카메라가 포켓마다 칩이 들어 있는지, 자세가 바른지를 봅니다. 어떤 설비는 여기서 불량을 빼내고 양품을 다시 넣습니다(자동 리페어).',
+    equip: [`테이프 위 카메라 (COT), 커버 테이프 앞 ${K('us6820401')}`, `자동 리페어: 수납 뒤 자세·외관 검사, 불량 배출 + 양품 재삽입 (옵션) ${K('shibuya-etm486')}`, `링 조명·카메라 브래킷 형상 ${G}`],
+    params: [`허용 기준 예: 포켓 안 회전 세 방향 모두 20° 이하 ${K('kemet-pack')}`, '검사 속도·조명 조건: 자료 없음'] },
+  { name: '커버 테이프 열 실링', en: 'Cover tape tension & heat seal',
+    cam: [[19.6, 2.8, 2.8], [18.9, 1.75, 0]],
+    desc: '커버 테이프가 릴에서 풀려 텐션 롤러를 지나 캐리어 테이프 위에 놓입니다. 테이프가 멈춘 동안 가열된 실링 슈가 내려와 양쪽 가장자리를 눌러 붙입니다. 열 활성형 커버 테이프는 접착층이 전면에 있고, 감압형은 가장자리 두 줄에만 있어 가열하지 않습니다.',
+    equip: [`커버 테이프 릴 + 텐션 롤러 ${K('us6820401')}`, `실링 슈 (아래로 누름) + 히터 (열 활성형일 때) · 가이드 레일 경사로 플랜지를 들어 올림 ${K('us6820401')}`, `열압착 실링 ${K('shibuya-etm486')}`, `공압 실린더·히터 카트리지 형상 ${G}`],
+    params: [`실링 온도 시작값 90 °C, 최대 160 °C (반도체용 테이퍼 매뉴얼) ${K('vtek-tm401')}`, `드웰 = 실링 슈가 커버 테이프에 닿아 있는 시간, ms로 설정 ${K('vtek-tm401')}`, `박리 강도 시험 결과를 보고 실링 슈 온도를 올리거나 내림 ${K('vtek-tm401')}`, `커버 테이프 자료: 150–200 °C · 0.02–0.40 s · 30–70 psi ${K('advantek-huc')}, 170–230 °C · 1 bar · 100 ms ${K('3m-2672')} ${UNV}`, '충돌: 설비 설정값(90–160 °C)과 테이프 자료(150–230 °C)가 다름. 측정 위치(설정값 vs 필름 온도) 차이로 보이나 확인 안 됨'] },
+  { name: '실링 검사 · 릴 권취', en: 'Seal inspection & take-up reel',
+    cam: [[20.9, 3.0, 3.4], [20.3, 1.85, 0]],
+    desc: '실링 직후 카메라가 실링 자국의 위치와 폭이 고른지 봅니다. 커버 테이프 주름은 결함으로 잘못 판정되기 쉽고, 장력은 나중의 박리 강도에도 영향을 줍니다. 완성된 테이프는 턴테이블 인덱스와 맞춰 권취 릴에 한 피치씩 감깁니다.',
+    equip: [`실링 후 카메라 (CASI): 실링 슈 위치 오류, 실링 둘레 불균일 검사 ${K('us6820401')}`, `권취 릴, 턴테이블과 동기 인덱스 ${K('us6448525', 'us6820401')}`, `릴 5" / 7" / 13" ${K('johanson-tape-reel')}`],
+    params: [`커버 테이프 주름을 카메라가 결함으로 오판할 수 있음, 팽팽함은 박리 강도 값을 낮춤 ${K('us6820401')}`, `릴당 수량 0402 10,000 · 0201 15,000 · 01005 20,000/30,000 ${K('johanson-tape-reel')}`, `커버 테이프 파단력 1.0 kg 이상 ${K('kemet-pack')}`, '권취 속도: 자료 없음'] },
+  { name: '박리 강도 검사', en: 'Cover tape peel test (sample)',
+    cam: [[24.6, 2.4, 2.6], [23.95, 1.1, 0.1]],
+    desc: '실링이 약하면 운송 중 칩이 빠지고, 너무 강하면 실장기 피더에서 커버 테이프가 잘 벗겨지지 않습니다. 테이프 샘플을 고정하고 커버 테이프를 테이프 면에서 165–180° 방향으로 일정 속도로 당기며 힘을 기록합니다. 결과는 실링 온도 조정에 다시 쓰입니다.',
+    equip: [`박리 시험기: 클램프 + 로드셀, 이동 캐리지, 힘 기록 화면 ${G}`, `시험 결과로 실링 슈 온도 보정 ${K('vtek-tm401')}`],
+    params: [`8 mm 테이프 0.1–1.0 N, 12 mm 테이프 0.1–1.3 N ${K('kemet-pack')}`, `당기는 각도 165–180° (테이프 진행 반대 방향), 속도 300 (±)10 mm/min ${K('kemet-pack')}`, `EIA-481 §4.11 박리 시험 ${K('ecia-peel-note')} ${UNV}`, `24 mm 0.1–1.6 N, 부품사 사양 예 0.1–0.6 N · 0.1–0.7 N ${UNV}`, '샘플링 빈도·시험 주체(제조사/고객): 자료 없음'] },
+  { name: '라벨 · 포장', en: 'Reel label & packing',
+    cam: [[27.9, 2.9, 4.3], [27.3, 0.9, 0.2]],
+    desc: '감기를 마친 릴에 바코드 라벨을 붙이고 상자에 담아 출하합니다. 라벨은 릴에서 이송 구멍 반대쪽 면에 붙입니다.',
+    equip: [`바코드 라벨: 릴의 이송 구멍 반대쪽 면, EIA-556 ${K('kemet-pack')}`, `라벨 프린터·부착 장치 ${G}`, `포장 상자·카트 ${G}`],
+    params: [`릴당 수량 (칩 크기·두께·릴 크기 의존) ${K('johanson-tape-reel')}`, `01005 벌크 케이스 500,000개 ${UNV}`, '라벨 항목·방습 포장 요건: 자료 없음'] },
+];
+const NS = STAGES.length;
+// Process order with branches (see the flow block in the UI section).
+// STAGES indices 8–14 were appended later; FLOW sets the real order.
+const FLOW = [
+  { fork: 'ref', title: '측정 기준', def: 'inline', opts: [
+    { key: 'inline', label: '인라인 (바로 측정)', steps: [], note: '선별기는 디에이징 없이 칩이 에이징 곡선 위 어느 시점에 있든 그대로 잽니다.' },
+    { key: 'ref', label: '기준 측정 (Class II)', steps: [0] }] },
+  1, 2, 3, 8, 4, 5,
+  { fork: 'grade', title: '등급', def: 'com', opts: [
+    { key: 'com', label: '상용·차량', steps: [], note: '선별·외관 검사 후 바로 테이핑합니다 (차량용도 여기서 끝).' },
+    { key: 'hirel', label: '고신뢰 (우주·군)', steps: [6, { i: 2, label: '2차 선별 (번인 후 재측정)',
+      desc: `번인을 마친 칩을 같은 핸들러에 다시 넣어 C/DF·IR을 재측정하고 분류합니다. 번인 중 특성이 변한 칩을 걸러 내고, 이어서 Group A 검사를 한 뒤 포장합니다 ${K('murata-space-2019')}. 재측정 판정 기준(변화량 한계)은 위키 자료에 없습니다.` }] }] },
+  9, 7, 10, 11, 12, 13, 14,
+];
+const STAGE_DUR = 10;
+
+/* ------------------------------ renderer ------------------------------ */
+const host = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.82;
+host.appendChild(renderer.domElement);
+
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.setSize(window.innerWidth, window.innerHeight);
+labelRenderer.domElement.className = 'labels';
+host.appendChild(labelRenderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x8e9aa5);
+scene.fog = new THREE.Fog(0x8e9aa5, 60, 140);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
+
+const OVERVIEW = [[1.5, 25, 46], [1.5, 1.0, 0]];
+const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 400);
+camera.position.set(...OVERVIEW[0]);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(...OVERVIEW[1]);
+controls.enableDamping = true;
+controls.maxPolarAngle = Math.PI / 2 - 0.04;
+controls.minDistance = 1.5;
+controls.maxDistance = 90;
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x5b646d, 0.55));
+const sun = new THREE.DirectionalLight(0xfff6ea, 2.4);
+sun.position.set(14, 32, 22);
+sun.castShadow = true;
+sun.shadow.mapSize.set(4096, 4096);
+Object.assign(sun.shadow.camera, { left: -48, right: 48, top: 30, bottom: -30, near: 1, far: 90 });
+sun.shadow.bias = -0.0004;
+sun.shadow.normalBias = 0.03;
+scene.add(sun);
+
+/* ------------------------------ materials ------------------------------ */
+const std = (o) => new THREE.MeshStandardMaterial(o);
+const M = {
+  steel: std({ color: 0xd8dce0, metalness: 1.0, roughness: 0.22 }),
+  steelB: std({ color: 0xbfc5ca, metalness: 0.9, roughness: 0.38 }),
+  steelIn: std({ color: 0x8d949b, metalness: 0.85, roughness: 0.5, side: THREE.BackSide }),
+  dark: std({ color: 0x2c3137, metalness: 0.4, roughness: 0.6 }),
+  motor: std({ color: 0x2c5d8e, metalness: 0.35, roughness: 0.42 }),
+  motorG: std({ color: 0x8b949c, metalness: 0.55, roughness: 0.45 }),
+  paint: std({ color: 0xe4e7ea, metalness: 0.1, roughness: 0.55 }),
+  paintBlue: std({ color: 0x3b6f9e, metalness: 0.2, roughness: 0.5 }),
+  yellow: std({ color: 0xf0b400, metalness: 0.2, roughness: 0.5 }),
+  red: std({ color: 0xd23a2a, metalness: 0.2, roughness: 0.45 }),
+  rubber: std({ color: 0x1b1b1b, metalness: 0.0, roughness: 0.85 }),
+  pcb: std({ color: 0x1f6b3a, metalness: 0.1, roughness: 0.55 }),
+  glass: std({ color: 0xd8ecf5, metalness: 0.0, roughness: 0.05, transparent: true, opacity: 0.3 }),
+  glassDisk: std({ color: 0xcfe8f5, metalness: 0.0, roughness: 0.04, transparent: true, opacity: 0.42 }),
+  screen: std({ color: 0x0b1a26, emissive: 0x2a8cd6, emissiveIntensity: 0.6, roughness: 0.3 }),
+  screenG: std({ color: 0x0b1a26, emissive: 0x2ad68c, emissiveIntensity: 0.55, roughness: 0.3 }),
+  paper: std({ color: 0xe6dcc6, roughness: 0.9 }),
+  reelBlue: std({ color: 0x2f6fd6, metalness: 0.0, roughness: 0.35, transparent: true, opacity: 0.6, side: THREE.DoubleSide }),
+  cover: std({ color: 0xb9d9ee, roughness: 0.25, transparent: true, opacity: 0.78, side: THREE.DoubleSide }),
+  coverLite: std({ color: 0x8fc1e6, roughness: 0.25, transparent: true, opacity: 0.42, depthWrite: false, side: THREE.DoubleSide }),
+};
+// Light hoses / chutes turn see-through in cutaway mode.
+const pipeMat = std({ color: 0xd2d7dc, metalness: 0.95, roughness: 0.25, transparent: true, opacity: 0.5, depthWrite: false });
+
+// MLCC chip: ceramic body + silver terminations at both ends (size exaggerated for visibility)
+const chipTex = (() => {
+  const c = document.createElement('canvas'); c.width = 64; c.height = 16;
+  const x = c.getContext('2d');
+  x.fillStyle = '#b48a55'; x.fillRect(0, 0, 64, 16);
+  x.fillStyle = '#dfe3e6'; x.fillRect(0, 0, 13, 16); x.fillRect(51, 0, 13, 16);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+})();
+M.chip = std({ map: chipTex, roughness: 0.4, metalness: 0.25 });
+
+/* ------------------------------ helpers ------------------------------ */
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const CUT_CYL = Math.PI / 4, CUT_SPH = 3 * Math.PI / 4, CUT_TL = 1.5 * Math.PI, FULL = Math.PI * 2;
+const DEG = Math.PI / 180;
+const cutParts = [], fullParts = [];
+const rotors = [], updaters = [];
+const HIDE = 0.0001;
+const sm = (t) => t * t * (3 - 2 * t);
+const clamp01 = (v) => Math.max(0, Math.min(1, v));
+const mod = (a, n) => ((a % n) + n) % n;
+
+function mk(geo, mat, cast = true) { const m = new THREE.Mesh(geo, mat); m.castShadow = cast; m.receiveShadow = true; return m; }
+function put(parent, m, x = 0, y = 0, z = 0) { m.position.set(x, y, z); parent.add(m); return m; }
+const cyl = (r1, r2, h, seg = 32, open = false, ts = 0, tl = FULL) => new THREE.CylinderGeometry(r1, r2, h, seg, 1, open, ts, tl);
+const box = (x, y, z) => new THREE.BoxGeometry(x, y, z);
+const along = (geo, axis) => { if (axis === 'x') geo.rotateZ(-Math.PI / 2); if (axis === 'z') geo.rotateX(Math.PI / 2); return geo; };
+
+function pair(parent, geoFn, cutStart, matOut, matIn, pos) {
+  const gc = geoFn(cutStart, CUT_TL);
+  const a = mk(gc, matOut), b = mk(gc, matIn, false), f = mk(geoFn(0, FULL), matOut);
+  for (const m of [a, b, f]) { m.position.copy(pos); parent.add(m); }
+  cutParts.push(a, b); fullParts.push(f);
+}
+function rim(parent, R, tube, y, mat) {
+  const gc = new THREE.TorusGeometry(R, tube, 8, 64, CUT_TL); gc.rotateX(Math.PI / 2); gc.rotateY(5 * Math.PI / 4);
+  const gf = new THREE.TorusGeometry(R, tube, 8, 64); gf.rotateX(Math.PI / 2);
+  const a = put(parent, mk(gc, mat), 0, y, 0), f = put(parent, mk(gf, mat), 0, y, 0);
+  cutParts.push(a); fullParts.push(f);
+}
+function label(text, pos, cls = 'tag', stage = null) {
+  const d = document.createElement('div'); d.className = cls; d.innerHTML = text;
+  if (stage !== null) d.addEventListener('click', () => jumpTo(stage));
+  const o = new CSS2DObject(d); o.position.copy(pos); scene.add(o); return d;
+}
+// box beam between two world points
+function beam(parent, a, b, t, mat) {
+  const d = b.clone().sub(a), L = d.length();
+  const m = mk(box(t, L, t), mat);
+  m.position.copy(a).addScaledVector(d, 0.5);
+  m.quaternion.setFromUnitVectors(V(0, 1, 0), d.normalize());
+  parent.add(m); return m;
+}
+function cable(a, b, lift, r = 0.014, mat = M.rubber) {
+  const c = new THREE.QuadraticBezierCurve3(a, a.clone().lerp(b, 0.5).add(V(0, lift, 0)), b);
+  return put(scene, mk(new THREE.TubeGeometry(c, 30, r, 8, false), mat), 0, 0, 0);
+}
+function vMotor(scale = 1) {
+  const g = new THREE.Group();
+  put(g, mk(box(0.5, 0.32, 0.5), M.motorG), 0, 0.16, 0);
+  put(g, mk(cyl(0.2, 0.2, 0.55, 28), M.motor), 0, 0.6, 0);
+  for (let k = 0; k < 18; k++) {
+    const a = k / 18 * FULL, f = mk(box(0.02, 0.5, 0.05), M.motor);
+    f.position.set(Math.cos(a) * 0.215, 0.6, Math.sin(a) * 0.215); f.rotation.y = -a; g.add(f);
+  }
+  put(g, mk(cyl(0.21, 0.21, 0.16, 28), M.motorG), 0, 0.96, 0);
+  put(g, mk(box(0.16, 0.14, 0.14), M.motor), 0.26, 0.64, 0);
+  g.scale.setScalar(scale);
+  return g;
+}
+function makeScreen(parent, pw, ph, cw, ch, x, y, z, ry = 0, rx = 0) {
+  const c = document.createElement('canvas'); c.width = cw; c.height = ch;
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+  const bez = put(parent, mk(box(pw + 0.06, ph + 0.06, 0.04), M.dark), x, y, z); bez.rotation.set(rx, ry, 0, 'YXZ');
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(pw, ph), std({ map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.9, roughness: 0.3 }));
+  m.position.z = 0.021; bez.add(m);
+  return { x: c.getContext('2d'), tex, W: cw, H: ch, f: -1 };
+}
+function cabinet(x, z, w, h, d, mat = M.paint) {
+  const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
+  put(g, mk(box(w, h - 0.08, d), mat), 0, (h - 0.08) / 2 + 0.08, 0);
+  put(g, mk(box(w - 0.06, 0.08, d - 0.06), M.dark), 0, 0.04, 0);                 // plinth
+  put(g, mk(box(w + 0.02, 0.035, d + 0.02), M.steelB), 0, h + 0.017, 0);          // deck plate
+  const nd = Math.max(1, Math.round(w / 1.1));
+  for (let k = 0; k < nd; k++) {                                                  // front doors + handles + vents
+    const dx = -w / 2 + (k + 0.5) * w / nd;
+    put(g, mk(box(w / nd - 0.08, h - 0.32, 0.012), mat), dx, h / 2 + 0.03, d / 2 + 0.006);
+    put(g, mk(box(0.03, 0.16, 0.03), M.dark), dx + w / nd / 2 - 0.14, h / 2 + 0.05, d / 2 + 0.025);
+    for (let v = 0; v < 5; v++) put(g, mk(box(w / nd * 0.4, 0.012, 0.006), M.dark), dx - 0.05, 0.22 + v * 0.035, d / 2 + 0.014);
+  }
+  return g;
+}
+const chipGeo = box(0.11, 0.055, 0.055);
+function chipInst(n, parent) {
+  const inst = new THREE.InstancedMesh(chipGeo, M.chip, n);
+  inst.instanceMatrix.setUsage(THREE.DynamicDrawUsage); inst.frustumCulled = false; inst.castShadow = true;
+  parent.add(inst); return inst;
+}
+const dm = new THREE.Object3D();
+function setI(inst, i, pos, ry = 0, s = 1, rx = 0, rz = 0) {
+  dm.position.copy(pos); dm.rotation.set(rx, ry, rz); dm.scale.setScalar(s); dm.updateMatrix(); inst.setMatrixAt(i, dm.matrix);
+}
+const heatMat = () => std({ color: 0x8a6a4c, emissive: 0xff5a14, emissiveIntensity: 0, metalness: 0.5, roughness: 0.45 });
+// Draw-call batching: once the scene is built, every mesh that never moves is merged per material.
+// Anything that moves (or whose subtree moves) is tagged with dyn() and left alone.
+function dyn(o) { o.userData.dyn = true; return o; }
+function freezeStatic(root) {
+  root.updateMatrixWorld(true);
+  const skip = new Set([...cutParts, ...fullParts]);
+  const buckets = new Map(), victims = [];
+  (function walk(o) {
+    for (const c of o.children) {
+      if (c.userData.dyn) continue;
+      if (c.isMesh && !c.isInstancedMesh && !skip.has(c) && !c.children.length) {
+        const g = c.geometry, sig = Object.keys(g.attributes).sort().join() + (g.index ? 'i' : 'n');
+        const key = `${c.material.uuid}|${c.castShadow}|${sig}`;
+        let b = buckets.get(key); if (!b) buckets.set(key, b = { mat: c.material, cast: c.castShadow, geos: [] });
+        b.geos.push(g.clone().applyMatrix4(c.matrixWorld)); victims.push(c);
+      } else walk(c);
+    }
+  })(root);
+  for (const b of buckets.values()) {
+    const m = new THREE.Mesh(b.geos.length > 1 ? mergeGeometries(b.geos) : b.geos[0], b.mat);
+    m.castShadow = b.cast; m.receiveShadow = true; m.matrixAutoUpdate = false; root.add(m);
+  }
+  for (const v of victims) v.parent.remove(v);
+}
+
+/* ------------------------------ building ------------------------------ */
+(function building() {
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const x = c.getContext('2d');
+  x.fillStyle = '#56645e'; x.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 900; i++) { x.fillStyle = `rgba(255,255,255,${Math.random() * 0.035})`; x.fillRect(Math.random() * 256, Math.random() * 256, 2, 2); }
+  x.strokeStyle = 'rgba(40,50,46,.35)'; x.lineWidth = 2; x.strokeRect(0, 0, 256, 256);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(36, 11); t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 8;
+  const floor = mk(new THREE.PlaneGeometry(144, 44), std({ map: t, roughness: 0.62, metalness: 0.0 }), false);
+  floor.rotation.x = -Math.PI / 2; scene.add(floor);
+  for (const zz of [5.2, 6.8]) put(scene, mk(box(80, 0.006, 0.1), M.yellow, false), -3, 0.004, zz);
+  put(scene, mk(box(144, 13, 0.3), std({ color: 0xa7afb6, roughness: 0.9 })), 0, 6.5, -9);
+  for (let i = -6; i <= 6; i++) {
+    put(scene, mk(box(0.5, 13, 0.5), std({ color: 0x5a6b7b, roughness: 0.6, metalness: 0.3 })), i * 11, 6.5, -8.6);
+    put(scene, mk(box(7, 2.2, 0.05), std({ color: 0xe8f1f8, emissive: 0xcfe3f2, emissiveIntensity: 0.55 }), false), i * 11 + 5.5, 9.2, -8.84);
+  }
+  put(scene, mk(box(144, 0.4, 0.4), std({ color: 0x5a6b7b, roughness: 0.6 })), 0, 12.6, -8.6);
+})();
+
+/* ------------------------------ flying chips (shared pool) ------------------------------ */
+const flights = (() => {
+  const n = 48, inst = chipInst(n, scene);
+  const F = Array.from({ length: n }, () => ({ on: false }));
+  let next = 0;
+  const pos = V(0, 0, 0);
+  updaters.push((dt, s, p, t) => {
+    for (let i = 0; i < n; i++) {
+      const f = F[i];
+      if (f.on) {
+        const k = (t - f.t0) / f.dur;
+        if (k >= 1 || k < 0) { f.on = false; if (k >= 1 && f.done) f.done(); }
+        else { pos.lerpVectors(f.a, f.b, k); pos.y += f.h * 4 * k * (1 - k); setI(inst, i, pos, f.ry + k * 7, 1, k * 9); continue; }
+      }
+      setI(inst, i, pos.set(0, -5, 0), 0, HIDE);
+    }
+    inst.instanceMatrix.needsUpdate = true;
+  });
+  return { spawn(a, b, t, dur, h, done) { const f = F[next]; next = (next + 1) % n; Object.assign(f, { on: true, a: a.clone(), b: b.clone(), t0: t, dur, h, done, ry: Math.random() * 6 }); } };
+})();
+
+/* ------------------------------ vibratory bowl + linear track ------------------------------ */
+function makeBowl({ x, z, y0, r = 0.6, exitAng = 0, stages, n = 40, pile = 50, hopper = true }) {
+  const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
+  put(g, mk(cyl(r * 0.82, r * 0.82, 0.04, 32), M.dark), 0, y0 + 0.02, 0);
+  put(g, mk(cyl(r * 0.68, r * 0.78, 0.24, 32), M.motorG), 0, y0 + 0.14, 0);       // electromagnetic drive
+  for (let k = 0; k < 3; k++) {                                                     // leaf springs
+    const a = k / 3 * FULL + 0.5;
+    const sp = put(g, mk(box(0.05, 0.24, 0.11), M.steelB), Math.cos(a) * r * 0.78, y0 + 0.15, Math.sin(a) * r * 0.78);
+    sp.rotation.set(0, -a, 0.35);
+  }
+  put(g, mk(box(0.14, 0.1, 0.1), M.dark), r * 0.85, y0 + 0.08, 0);                // terminal box
+  const bv = dyn(new THREE.Group()); bv.position.y = y0 + 0.28; g.add(bv);
+  const bh = r * 0.55;
+  put(bv, mk(cyl(r, r, 0.03, 48), M.steelB), 0, 0.015, 0);
+  put(bv, mk(cyl(0.04, r * 0.55, bh * 0.55, 32), M.steel), 0, bh * 0.275 + 0.03, 0);
+  pair(bv, (s0, l) => cyl(r, r, bh, 48, true, s0, l), CUT_CYL, M.steel, M.steelIn, V(0, bh / 2, 0));
+  rim(bv, r + 0.01, 0.018, bh, M.steelB);
+  const rs = r * 0.9, turns = 2;
+  const ang = (u) => exitAng - turns * FULL * (1 - u);
+  const hp = (u, tgt) => { const a = ang(u); return tgt.set(rs * Math.cos(a), 0.05 + (bh - 0.07) * u, rs * Math.sin(a)); };
+  class Sp extends THREE.Curve { getPoint(u, tgt = new THREE.Vector3()) { return hp(u, tgt); } }
+  put(bv, mk(new THREE.TubeGeometry(new Sp(), 180, 0.018, 6, false), M.steelB), 0, 0, 0);
+  const ci = chipInst(n + pile, bv);
+  const tmp = V(0, 0, 0);
+  for (let i = 0; i < pile; i++) {
+    const a = Math.random() * FULL, rr = r * 0.42 + Math.random() * r * 0.38;
+    setI(ci, n + i, tmp.set(rr * Math.cos(a), 0.06 + Math.random() * 0.05, rr * Math.sin(a)), Math.random() * 6, 1, Math.random(), Math.random());
+  }
+  const us = Array.from({ length: n }, (_, i) => i / n);
+  updaters.push((dt, s, p, t) => {
+    const on = stages.includes(s) ? 1 : 0;
+    bv.position.y = y0 + 0.28 + Math.sin(t * 53) * 0.004 * on;
+    bv.rotation.y = Math.sin(t * 53) * 0.008 * on;
+    for (let i = 0; i < n; i++) {
+      if (on) us[i] = (us[i] + dt * 0.09) % 1;
+      hp(us[i], tmp); tmp.y += 0.045;
+      setI(ci, i, tmp, -(ang(us[i]) + Math.PI / 2));
+    }
+    ci.instanceMatrix.needsUpdate = true;
+  });
+  if (hopper) {
+    const hx = -r * 0.2, hz = -r * 0.5, hy = y0 + 1.3;
+    put(g, mk(cyl(r * 0.55, r * 0.12, r * 0.75, 28), M.steel), hx, hy, hz);
+    put(g, mk(new THREE.TorusGeometry(r * 0.55, 0.018, 8, 28), M.steelB), hx, hy + r * 0.375, hz).rotation.x = Math.PI / 2;
+    put(g, mk(cyl(r * 0.12, r * 0.12, 0.25, 16), pipeMat, false), hx, hy - r * 0.5, hz);
+    put(g, mk(box(0.08, hy + 0.2, 0.08), M.steelB), hx, (hy + 0.2) / 2, hz - r * 0.65);
+    put(g, mk(box(0.08, 0.08, r * 0.65), M.steelB), hx, hy + 0.15, hz - r * 0.33);
+  }
+  return { exit: V(x + (r + 0.03) * Math.cos(exitAng), y0 + 0.28 + bh - 0.01, z + (r + 0.03) * Math.sin(exitAng)) };
+}
+function makeTrack(a, b, { n = 20, stages, speed = 0.22, drive = true }) {
+  const dir = b.clone().sub(a), L = dir.length();
+  const g = new THREE.Group(); g.position.copy(a); scene.add(g);
+  g.quaternion.setFromUnitVectors(V(1, 0, 0), dir.clone().normalize());
+  put(g, mk(box(L, 0.03, 0.1), M.steelB), L / 2, -0.045, 0);
+  for (const sz of [-0.05, 0.05]) put(g, mk(box(L, 0.045, 0.012), M.steel), L / 2, -0.02, sz);
+  if (drive) { put(g, mk(box(L * 0.6, 0.14, 0.16), M.motorG), L * 0.5, -0.14, 0); put(g, mk(box(L * 0.62, 0.02, 0.18), M.dark), L * 0.5, -0.22, 0); }
+  const ci = chipInst(n, g);
+  let off = 0; const tmp = V(0, 0, 0);
+  updaters.push((dt, s) => {
+    if (stages.includes(s)) off = (off + dt * speed / L) % 1;
+    for (let i = 0; i < n; i++) setI(ci, i, tmp.set(((i / n + off) % 1) * L, 0, 0));
+    ci.instanceMatrix.needsUpdate = true;
+  });
+  return g;
+}
+
+/* ================================ STATIONS ================================ */
+/* -- S0 de-aging oven + rest rack + reference LCR bench -- */
+const oven = (() => {
+  const ox = -26.8;
+  const g = new THREE.Group(); g.position.set(ox, 0, 0); scene.add(g);
+  const W = 2.0, H = 2.2, D = 1.5, y0 = 0.5, wt = 0.08;
+  put(g, mk(box(W + 0.08, 0.1, D + 0.08), M.dark), 0, y0 - 0.05, 0);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    put(g, mk(box(0.1, y0 - 0.1, 0.1), M.steelB), sx * (W / 2 - 0.06), (y0 - 0.1) / 2, sz * (D / 2 - 0.06));
+    put(g, mk(cyl(0.07, 0.07, 0.03, 12), M.rubber), sx * (W / 2 - 0.06), 0.015, sz * (D / 2 - 0.06));
+  }
+  put(g, mk(box(W, H, wt), M.paint), 0, y0 + H / 2, -D / 2 + wt / 2);
+  put(g, mk(box(wt, H, D), M.paint), -W / 2 + wt / 2, y0 + H / 2, 0);
+  fullParts.push(put(g, mk(box(wt, H, D), M.paint), W / 2 - wt / 2, y0 + H / 2, 0));     // right wall: hidden in cutaway
+  for (const zz of [-D / 2 + 0.06, D / 2 - 0.06]) cutParts.push(put(g, mk(box(wt, H, 0.12), M.paint), W / 2 - wt / 2, y0 + H / 2, zz));
+  put(g, mk(box(W, wt, D), M.paint), 0, y0 + H - wt / 2, 0);
+  put(g, mk(box(W, wt, D), M.paint), 0, y0 + wt / 2, 0);
+  put(g, mk(box(W - 0.2, H - 0.2, 0.02), M.steelB), 0, y0 + H / 2, -D / 2 + wt + 0.01);
+  const heat = heatMat();
+  for (let k = 0; k < 6; k++) put(g, mk(along(cyl(0.022, 0.022, W - 0.4, 10), 'x'), heat), 0, y0 + 0.3 + k * 0.32, -D / 2 + wt + 0.07);
+  const glow = new THREE.PointLight(0xff7a2a, 0, 3.5); glow.position.set(0, y0 + H / 2, 0); g.add(glow);
+  const trays = [];
+  for (let k = 0; k < 3; k++) {
+    const yy = y0 + 0.42 + k * 0.56;
+    put(g, mk(box(W - 0.2, 0.015, D - 0.25), M.steelB), 0, yy, -0.05);
+    for (const sx of [-1, 1]) put(g, mk(box(0.03, 0.04, D - 0.25), M.steelB), sx * (W / 2 - 0.12), yy - 0.025, -0.05);
+    const tg = dyn(new THREE.Group()); tg.position.set(0, yy + 0.008, -0.05); g.add(tg);
+    put(tg, mk(box(1.3, 0.04, 0.85), M.dark), 0, 0.02, 0);
+    const ci = chipInst(70, tg); const tmp = V(0, 0, 0);
+    for (let i = 0; i < 70; i++) setI(ci, i, tmp.set((Math.random() - 0.5) * 1.15, 0.068, (Math.random() - 0.5) * 0.7), Math.random() * 6.28);
+    trays.push(tg);
+  }
+  const door = dyn(new THREE.Group()); door.position.set(-W / 2, y0 + H / 2, D / 2); g.add(door);
+  put(door, mk(box(W, H, 0.1), M.paint), W / 2, 0, 0.05);
+  put(door, mk(box(0.9, 0.62, 0.02), M.dark), W / 2 + 0.1, 0.35, 0.105);
+  put(door, mk(box(0.82, 0.54, 0.02), M.glass, false), W / 2 + 0.1, 0.35, 0.118);
+  put(door, mk(box(0.05, 0.6, 0.05), M.steel), W - 0.16, 0, 0.17);
+  for (const yy of [-0.22, 0.22]) put(door, mk(box(0.05, 0.05, 0.08), M.steel), W - 0.16, yy, 0.12);
+  for (const yy of [-0.8, 0.8]) put(door, mk(cyl(0.035, 0.035, 0.18, 12), M.steelB), -0.02, yy, 0.05);
+  // controller column
+  put(g, mk(box(0.5, H, D), M.paintBlue), W / 2 + 0.25, y0 + H / 2, 0);
+  const scr = makeScreen(g, 0.4, 0.26, 256, 160, W / 2 + 0.25, y0 + H - 0.42, D / 2 + 0.02);
+  put(g, mk(along(cyl(0.035, 0.035, 0.04, 16), 'z'), M.red), W / 2 + 0.25, y0 + H - 0.78, D / 2 + 0.02);
+  for (const dx of [-0.12, 0.12]) put(g, mk(along(cyl(0.025, 0.025, 0.03, 12), 'z'), M.yellow), W / 2 + 0.25 + dx, y0 + H - 0.78, D / 2 + 0.02);
+  // exhaust duct + circulation fan motor
+  put(g, mk(cyl(0.11, 0.11, 0.8, 20), M.steelB), 0.5, y0 + H + 0.4, -0.35);
+  put(g, mk(cyl(0.14, 0.14, 0.05, 20), M.steelB), 0.5, y0 + H + 0.02, -0.35);
+  put(g, mk(box(0.5, 0.2, 0.42), M.steelB), -0.35, y0 + H + 0.1, -0.3);
+  const fm = vMotor(0.55); fm.position.set(-0.35, y0 + H + 0.2, -0.3); g.add(fm);
+
+  // rest rack (24 h) + reference LCR bench
+  const rk = new THREE.Group(); rk.position.set(ox + 3.0, 0, -1.5); scene.add(rk);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) put(rk, mk(box(0.05, 1.8, 0.05), M.steelB), sx * 0.7, 0.9, sz * 0.3);
+  for (let k = 0; k < 4; k++) {
+    put(rk, mk(box(1.45, 0.025, 0.65), M.steelB), 0, 0.25 + k * 0.48, 0);
+    const tg = new THREE.Group(); tg.position.set(-0.3 + (k % 2) * 0.6, 0.27 + k * 0.48, 0); rk.add(tg);
+    put(tg, mk(box(0.6, 0.04, 0.5), M.dark), 0, 0.02, 0);
+    const ci = chipInst(24, tg); const tmp = V(0, 0, 0);
+    for (let i = 0; i < 24; i++) setI(ci, i, tmp.set((Math.random() - 0.5) * 0.5, 0.068, (Math.random() - 0.5) * 0.4), Math.random() * 6.28);
+  }
+  const bn = new THREE.Group(); bn.position.set(ox + 3.0, 0, 0.9); scene.add(bn);
+  put(bn, mk(box(1.6, 0.05, 0.8), std({ color: 0x31373e, roughness: 0.4 })), 0, 0.9, 0);
+  for (const sx of [-0.74, 0.74]) for (const sz of [-0.34, 0.34]) put(bn, mk(box(0.05, 0.88, 0.05), M.steelB), sx, 0.44, sz);
+  put(bn, mk(box(0.6, 0.24, 0.42), M.paint), -0.35, 1.045, -0.1);
+  const lcr = makeScreen(bn, 0.3, 0.15, 256, 128, -0.42, 1.06, 0.12);
+  for (let k = 0; k < 4; k++) put(bn, mk(along(cyl(0.018, 0.018, 0.03, 10), 'z'), k === 3 ? M.red : M.dark), -0.12 + 0.0 * k, 0.98 + k * 0.04, 0.12);
+  put(bn, mk(box(0.22, 0.06, 0.16), M.dark), 0.35, 0.955, 0.05);                  // test fixture
+  for (const dx of [-0.04, 0.04]) put(bn, mk(box(0.012, 0.06, 0.012), M.steel), 0.35 + dx, 1.0, 0.05);
+  cable(V(ox + 3.0 - 0.12, 1.0, 1.0), V(ox + 3.0 + 0.3, 0.98, 0.98), 0.08, 0.008);
+
+  updaters.push((dt, s, p, t) => {
+    let open = 0, heatK = 0, out = 0;
+    if (s === 0) {
+      open = p < 0.1 ? sm(p / 0.1) : p < 0.18 ? 1 - sm((p - 0.1) / 0.08) : p < 0.78 ? 0 : p < 0.86 ? sm((p - 0.78) / 0.08) : 1;
+      heatK = p > 0.18 && p < 0.72 ? clamp01((p - 0.18) / 0.08) : p >= 0.72 && p < 0.8 ? 1 - (p - 0.72) / 0.08 : 0;
+      out = p > 0.86 ? sm((p - 0.86) / 0.12) : 0;
+    }
+    door.rotation.y = -open * 1.7;
+    heat.emissiveIntensity = heatK * (1.4 + 0.15 * Math.sin(t * 5));
+    glow.intensity = heatK * 4;
+    trays[1].position.z = -0.05 + out * 1.25;
+    const fr = Math.floor(t * 6);
+    if (fr !== scr.f) {
+      scr.f = fr;
+      const x = scr.x;
+      x.fillStyle = '#071521'; x.fillRect(0, 0, 256, 160);
+      x.fillStyle = '#7fc7ff'; x.font = 'bold 17px system-ui'; x.fillText('DE-AGING', 12, 26);
+      const ph = s !== 0 ? 'STANDBY' : p < 0.18 ? 'LOAD' : p < 0.72 ? 'HEAT' : p < 0.8 ? 'COOL' : 'REST';
+      x.fillStyle = ph === 'HEAT' ? '#ffb547' : '#4b6a80'; x.fillText(ph, 170, 26);
+      x.fillStyle = '#e9eef3'; x.font = 'bold 22px system-ui'; x.fillText('SET 150 °C', 12, 62);
+      x.fillStyle = '#9db0c2'; x.font = '15px system-ui';
+      x.fillText('가열 1 h', 12, 92); x.fillText('방치 24 ±2 h', 12, 132);
+      const k1 = s !== 0 ? 0 : clamp01((p - 0.18) / 0.54), k2 = s !== 0 ? 0 : clamp01((p - 0.8) / 0.2);
+      for (const [yy, k] of [[100, k1], [140, k2]]) {
+        x.fillStyle = '#2b4a60'; x.fillRect(110, yy - 14, 130, 10); x.fillStyle = '#ffb547'; x.fillRect(110, yy - 14, 130 * k, 10);
+      }
+      scr.tex.needsUpdate = true;
+      const y = lcr.x;
+      y.fillStyle = '#071521'; y.fillRect(0, 0, 256, 128);
+      y.fillStyle = '#7fc7ff'; y.font = 'bold 20px system-ui'; y.fillText('Cp – D', 12, 30);
+      y.fillStyle = '#9db0c2'; y.font = '17px system-ui'; y.fillText('1 kHz · 1.0 Vrms', 12, 64);
+      y.fillStyle = s === 0 && p > 0.9 ? '#ffb547' : '#4b6a80'; y.font = 'bold 18px system-ui';
+      y.fillText(s === 0 && p > 0.9 ? 'MEASURE' : 'WAIT 24 h', 12, 104);
+      lcr.tex.needsUpdate = true;
+    }
+  });
+})();
+
+/* -- S1–S4, S8 rotary test handler -- */
+const T = { x: -9.4, y: 1.2, rp: 1.17 };
+const N_PK = 36, STEP = FULL / N_PK, LOAD = Math.PI, T_IDX = 0.55;
+const H_ON = new Set([1, 2, 3, 4, 8]);
+const handler = (() => {
+  const cab = cabinet(T.x, 0, 4.6, 1.0, 3.4);
+  // turret
+  put(scene, mk(cyl(0.24, 0.3, 0.18, 32), M.dark), T.x, 1.1, 0);
+  const tg = dyn(new THREE.Group()); tg.position.set(T.x, T.y, 0); scene.add(tg);
+  put(tg, mk(cyl(1.3, 1.3, 0.06, 96), M.steelB), 0, 0, 0);
+  put(tg, mk(cyl(0.34, 0.34, 0.07, 48), M.steel), 0, 0.03, 0);
+  put(tg, mk(cyl(0.12, 0.12, 0.12, 24), M.dark), 0, 0.08, 0);
+  for (let k = 0; k < 8; k++) { const a = k / 8 * FULL; put(tg, mk(cyl(0.025, 0.025, 0.02, 12), M.dark), Math.cos(a) * 0.25, 0.07, Math.sin(a) * 0.25); }
+  const pk = new THREE.InstancedMesh(box(0.15, 0.012, 0.075), M.dark, N_PK); tg.add(pk);
+  const ci = chipInst(N_PK, tg);
+  const tmp = V(0, 0, 0);
+  for (let k = 0; k < N_PK; k++) { const a = k * STEP; setI(pk, k, tmp.set(T.rp * Math.cos(a), 0.031, T.rp * Math.sin(a)), -a); }
+  // rotary joint for the per-pocket vacuum / air lines (one selector valve per pocket)
+  put(scene, mk(cyl(0.15, 0.15, 0.1, 24), M.motorG), T.x, T.y + 0.2, 0);
+  // lower contact ring (static, under turret)
+  const lr = new THREE.TorusGeometry(T.rp, 0.03, 8, 96, 150 * DEG); lr.rotateX(Math.PI / 2); lr.rotateY(-200 * DEG);
+  put(scene, mk(lr, M.steelB), T.x, T.y - 0.07, 0);
+
+  // stations: [kind, world angle in deg]
+  const KIND = { cdf: 0x3d8bff, pre: 0xffc23d, soak: 0xff9a3d, ir: 0x4fd18b, flash: 0xff4d4d };
+  const stDefs = [['cdf', 200], ['cdf', 220], ['pre', 240], ['pre', 260], ['soak', 280], ['soak', 300], ['ir', 320], ['flash', 340]];
+  const rack = { x: T.x - 0.3, z: -2.75 };
+  const stations = stDefs.map(([kind, deg], i) => {
+    const th = deg * DEG;
+    const sg = new THREE.Group(); sg.position.set(T.x, 0, 0); sg.rotation.y = -th; scene.add(sg);
+    put(sg, mk(box(0.16, 0.9, 0.18), M.paint), 1.52, 1.47, 0);
+    put(sg, mk(box(0.22, 0.04, 0.24), M.steelB), 1.52, 1.04, 0);
+    put(sg, mk(box(0.46, 0.08, 0.12), M.paint), 1.35, 1.86, 0);
+    put(sg, mk(cyl(0.045, 0.045, 0.2, 16), M.steel), T.rp, 2.0, 0);
+    put(sg, mk(box(0.12, 0.08, 0.1), M.steelB), T.rp, T.y - 0.07, 0);               // lower contact
+    const hm = std({ color: 0x2a2f35, emissive: KIND[kind], emissiveIntensity: 0.15, roughness: 0.5 });
+    const head = dyn(new THREE.Group()); head.position.set(T.rp, T.y + 0.15, 0); sg.add(head);
+    put(head, mk(box(0.1, 0.28, 0.12), hm), 0, 0.28, 0);
+    put(head, mk(along(cyl(0.04, 0.04, 0.09, 16), 'z'), M.steel), 0, 0.1, 0);
+    put(head, mk(box(0.1, 0.06, 0.02), M.steelB), 0, 0.12, 0.05);
+    put(head, mk(box(0.1, 0.06, 0.02), M.steelB), 0, 0.12, -0.05);
+    put(head, mk(cyl(0.015, 0.015, 0.36, 8), M.steel), 0, 0.6, 0);
+    const top = V(T.x + 1.52 * Math.cos(th), 1.92, 1.52 * Math.sin(th));
+    const cm = std({ color: KIND[kind], roughness: 0.7, metalness: 0.0 }); cm.color.multiplyScalar(0.45);
+    cable(top, V(rack.x - 0.6 + i * 0.17, 2.1, rack.z + 0.3), 0.6, 0.016, cm);
+    const tip = V(T.x + T.rp * Math.cos(th), T.y + 0.12, T.rp * Math.sin(th));
+    return { kind, head, hm, tip };
+  });
+  // flash spark
+  const fl = stations.find((q) => q.kind === 'flash');
+  const spark = dyn(put(scene, new THREE.Mesh(new THREE.SphereGeometry(0.05, 12, 8), new THREE.MeshBasicMaterial({ color: 0xffd0d0, transparent: true, opacity: 0.9 })), fl.tip.x, fl.tip.y, fl.tip.z));
+  const sparkL = new THREE.PointLight(0xff5050, 0, 1.6); sparkL.position.copy(fl.tip); scene.add(sparkL);
+
+  // instrument rack (capacitance meters + source-measure units)
+  const rg = new THREE.Group(); rg.position.set(rack.x, 0, rack.z); scene.add(rg);
+  put(rg, mk(box(1.6, 2.1, 0.8), M.dark), 0, 1.05, 0);
+  const units = [['LCR', M.screen], ['LCR', M.screen], ['SMU', M.screenG], ['SMU', M.screenG]];
+  units.forEach(([, sm2], k) => {
+    const yy = 0.5 + k * 0.4;
+    put(rg, mk(box(1.44, 0.32, 0.05), M.paint), 0, yy, 0.42);
+    put(rg, mk(new THREE.PlaneGeometry(0.46, 0.18), sm2, false), -0.35, yy + 0.02, 0.446);
+    for (let b = 0; b < 6; b++) put(rg, mk(along(cyl(0.025, 0.025, 0.02, 10), 'z'), M.dark), 0.1 + (b % 3) * 0.12, yy + (b < 3 ? 0.06 : -0.06), 0.45);
+    put(rg, mk(along(cyl(0.05, 0.05, 0.03, 16), 'z'), M.steelB), 0.55, yy, 0.45);
+  });
+  for (let v = 0; v < 6; v++) put(rg, mk(box(1.2, 0.012, 0.006), M.steelB), 0, 0.12 + v * 0.03, 0.403);
+  cable(V(rack.x, 0.1, rack.z + 0.4), V(T.x - 0.8, 0.1, -1.7), 0.0, 0.03);
+  // vacuum / compressed-air regulator panel (facility vacuum + air feed the pocket valves)
+  const up = new THREE.Group(); up.position.set(T.x + 1.3, 0, -2.45); scene.add(up);
+  put(up, mk(box(0.7, 0.9, 0.3), M.paint), 0, 0.45, 0);
+  for (const dx of [-0.17, 0.17]) {
+    put(up, mk(along(cyl(0.09, 0.09, 0.04, 24), 'z'), M.steel), dx, 0.68, 0.17);
+    put(up, mk(along(cyl(0.075, 0.075, 0.01, 24), 'z'), M.paper), dx, 0.68, 0.19);
+    put(up, mk(cyl(0.035, 0.035, 0.18, 12), M.steelB), dx, 0.38, 0.19);
+  }
+  cable(V(T.x + 1.13, 0.35, -2.27), V(T.x + 0.4, 0.3, -1.7), 0.0, 0.025, pipeMat);
+  cable(V(T.x + 1.47, 0.35, -2.27), V(T.x + 0.8, 0.3, -1.7), 0.0, 0.025, M.paintBlue);
+
+  // guard (glass panels shown when cutaway is off) + frame
+  const gx = 2.25, gz = 1.65, gy0 = 1.04, gy1 = 2.4;
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) put(scene, mk(box(0.04, gy1 - gy0, 0.04), M.steelB), T.x + sx * gx, (gy0 + gy1) / 2, sz * gz);
+  for (const sz of [-1, 1]) put(scene, mk(box(2 * gx, 0.04, 0.04), M.steelB), T.x, gy1, sz * gz);
+  for (const sx of [-1, 1]) put(scene, mk(box(0.04, 0.04, 2 * gz), M.steelB), T.x + sx * gx, gy1, 0);
+  for (const sz of [-1, 1]) fullParts.push(put(scene, mk(box(2 * gx, gy1 - gy0, 0.01), M.glass, false), T.x, (gy0 + gy1) / 2, sz * gz));
+  fullParts.push(put(scene, mk(box(0.01, gy1 - gy0, 2 * gz), M.glass, false), T.x + gx, (gy0 + gy1) / 2, 0));
+  // signal tower
+  put(scene, mk(cyl(0.02, 0.02, 0.5, 8), M.steelB), T.x + 2.05, 1.3, -1.45);
+  const lamp = [0x4fd18b, 0xffc23d, 0xff4d4d].map((c, k) => {
+    const m = std({ color: c, emissive: c, emissiveIntensity: 0.05, transparent: true, opacity: 0.9, roughness: 0.3 });
+    put(scene, mk(cyl(0.06, 0.06, 0.1, 20), m), T.x + 2.05, 1.6 + k * 0.105, -1.45); return m;
+  });
+  // HMI
+  put(scene, mk(cyl(0.03, 0.03, 0.75, 10), M.steelB), T.x + 2.0, 1.4, 1.45);
+  const hmi = makeScreen(scene, 0.56, 0.36, 288, 184, T.x + 2.0, 1.95, 1.5, -0.35, -0.25);
+
+  // bins in front: 7 tolerance + 7 reject + 1 retest
+  put(scene, mk(box(4.3, 0.05, 0.42), M.steelB), T.x, 0.78, 1.95);
+  for (const sx of [-1.9, 0, 1.9]) put(scene, mk(box(0.06, 0.25, 0.3), M.steelB), T.x + sx, 0.66, 1.84);
+  const BIN_C = (b) => (b < 7 ? 0x4fd18b : b < 14 ? 0xff5a5a : 0xffc23d);
+  const bins = Array.from({ length: 15 }, (_, b) => {
+    const bx = T.x - 1.89 + b * 0.27;
+    put(scene, mk(box(0.24, 0.26, 0.32), M.glass, false), bx, 0.935, 1.95);
+    put(scene, mk(box(0.24, 0.05, 0.012), std({ color: BIN_C(b), roughness: 0.5 })), bx, 1.04, 2.115);
+    const fill = dyn(put(scene, mk(box(0.2, 1, 0.28), std({ color: 0xa88252, roughness: 0.85 })), bx, 0.81, 1.95));
+    fill.scale.y = 0.01;
+    return { top: V(bx, 1.08, 1.95), fill, n: 0 };
+  });
+  const W_BIN = [4, 10, 18, 24, 18, 10, 4, 1, 1, 1, 1, 1, 1, 1, 2];
+  const W_SUM = W_BIN.reduce((a, b) => a + b, 0);
+  const pickBin = () => { let r = Math.random() * W_SUM; for (let b = 0; b < 15; b++) { r -= W_BIN[b]; if (r <= 0) return b; } return 0; };
+  // Ejection: an air valve under each eject position blows the chip up through the manifold
+  // into its tube; tubes drop to the bins. Bin b is ejected at angle EJ_A(b) on the front half.
+  const EJ_A = (b) => (165 - b * 150 / 14) * DEG;
+  const EJ_REL = bins.map((_, b) => mod(EJ_A(b) - LOAD, FULL));
+  const tubes = [], valveM = std({ color: 0xf0b400, emissive: 0xffb000, emissiveIntensity: 0, roughness: 0.5 });
+  const ejP = bins.map((bn, b) => {
+    const a = EJ_A(b), c = Math.cos(a), sn = Math.sin(a);
+    const p = V(T.x + T.rp * c, T.y + 0.06, T.rp * sn);
+    const mb = put(scene, mk(box(0.1, 0.07, 0.11), M.steelB), p.x, T.y + 0.17, p.z); mb.rotation.y = -a;
+    const vb = put(scene, mk(box(0.08, 0.07, 0.09), valveM), T.x + (T.rp + 0.02) * c, T.y - 0.13, (T.rp + 0.02) * sn); vb.rotation.y = -a;
+    const from = V(p.x, T.y + 0.2, p.z), to = bn.top.clone().add(V(0, 0.04, 0));
+    tubes.push(new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(from, from.clone().lerp(to, 0.5).add(V(0, 0.34, 0)), to), 14, 0.02, 6, false));
+    return p;
+  });
+  put(scene, mk(mergeGeometries(tubes), pipeMat, false), 0, 0, 0);
+  // manifold support arc + jam sensor (checks no chip is left after the last eject hole)
+  const ma = new THREE.TorusGeometry(T.rp, 0.018, 6, 48, 150 * DEG); ma.rotateX(Math.PI / 2); ma.rotateY(-165 * DEG);
+  put(scene, mk(ma, M.steelB), T.x, T.y + 0.22, 0);
+  { const a = 173 * DEG, c = Math.cos(a), sn = Math.sin(a);
+    const js = put(scene, mk(box(0.12, 0.2, 0.16), M.dark), T.x + T.rp * c, T.y + 0.2, T.rp * sn); js.rotation.y = -a;
+    put(scene, mk(box(0.03, 0.03, 0.03), M.red), T.x + T.rp * c, T.y + 0.09, T.rp * sn); }
+
+  let hIdx = 0, total = 0, prevS = -1;
+  const binOf = Int8Array.from({ length: N_PK }, () => pickBin());
+  const prevRel = new Float32Array(N_PK).fill(-1);
+  const vis = V(0, 0, 0);
+  updaters.push((dt, s, p, t) => {
+    const on = H_ON.has(s);
+    // New lot when the feeder starts (step 1 runs once per route; stage 0 is optional).
+    if (s === 1 && prevS !== 1) { for (const b of bins) { b.n = 0; b.fill.scale.y = 0.01; } total = 0; }
+    prevS = s;
+    if (on) hIdx += dt / T_IDX;
+    const I = Math.floor(hIdx), f = hIdx - I;
+    const acc = (I + sm(Math.min(1, f * 2.5))) * STEP;
+    tg.rotation.y = -acc;
+    let fire = 0;
+    for (let k = 0; k < N_PK; k++) {
+      const a = k * STEP, rel = mod(a + acc - LOAD, FULL), pr = prevRel[k];
+      if (on && pr >= 0 && rel < pr - 1) binOf[k] = pickBin();                 // pocket passed the loader: new chip
+      const b = binOf[k], lim = b >= 0 ? EJ_REL[b] : -1;
+      if (on && b >= 0 && pr >= 0 && pr <= lim && rel > lim) {
+        const bb = b; total++; fire = 1;
+        flights.spawn(ejP[bb], bins[bb].top, t, 0.55, 0.42, () => { bins[bb].n++; bins[bb].fill.scale.y = Math.min(0.2, 0.01 + bins[bb].n * 0.012); });
+        binOf[k] = -1;
+      }
+      prevRel[k] = rel;
+      setI(ci, k, vis.set(T.rp * Math.cos(a), 0.06, T.rp * Math.sin(a)), -a, binOf[k] >= 0 && rel <= lim ? 1 : HIDE);
+    }
+    ci.instanceMatrix.needsUpdate = true;
+    valveM.emissiveIntensity = Math.max(valveM.emissiveIntensity * 0.85, fire ? 1.6 : 0);
+    const dn = !on ? 0 : f < 0.4 ? 0 : f < 0.5 ? sm((f - 0.4) / 0.1) : f < 0.88 ? 1 : f < 0.98 ? 1 - sm((f - 0.88) / 0.1) : 0;
+    for (const q of stations) {
+      q.head.position.y = T.y + 0.03 + (1 - dn) * 0.12;
+      const focus = (q.kind === 'cdf' && s === 2) || ((q.kind === 'pre' || q.kind === 'soak' || q.kind === 'ir') && s === 3) || (q.kind === 'flash' && s === 8);
+      q.hm.emissiveIntensity = 0.15 + dn * (focus ? 1.8 : 0.45);
+    }
+    const fk = on && dn > 0.9 ? (s === 8 ? 1 : 0.35) * (0.6 + 0.4 * Math.sin(t * 90)) : 0;
+    spark.visible = fk > 0; spark.scale.setScalar(0.5 + fk); sparkL.intensity = fk * 3;
+    lamp[0].emissiveIntensity = on ? 1.6 : 0.05; lamp[1].emissiveIntensity = on ? 0.05 : 1.2;
+    const fr = Math.floor(t * 6);
+    if (fr !== hmi.f) {
+      hmi.f = fr;
+      const x = hmi.x, W = hmi.W;
+      x.fillStyle = '#071521'; x.fillRect(0, 0, W, hmi.H);
+      x.fillStyle = '#7fc7ff'; x.font = 'bold 16px system-ui'; x.fillText('TEST HANDLER', 10, 22);
+      x.fillStyle = on ? '#4fd18b' : '#4b6a80'; x.fillText(on ? 'RUN' : 'IDLE', 230, 22);
+      x.fillStyle = '#9db0c2'; x.font = '12px system-ui';
+      x.fillText('C/DF → IR 프리차지 → 소크 → IR → 플래시', 10, 42);
+      x.fillText('사양 최대 16,666 개/분 (0603–1210)', 10, 58);
+      x.fillStyle = '#e9eef3'; x.font = 'bold 14px system-ui'; x.fillText(`검사 ${total}`, 10, 80);
+      const mx = Math.max(4, ...bins.map((b) => b.n));
+      bins.forEach((b, i) => {
+        const bh = 70 * b.n / mx;
+        x.fillStyle = i < 7 ? '#4fd18b' : i < 14 ? '#ff6b6b' : '#ffc23d';
+        x.fillRect(12 + i * 18, 170 - bh, 13, Math.max(1, bh));
+      });
+      x.fillStyle = '#9db0c2'; x.font = '10px system-ui'; x.fillText('공차 1–7', 12, 182); x.fillText('불량 1–7', 140, 182); x.fillText('재검', 252, 182);
+      hmi.tex.needsUpdate = true;
+    }
+  });
+  return { cab };
+})();
+
+/* feeder for the handler */
+(() => {
+  put(scene, mk(box(1.25, 0.9, 1.25), M.paint), -14.6, 0.45, 0);
+  put(scene, mk(box(1.27, 0.035, 1.27), M.steelB), -14.6, 0.917, 0);
+  const bw = makeBowl({ x: -14.6, z: 0, y0: 0.935, r: 0.6, exitAng: 0, stages: [...H_ON], n: 42, pile: 60 });
+  const end = V(T.x - T.rp - 0.06, T.y + 0.06, 0);
+  makeTrack(bw.exit.clone().add(V(0.02, 0, 0)), end, { n: 24, stages: [...H_ON], speed: 0.25 });
+  for (const xx of [-13.2, -12.0]) {
+    put(scene, mk(cyl(0.04, 0.04, 1.2, 10), M.steelB), xx, 0.6, 0);
+    put(scene, mk(box(0.3, 0.03, 0.3), M.steelB), xx, 0.015, 0);
+  }
+})();
+
+/* -- S5 appearance inspection: glass disk, 4 cameras, laser thickness, 3-way air sort -- */
+const AOI = { x: -1.2, y: 1.55, r: 0.82 };
+(() => {
+  cabinet(AOI.x, 0, 2.8, 1.0, 2.6);
+  put(scene, mk(cyl(0.09, 0.09, 0.55, 16), M.steel), AOI.x, 1.3, 0);                 // spindle
+  put(scene, mk(cyl(0.16, 0.16, 0.12, 24), M.motorG), AOI.x, 1.1, 0);                // rotary encoder
+  put(scene, mk(box(0.1, 0.06, 0.06), M.dark), AOI.x + 0.2, 1.1, 0);
+  const dg = dyn(new THREE.Group()); dg.position.set(AOI.x, AOI.y, 0); scene.add(dg);
+  put(dg, mk(cyl(1.0, 1.0, 0.03, 96), M.glassDisk, false), 0, 0, 0);
+  put(dg, mk(new THREE.TorusGeometry(1.0, 0.012, 6, 96), M.steelB), 0, 0, 0).rotation.x = Math.PI / 2;
+  put(dg, mk(cyl(0.2, 0.2, 0.06, 32), M.steel), 0, 0.02, 0);
+  const n = 48, sp = FULL / n;
+  const ci = chipInst(n, dg);
+  // class per chip: 0 pass, 1 thickness out, 2 appearance NG (fixed pattern so the sort is easy to follow)
+  const CLS = (k) => (k % 7 === 3 ? 2 : k % 11 === 5 ? 1 : 0);
+  const tint = [new THREE.Color(0xffffff), new THREE.Color(0xffd27a), new THREE.Color(0xff8a8a)];
+  for (let k = 0; k < n; k++) ci.setColorAt(k, tint[0]);
+  put(scene, mk(box(2.8, 1.7, 0.05), M.dark), AOI.x, 1.88, -1.28);                   // back panel
+  // camera gantry along the back
+  const GY = 2.62, GZ = -1.08, GX0 = AOI.x - 1.3, GX1 = AOI.x + 1.62;
+  for (const gx of [GX0, GX1]) put(scene, mk(box(0.1, GY - 1.0, 0.1), M.paint), gx, (GY + 1.0) / 2, GZ);
+  put(scene, mk(box(GX1 - GX0 + 0.1, 0.1, 0.12), M.paint), (GX0 + GX1) / 2, GY, GZ);
+  const tpt = (deg, r = AOI.r, dy = 0) => V(AOI.x + r * Math.cos(deg * DEG), AOI.y + dy, r * Math.sin(deg * DEG));
+  const cams = [];
+  // camera body + lens + ring light; the lens looks along dir. Hung from the gantry, or on a post from the deck.
+  function camHead(deg, pos, dir, hang = true) {
+    dir = dir.clone().normalize();
+    const g = new THREE.Group(); g.position.copy(pos); scene.add(g);
+    g.quaternion.setFromUnitVectors(V(0, -1, 0), dir);
+    put(g, mk(box(0.12, 0.2, 0.12), M.dark), 0, 0.22, 0);
+    put(g, mk(cyl(0.045, 0.05, 0.14, 20), M.steel), 0, 0.05, 0);
+    const rm = std({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.3, roughness: 0.3 });
+    put(g, mk(new THREE.TorusGeometry(0.07, 0.015, 8, 24), rm), 0, -0.03, 0).rotation.x = Math.PI / 2;
+    const back = pos.clone().addScaledVector(dir, -0.32);
+    if (hang) {
+      beam(scene, back, V(back.x, GY, back.z), 0.035, M.steelB);
+      if (Math.abs(back.z - GZ) > 0.06) beam(scene, V(back.x, GY, back.z), V(back.x, GY, GZ), 0.05, M.paint);
+    } else beam(scene, back, V(back.x, 1.03, back.z), 0.035, M.steelB);
+    cams.push({ th: deg * DEG, rm });
+  }
+  camHead(220, tpt(220, AOI.r, 0.34), V(0, -1, 0));                                  // top face
+  camHead(248, tpt(248, AOI.r - 0.42, 0.16), tpt(248, AOI.r, 0.03).sub(tpt(248, AOI.r - 0.42, 0.16)));   // side, inside the track
+  camHead(285, tpt(285, AOI.r, -0.3), V(0, 1, 0), false);                            // bottom face, through the glass
+  camHead(350, tpt(350, AOI.r + 0.45, 0.16), tpt(350, AOI.r, 0.03).sub(tpt(350, AOI.r + 0.45, 0.16)));   // side, outside the track
+  // presence sensor (infrared) just after the feed point
+  { const q = tpt(196, AOI.r, 0.13);
+    put(scene, mk(box(0.1, 0.07, 0.16), M.dark), q.x, q.y, q.z);
+    put(scene, mk(box(0.025, 0.025, 0.025), M.red), q.x, q.y - 0.045, q.z);
+    beam(scene, V(q.x, q.y + 0.03, q.z), V(q.x, GY, q.z), 0.03, M.steelB);
+    if (Math.abs(q.z - GZ) > 0.06) beam(scene, V(q.x, GY, q.z), V(q.x, GY, GZ), 0.04, M.paint); }
+  // laser thickness meter (light-section): fan beam tilted 22.5°, receiver camera on the other side
+  const TH = 320, tp = tpt(TH, AOI.r, 0.03), rad = V(Math.cos(TH * DEG), 0, Math.sin(TH * DEG)), tan = V(-Math.sin(TH * DEG), 0, Math.cos(TH * DEG));
+  const apex = tp.clone().add(V(0, 0.46, 0)).addScaledVector(tan, 0.46 * Math.tan(22.5 * DEG));
+  { const lh = new THREE.Group(); lh.position.copy(apex); scene.add(lh);
+    lh.quaternion.setFromUnitVectors(V(0, -1, 0), tp.clone().sub(apex).normalize());
+    put(lh, mk(box(0.2, 0.18, 0.12), M.paintBlue), 0, 0.1, 0);
+    put(lh, mk(box(0.06, 0.012, 0.03), std({ color: 0x2b52ff, emissive: 0x2b52ff, emissiveIntensity: 1.2 })), 0, 0.005, 0);
+    const back = apex.clone().addScaledVector(tp.clone().sub(apex).normalize(), -0.2);
+    beam(scene, back, V(back.x, GY, back.z), 0.035, M.steelB);
+    beam(scene, V(back.x, GY, back.z), V(back.x, GY, GZ), 0.05, M.paint); }
+  const fanMat = new THREE.MeshBasicMaterial({ color: 0x4d6bff, transparent: true, opacity: 0.12, side: THREE.DoubleSide, depthWrite: false });
+  { const p1 = tp.clone().addScaledVector(rad, -0.12), p2 = tp.clone().addScaledVector(rad, 0.12);
+    const fg = new THREE.BufferGeometry().setFromPoints([apex, p1, p2]);
+    fg.computeVertexNormals();
+    scene.add(mk(fg, fanMat, false));
+    const lineM = new THREE.MeshBasicMaterial({ color: 0x6d86ff });
+    const ln = put(scene, mk(box(0.25, 0.004, 0.012), lineM, false), tp.x, tp.y + 0.002, tp.z); ln.rotation.y = -TH * DEG; }
+  camHead(TH, tp.clone().add(V(0, 0.36, 0)).addScaledVector(tan, -0.3), tp.clone().sub(tp.clone().add(V(0, 0.36, 0)).addScaledVector(tan, -0.3)));
+  cams.pop();                                                                          // receiver: no ring-light flash
+  // air blowers + three containers: pass (green), thickness out (amber), appearance NG (red)
+  const EJD = [70, 45, 20], CUPC = [0x4fd18b, 0xffb547, 0xff5a5a];
+  const cups = EJD.map((d, c) => {
+    const nz = tpt(d, AOI.r - 0.24, 0.06);
+    const nb = put(scene, mk(box(0.12, 0.05, 0.05), M.yellow), nz.x, nz.y, nz.z); nb.rotation.y = -d * DEG;
+    beam(scene, V(nz.x, nz.y + 0.02, nz.z), V(nz.x, GY, nz.z), 0.02, pipeMat);
+    const cp = tpt(d, 1.22); cp.y = 1.02;
+    put(scene, mk(cyl(0.15, 0.12, 0.25, 24, true), std({ color: CUPC[c], roughness: 0.5, side: THREE.DoubleSide })), cp.x, 1.165, cp.z);
+    return cp;
+  });
+  // monitor
+  put(scene, mk(cyl(0.03, 0.03, 0.8, 10), M.steelB), AOI.x - 1.15, 1.42, 1.1);
+  const mon = makeScreen(scene, 0.56, 0.38, 288, 196, AOI.x - 1.15, 2.0, 1.15, 0.3, -0.15);
+  // feeder into the disk
+  put(scene, mk(box(1.0, 1.2, 1.0), M.paint), -3.75, 0.6, 0);
+  const bw = makeBowl({ x: -3.75, z: 0, y0: 1.2, r: 0.45, exitAng: 0, stages: [5], n: 30, pile: 40 });
+  makeTrack(bw.exit, V(AOI.x - AOI.r - 0.06, AOI.y + 0.045, 0), { n: 9, stages: [5], speed: 0.2 });
+
+  const EJR = EJD.map((d) => mod(d * DEG - LOAD, FULL));          // rel. angle where each class leaves the disk
+  const SEEN = [0, mod(TH * DEG - LOAD, FULL), mod(220 * DEG - LOAD, FULL)];   // judged after laser / top camera
+  let acc = 0;
+  const cnt = [0, 0, 0], prev = new Float32Array(n).fill(-1), tmp = V(0, 0, 0);
+  let lastCls = 0;
+  updaters.push((dt, s, p, t) => {
+    const on = s === 5;
+    if (on) acc += dt * 0.55;
+    dg.rotation.y = -acc;
+    for (let k = 0; k < n; k++) {
+      const a = k * sp, rel = mod(a + acc - LOAD, FULL), c = CLS(k), lim = EJR[c];
+      if (on && prev[k] >= 0 && prev[k] <= lim && rel > lim && rel - prev[k] < 0.5) {
+        const wa = a + acc;
+        cnt[c]++; lastCls = c;
+        flights.spawn(V(AOI.x + AOI.r * Math.cos(wa), AOI.y + 0.05, AOI.r * Math.sin(wa)), cups[c].clone().add(V(0, 0.25, 0)), t, 0.45, 0.12);
+      }
+      prev[k] = rel;
+      ci.setColorAt(k, c && rel > SEEN[c] ? tint[c] : tint[0]);
+      setI(ci, k, tmp.set(AOI.r * Math.cos(a), 0.045, AOI.r * Math.sin(a)), -(a + Math.PI / 2), rel <= lim ? 1 : HIDE);
+    }
+    ci.instanceMatrix.needsUpdate = true; ci.instanceColor.needsUpdate = true;
+    for (const c of cams) {
+      const d = mod(c.th - acc, sp), dist = Math.min(d, sp - d);
+      c.rm.emissiveIntensity = on ? 0.4 + 2.6 * clamp01(1 - dist / (1.6 * DEG)) : 0.15;
+    }
+    fanMat.opacity = on ? 0.22 + 0.06 * Math.sin(t * 30) : 0.06;
+    const fr = Math.floor(t * 6);
+    if (fr !== mon.f) {
+      mon.f = fr;
+      const x = mon.x, W = mon.W, H = mon.H;
+      x.fillStyle = '#071521'; x.fillRect(0, 0, W, H);
+      x.fillStyle = '#7fc7ff'; x.font = 'bold 15px system-ui'; x.fillText('IMAGE · THICKNESS', 10, 20);
+      const ng = on && lastCls === 2, th = on && lastCls === 1;
+      const views = ['윗면', '옆면 A', '밑면', '옆면 B'];
+      views.forEach((v, i) => {
+        const vx = 10 + (i % 2) * 112, vy = 32 + Math.floor(i / 2) * 62;
+        x.fillStyle = '#20303c'; x.fillRect(vx, vy, 104, 54);
+        x.fillStyle = '#b48a55'; x.fillRect(vx + 20, vy + 17, 64, 22);
+        x.fillStyle = '#dfe3e6'; x.fillRect(vx + 20, vy + 17, 13, 22); x.fillRect(vx + 71, vy + 17, 13, 22);
+        if (ng && i === 0) { x.strokeStyle = '#ff6b6b'; x.lineWidth = 2; x.strokeRect(vx + 62, vy + 10, 28, 34); }
+        x.fillStyle = '#9db0c2'; x.font = '11px system-ui'; x.fillText(v, vx + 4, vy + 12);
+      });
+      x.fillStyle = '#9db0c2'; x.font = '12px system-ui'; x.fillText('두께', 240, 44);
+      x.fillStyle = '#2b4a60'; x.fillRect(244, 52, 22, 90);
+      x.fillStyle = th ? '#ffb547' : '#4fd18b'; x.fillRect(244, th ? 58 : 80, 22, 6);
+      x.fillStyle = ng ? '#ff6b6b' : th ? '#ffb547' : on ? '#4fd18b' : '#4b6a80'; x.font = 'bold 20px system-ui';
+      x.fillText(!on ? '—' : ng ? 'NG' : th ? 'T' : 'OK', 236, 172);
+      x.fillStyle = '#9db0c2'; x.font = '12px system-ui';
+      x.fillText(`양품 ${cnt[0]}  두께 ${cnt[1]}  외관 ${cnt[2]}`, 10, 182);
+      mon.tex.needsUpdate = true;
+    }
+  });
+})();
+
+/* -- S6 burn-in chamber with current-monitored boards -- */
+const BI = { x: 6.6 };
+(() => {
+  const g = new THREE.Group(); g.position.set(BI.x, 0, 0); scene.add(g);
+  const W = 2.3, H = 2.45, D = 1.7, y0 = 0.45, wt = 0.09;
+  put(g, mk(box(W + 0.1, y0, D + 0.1), M.dark), 0, y0 / 2, 0);
+  put(g, mk(box(W, H, wt), M.paint), 0, y0 + H / 2, -D / 2 + wt / 2);
+  put(g, mk(box(wt, H, D), M.paint), -W / 2 + wt / 2, y0 + H / 2, 0);
+  fullParts.push(put(g, mk(box(wt, H, D), M.paint), W / 2 - wt / 2, y0 + H / 2, 0));
+  for (const zz of [-D / 2 + 0.06, D / 2 - 0.06]) cutParts.push(put(g, mk(box(wt, H, 0.12), M.paint), W / 2 - wt / 2, y0 + H / 2, zz));
+  put(g, mk(box(W, wt, D), M.paint), 0, y0 + H - wt / 2, 0);
+  put(g, mk(box(W, wt, D), M.paint), 0, y0 + wt / 2, 0);
+  const heat = heatMat();
+  put(g, mk(box(W - 0.3, H - 0.3, 0.02), heat), 0, y0 + H / 2, -D / 2 + wt + 0.01);
+  const fan = dyn(new THREE.Group()); fan.position.set(0, y0 + H - 0.45, -D / 2 + wt + 0.06); g.add(fan);
+  for (let k = 0; k < 5; k++) { const b = mk(box(0.06, 0.26, 0.01), M.steelB); b.position.set(Math.cos(k / 5 * FULL) * 0.13, Math.sin(k / 5 * FULL) * 0.13, 0); b.rotation.z = k / 5 * FULL - Math.PI / 2; fan.add(b); }
+  put(fan, mk(along(cyl(0.05, 0.05, 0.05, 16), 'z'), M.dark), 0, 0, 0);
+  rotors.push({ obj: fan, axis: 'z', run: [6], w: 14, cur: 0 });
+  const glow = new THREE.PointLight(0xff7a2a, 0, 3.5); glow.position.set(0, y0 + H / 2, 0); g.add(glow);
+  // card guides + boards
+  const boards = [];
+  for (let k = 0; k < 5; k++) {
+    const yy = y0 + 0.35 + k * 0.4;
+    for (const sx of [-1, 1]) put(g, mk(box(0.04, 0.05, D - 0.25), M.steelB), sx * (W / 2 - wt - 0.02), yy, -0.05);
+    const bg = dyn(new THREE.Group()); bg.position.set(0, yy + 0.03, -0.05); g.add(bg);
+    put(bg, mk(box(1.95, 0.03, 1.3), M.pcb), 0, 0, 0);
+    put(bg, mk(box(1.6, 0.06, 0.06), M.dark), 0, 0.02, -0.66);                    // edge connector
+    const sk = new THREE.InstancedMesh(box(0.12, 0.05, 0.12), M.dark, 40); bg.add(sk);
+    const tmp = V(0, 0, 0);
+    for (let i = 0; i < 40; i++) setI(sk, i, tmp.set(-0.78 + (i % 8) * 0.22, 0.04, -0.4 + Math.floor(i / 8) * 0.2));
+    const led = new THREE.InstancedMesh(box(0.05, 0.03, 0.03), new THREE.MeshBasicMaterial({ color: 0xffffff }), 8); bg.add(led);
+    for (let i = 0; i < 8; i++) { setI(led, i, tmp.set(-0.78 + i * 0.22, 0.03, 0.6)); led.setColorAt(i, new THREE.Color(0x203020)); }
+    put(bg, mk(box(0.25, 0.04, 0.05), M.steelB), 0, 0.03, 0.66);                  // pull handle
+    boards.push({ bg, led });
+  }
+  const door = dyn(new THREE.Group()); door.position.set(-W / 2, y0 + H / 2, D / 2); g.add(door);
+  put(door, mk(box(W, H, 0.11), M.paint), W / 2, 0, 0.055);
+  put(door, mk(box(0.7, 0.5, 0.02), M.dark), W / 2, 0.45, 0.115);
+  put(door, mk(box(0.62, 0.42, 0.02), M.glass, false), W / 2, 0.45, 0.127);
+  put(door, mk(box(0.06, 0.7, 0.06), M.steel), W - 0.18, 0, 0.18);
+  for (const yy of [-0.9, 0.9]) put(door, mk(cyl(0.035, 0.035, 0.18, 12), M.steelB), -0.02, yy, 0.05);
+  // controller / current-monitor cabinet (left)
+  const cx = -W / 2 - 0.45;
+  put(g, mk(box(0.75, 2.3, 1.2), M.paint), cx, 1.15, -0.15);
+  const mon = makeScreen(g, 0.6, 0.44, 300, 220, cx, 1.8, 0.47);
+  for (let k = 0; k < 6; k++) put(g, mk(box(0.06, 0.1, 0.03), k === 5 ? M.red : M.dark), cx - 0.25 + k * 0.1, 1.3, 0.465);
+  for (let v = 0; v < 8; v++) put(g, mk(box(0.5, 0.012, 0.006), M.dark), cx, 0.3 + v * 0.04, 0.453);
+  for (let k = 0; k < 5; k++) cable(V(BI.x + cx + 0.38, 0.9 + k * 0.25, -0.5), V(BI.x - W / 2 - 0.01, 0.95 + k * 0.32, -0.5), 0.06, 0.03);
+  put(g, mk(cyl(0.12, 0.12, 0.8, 20), M.steelB), 0.6, y0 + H + 0.4, -0.4);
+  const fm = vMotor(0.55); fm.position.set(-0.4, y0 + H, -0.35); g.add(fm);
+
+  const green = new THREE.Color(0x4fff8a), off = new THREE.Color(0x203020), redC = new THREE.Color(0xff3030);
+  const tr = Array.from({ length: 10 }, (_, i) => ({ lv: 0.62 + rng0() * 0.12, bad: i === 6 }));
+  function rng0() { return Math.random(); }
+  updaters.push((dt, s, p, t) => {
+    let open = 0, heatK = 0;
+    const on = s === 6;
+    if (on) {
+      open = p < 0.24 ? 1 : p < 0.3 ? 1 - sm((p - 0.24) / 0.06) : p < 0.88 ? 0 : sm(clamp01((p - 0.88) / 0.08));
+      heatK = p > 0.3 && p < 0.86 ? clamp01((p - 0.3) / 0.06) : 0;
+    }
+    door.rotation.y = -open * 1.75;
+    heat.emissiveIntensity = heatK * (1.2 + 0.15 * Math.sin(t * 4));
+    glow.intensity = heatK * 3.5;
+    boards.forEach((b, k) => {
+      const k0 = 0.04 + k * 0.03;
+      const out = on ? 1 - sm(clamp01((p - k0) / 0.08)) : 0;
+      b.bg.position.z = -0.05 + out * 1.4;
+      for (let i = 0; i < 8; i++) {
+        const fail = k === 2 && i === 5 && p > 0.62 && on;
+        const c = !on || heatK < 0.5 ? off : fail ? redC : (Math.sin(t * 6 + i + k * 2) > -0.2 ? green : off);
+        b.led.setColorAt(i, c);
+      }
+      b.led.instanceColor.needsUpdate = true;
+    });
+    const fr = Math.floor(t * 8);
+    if (fr !== mon.f) {
+      mon.f = fr;
+      const x = mon.x, W2 = mon.W, H2 = mon.H;
+      x.fillStyle = '#071521'; x.fillRect(0, 0, W2, H2);
+      x.fillStyle = '#7fc7ff'; x.font = 'bold 15px system-ui'; x.fillText('BURN-IN · 전류 감시', 10, 20);
+      x.fillStyle = heatK > 0.5 ? '#ffb547' : '#4b6a80'; x.font = '13px system-ui'; x.fillText('2×V_R · 125 °C', 10, 40);
+      x.fillStyle = '#9db0c2'; x.fillText('168 / 96 / 48 h (Level 1/2/3)', 120, 40);
+      const L = 30, R = W2 - 12, Tp = 56, B = H2 - 30;
+      x.strokeStyle = 'rgba(255,255,255,.25)'; x.beginPath(); x.moveTo(L, Tp); x.lineTo(L, B); x.lineTo(R, B); x.stroke();
+      x.fillStyle = '#9db0c2'; x.font = '11px system-ui'; x.fillText('log I', 2, Tp + 8); x.fillText('t →', R - 22, B + 14);
+      const prog = on ? clamp01((p - 0.3) / 0.56) : 0;
+      x.setLineDash([5, 4]); x.strokeStyle = '#ffb547'; x.beginPath(); x.moveTo(L, Tp + 40); x.lineTo(R, Tp + 40); x.stroke(); x.setLineDash([]);
+      x.fillStyle = '#ffb547'; x.fillText('판정선', R - 46, Tp + 34);
+      for (const q of tr) {
+        x.strokeStyle = q.bad ? '#ff6b6b' : 'rgba(79,209,139,.8)'; x.lineWidth = 1.5; x.beginPath();
+        for (let i = 0; i <= 60 * prog; i++) {
+          const u = i / 60, xx = L + u * (R - L);
+          let yy = Tp + 6 + (B - Tp - 10) * (q.lv * (1 - Math.exp(-u * 9)));
+          if (q.bad && u > 0.55) yy -= (u - 0.55) * 260;
+          if (i === 0) x.moveTo(xx, yy); else x.lineTo(xx, Math.max(Tp, yy));
+        }
+        x.stroke();
+      }
+      mon.tex.needsUpdate = true;
+    }
+  });
+})();
+
+/* -- S9, S7, S10–S12 taping machine: index table (re-measure, reject, air insert), sprocket, pocket camera,
+      cover-tape tension + heat seal, seal camera, take-up reel -- */
+const TP = { y: 1.27, pitch: 0.16, xs: 14.48, xb: 16.08, xe: 20.56 };
+const TT = { x: 16.0, z: -0.6, y: 1.4, r: 0.6, n: 24 };          // pocket at 90° sits right over the tape pocket
+const TAPE_ON = new Set([9, 7, 10, 11, 12]);
+const TT_POS = { feed: 13, c: 17, ir: 19, ng: 22, empty: 4, ins: 6 };   // holder positions (× 15°)
+const OKC = new THREE.Color(0xffffff), NGC = new THREE.Color(0xff8a8a);
+function tapeTex(filled) {
+  const c = document.createElement('canvas'); c.width = 64; c.height = 96;
+  const x = c.getContext('2d');
+  x.fillStyle = '#e6dcc6'; x.fillRect(0, 0, 64, 96);
+  x.fillStyle = '#5b5446'; x.beginPath(); x.arc(32, 12, 6, 0, 7); x.fill();         // sprocket hole
+  x.fillStyle = '#9a8f78'; x.fillRect(14, 34, 36, 52);                                 // pocket
+  if (filled) { x.fillStyle = '#b48a55'; x.fillRect(20, 40, 24, 40); x.fillStyle = '#dfe3e6'; x.fillRect(20, 40, 24, 9); x.fillRect(20, 71, 24, 9); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t;
+}
+// small camera on a bracket, looking straight down at (x, y, z); returns its ring-light material
+function downCam(x, y, z, postZ = -0.42) {
+  const rm = std({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.2, roughness: 0.3 });
+  put(scene, mk(box(0.12, 0.2, 0.12), M.dark), x, y + 0.42, z);
+  put(scene, mk(cyl(0.04, 0.045, 0.12, 20), M.steel), x, y + 0.27, z);
+  put(scene, mk(new THREE.TorusGeometry(0.065, 0.014, 8, 24), rm), x, y + 0.2, z).rotation.x = Math.PI / 2;
+  beam(scene, V(x, y + 0.5, z), V(x, y + 0.5, postZ), 0.05, M.paint);
+  beam(scene, V(x, y + 0.55, postZ), V(x, 1.03, postZ), 0.06, M.paint);
+  return rm;
+}
+(() => {
+  cabinet(17.5, -0.4, 8.6, 1.0, 2.4);
+  put(scene, mk(box(1.2, 1.8, 0.08), M.paint), 13.85, 1.92, -0.3);                  // reel plates
+  put(scene, mk(box(3.95, 1.8, 0.08), M.paint), 19.72, 1.92, -0.3);
+  put(scene, mk(box(TP.xe - TP.xs + 0.3, 0.07, 0.3), M.steelB), (TP.xs + TP.xe) / 2, TP.y - 0.05, 0);   // tape rail
+  for (const sz of [-0.135, 0.135]) put(scene, mk(box(TP.xe - TP.xs + 0.3, 0.03, 0.02), M.steel), (TP.xs + TP.xe) / 2, TP.y - 0.005, sz);
+  for (const xx of [14.9, 17.4, 19.0, 20.3]) put(scene, mk(box(0.12, 0.24, 0.2), M.steelB), xx, 1.13, 0);
+  // carrier tape: empty before the insertion pocket, filled after it (one pocket per texture tile)
+  const texE = tapeTex(false), texF = tapeTex(true);
+  const mkTape = (x0, x1, tex) => {
+    const L = x1 - x0; tex.repeat.set(Math.round(L / TP.pitch), 1);
+    const m = put(scene, mk(new THREE.PlaneGeometry(L, 0.24), std({ map: tex, roughness: 0.85 }), false), (x0 + x1) / 2, TP.y, 0);
+    m.rotation.x = -Math.PI / 2; return m;
+  };
+  mkTape(TP.xs, TP.xb, texE); mkTape(TP.xb, TP.xe, texF);
+  const JOIN = 18.95;
+  const cover = put(scene, mk(new THREE.PlaneGeometry(TP.xe - JOIN, 0.2), M.cover, false), (JOIN + TP.xe) / 2, TP.y + 0.012, 0);
+  cover.rotation.x = -Math.PI / 2;
+  // reels
+  const flTex = (() => {
+    const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
+    x.fillStyle = '#000'; x.fillRect(0, 0, 128, 128); x.fillStyle = '#fff'; x.beginPath(); x.arc(64, 64, 63, 0, 7); x.fill();
+    x.fillStyle = '#000';
+    for (let k = 0; k < 3; k++) { const a = k / 3 * FULL; x.beginPath(); x.arc(64, 64, 52, a + 0.25, a + 1.75); x.arc(64, 64, 24, a + 1.75, a + 0.25, true); x.fill(); }
+    return new THREE.CanvasTexture(c);
+  })();
+  const flMat = std({ color: 0x2f6fd6, roughness: 0.35, alphaMap: flTex, alphaTest: 0.5, side: THREE.DoubleSide });
+  function makeReel(x, y, R) {
+    const g = dyn(new THREE.Group()); g.position.set(x, y, 0); scene.add(g);
+    for (const sz of [-0.15, 0.15]) put(g, mk(along(cyl(R, R, 0.012, 64), 'z'), flMat), 0, 0, sz);
+    put(g, mk(along(cyl(0.1, 0.1, 0.32, 24), 'z'), M.paint), 0, 0, 0);
+    const wound = put(g, mk(along(cyl(1, 1, 0.24, 64), 'z'), M.paper), 0, 0, 0);
+    put(scene, mk(along(cyl(0.035, 0.035, 0.5, 12), 'z'), M.steel), x, y, -0.1);
+    return { g, wound };
+  }
+  const sup = makeReel(13.9, 2.25, 0.55), tak = makeReel(21.05, 2.25, 0.55), cov = makeReel(18.05, 2.48, 0.28);
+  cov.wound.material = M.cover; cov.g.scale.z = 0.7;
+  const strip = (mat, w) => dyn(put(scene, mk(box(1, 0.008, w), mat, false), 0, 0, 0));
+  const setStrip = (m, a, b) => { m.position.copy(a).lerp(b, 0.5); m.rotation.z = Math.atan2(b.y - a.y, b.x - a.x); m.scale.x = a.distanceTo(b); };
+  const sS = strip(M.paper, 0.24), sT = strip(M.paper, 0.24), sC1 = strip(M.cover, 0.2), sC2 = strip(M.cover, 0.2), sC3 = strip(M.cover, 0.2);
+  // cover-tape tension rollers (second one is a dancer that rides on the tape tension)
+  const R1 = V(18.45, 2.1, 0), R2 = V(18.72, 1.66, 0);
+  put(scene, mk(along(cyl(0.045, 0.045, 0.26, 20), 'z'), M.steel), R1.x, R1.y, 0);
+  put(scene, mk(along(cyl(0.015, 0.015, 0.3, 8), 'z'), M.steelB), R1.x, R1.y, -0.15);
+  const dancer = dyn(new THREE.Group()); dancer.position.set(18.95, 1.95, -0.2); scene.add(dancer);
+  beam(dancer, V(0, 0, 0), V(R2.x - 18.95, R2.y - 1.95, 0), 0.03, M.steelB);
+  put(dancer, mk(along(cyl(0.045, 0.045, 0.26, 20), 'z'), M.steel), R2.x - 18.95, R2.y - 1.95, 0.2);
+  put(scene, mk(along(cyl(0.04, 0.04, 0.12, 16), 'z'), M.dark), 18.95, 1.95, -0.22);
+  // heat-seal shoe: pneumatic cylinder above, heated shoe with two seal rails over the tape flanges
+  put(scene, mk(box(0.42, 0.1, 0.5), M.steelB), 19.3, 2.3, -0.05);
+  put(scene, mk(cyl(0.075, 0.075, 0.38, 20), M.steel), 19.3, 2.06, 0);
+  const sealM = heatMat();
+  const seal = dyn(new THREE.Group()); seal.position.set(19.3, 0, 0); scene.add(seal);
+  put(seal, mk(cyl(0.025, 0.025, 0.42, 10), M.steel), 0, 0.24, 0);
+  put(seal, mk(box(0.4, 0.06, 0.3), M.dark), 0, 0.075, 0);
+  put(seal, mk(box(0.36, 0.06, 0.26), sealM), 0, 0.03, 0);
+  for (const sz of [-0.1, 0.1]) put(seal, mk(box(0.36, 0.02, 0.035), sealM), 0, -0.01, sz);
+  put(seal, mk(along(cyl(0.02, 0.02, 0.36, 10), 'x'), M.red), 0, 0.075, 0.16);       // heater cartridge
+  cable(V(19.52, 2.32, 0.1), V(19.9, 2.45, -0.26), 0.12, 0.012, M.red);
+  // sprocket drive
+  const spk = dyn(new THREE.Group()); spk.position.set(16.62, TP.y - 0.1, -0.09); scene.add(spk);
+  put(spk, mk(along(cyl(0.09, 0.09, 0.04, 24), 'z'), M.steel), 0, 0, 0);
+  for (let k = 0; k < 10; k++) { const a = k / 10 * FULL; put(spk, mk(box(0.03, 0.03, 0.03), M.steel), Math.cos(a) * 0.1, Math.sin(a) * 0.1, 0); }
+  put(scene, mk(box(0.25, 0.25, 0.1), M.motorG), 16.62, TP.y - 0.1, -0.22);
+  // cameras: pocket check before cover tape (COT), seal check after the shoe (CASI)
+  const cotM = downCam(17.12, TP.y, 0), casiM = downCam(19.84, TP.y, 0, -0.2);
+
+  // ---- index table ----
+  const STEP_T = FULL / TT.n;
+  put(scene, mk(cyl(0.15, 0.2, TT.y - 1.06, 24), M.motorG), TT.x, (TT.y + 1.035) / 2 - 0.02, TT.z);   // indexer
+  const tt = dyn(new THREE.Group()); tt.position.set(TT.x, TT.y, TT.z); scene.add(tt);
+  put(tt, mk(cyl(TT.r + 0.07, TT.r + 0.07, 0.04, 72), M.steelB), 0, 0, 0);
+  put(tt, mk(cyl(0.2, 0.2, 0.06, 32), M.steel), 0, 0.03, 0);
+  const hol = new THREE.InstancedMesh(box(0.14, 0.012, 0.08), M.dark, TT.n); tt.add(hol);
+  const tci = chipInst(TT.n, tt);
+  const hp = V(0, 0, 0);
+  for (let k = 0; k < TT.n; k++) { const a = k * STEP_T; setI(hol, k, hp.set(TT.r * Math.cos(a), 0.021, TT.r * Math.sin(a)), -a); }
+  put(scene, mk(cyl(0.1, 0.1, 0.1, 20), M.motorG), TT.x, TT.y + 0.1, TT.z);           // vacuum / air rotary joint
+  const at = (pos, rr = TT.r) => V(TT.x + rr * Math.cos(pos * STEP_T), TT.y, TT.z + rr * Math.sin(pos * STEP_T));
+  // measuring stations (C, IR): terminal base lowers onto the chip
+  const heads = [[TT_POS.c, 0x3d8bff], [TT_POS.ir, 0x4fd18b]].map(([pos, col]) => {
+    const th = pos * STEP_T;
+    const sg = new THREE.Group(); sg.position.set(TT.x, 0, TT.z); sg.rotation.y = -th; scene.add(sg);
+    put(sg, mk(box(0.12, 0.85, 0.14), M.paint), TT.r + 0.3, 1.45, 0);
+    put(sg, mk(box(0.36, 0.06, 0.1), M.paint), TT.r + 0.15, 1.85, 0);
+    put(sg, mk(cyl(0.035, 0.035, 0.16, 12), M.steel), TT.r, 1.75, 0);
+    const hm = std({ color: 0x2a2f35, emissive: col, emissiveIntensity: 0.15, roughness: 0.5 });
+    const head = dyn(new THREE.Group()); head.position.set(TT.r, TT.y + 0.1, 0); sg.add(head);
+    put(head, mk(box(0.08, 0.2, 0.1), hm), 0, 0.2, 0);
+    for (const sz of [-0.035, 0.035]) put(head, mk(box(0.02, 0.1, 0.02), M.steel), 0, 0.06, sz);
+    cable(V(TT.x + (TT.r + 0.3) * Math.cos(th), 1.86, TT.z + (TT.r + 0.3) * Math.sin(th)), V(TT.x - 0.4, 1.06, -1.5), 0.3, 0.012, M.rubber);
+    return { head, hm };
+  });
+  // reject: air nozzle over the holder + reject box outside the table
+  const ngP = at(TT_POS.ng), ngBox = at(TT_POS.ng, TT.r + 0.38); ngBox.y = 1.035;
+  put(scene, mk(box(0.06, 0.06, 0.06), M.yellow), ngP.x, TT.y + 0.12, ngP.z);
+  put(scene, mk(cyl(0.012, 0.012, 0.5, 8), pipeMat, false), ngP.x, TT.y + 0.4, ngP.z);
+  put(scene, mk(box(0.26, 0.16, 0.22), std({ color: 0xff5a5a, roughness: 0.5 })), ngBox.x, 1.115, ngBox.z);
+  // empty-holder sensor and insertion air nozzle
+  const emP = at(TT_POS.empty);
+  put(scene, mk(box(0.07, 0.07, 0.09), M.dark), emP.x, TT.y + 0.1, emP.z);
+  put(scene, mk(box(0.02, 0.02, 0.02), M.red), emP.x, TT.y + 0.06, emP.z);
+  const inP = at(TT_POS.ins);
+  const insM = std({ color: 0xf0b400, emissive: 0xffb000, emissiveIntensity: 0, roughness: 0.5 });
+  put(scene, mk(box(0.07, 0.07, 0.07), insM), inP.x, TT.y + 0.12, inP.z);
+  beam(scene, V(inP.x, TT.y + 0.16, inP.z), V(inP.x, TT.y + 0.16, -0.32), 0.03, M.steelB);
+  // feeder bowl + track into the holder at the feed position (radial)
+  const fa = TT_POS.feed * STEP_T, fd = V(Math.cos(fa), 0, Math.sin(fa));
+  const bwC = V(TT.x, 0, TT.z).addScaledVector(fd, TT.r + 0.06 + 0.35 + 0.39);
+  const bw = makeBowl({ x: bwC.x, z: bwC.z, y0: 1.035, r: 0.36, exitAng: fa - Math.PI, stages: [...TAPE_ON], n: 24, pile: 30, hopper: false });
+  makeTrack(bw.exit, at(TT_POS.feed, TT.r + 0.06).add(V(0, 0.04, 0)), { n: 3, stages: [...TAPE_ON], speed: 0.12, drive: false });
+  // HMI
+  put(scene, mk(cyl(0.03, 0.03, 1.6, 10), M.steelB), 22.1, 0.8, 0.3);
+  put(scene, mk(box(0.3, 0.03, 0.3), M.steelB), 22.1, 0.015, 0.3);
+  const hmi = makeScreen(scene, 0.56, 0.36, 288, 184, 22.1, 1.85, 0.36, -0.35, -0.15);
+  const placed = dyn(mk(chipGeo, M.chip)); placed.rotation.y = Math.PI / 2; placed.visible = false; scene.add(placed);
+
+  const occ = Uint8Array.from({ length: TT.n }, (_, k) => (k > TT_POS.ins && k < TT_POS.feed ? 0 : 1)), bad = new Uint8Array(TT.n);
+  for (let k = 0; k < TT.n; k++) tci.setColorAt(k, OKC);
+  let tIdx = 0, curI = 0, evI = -1, tapeN = 0, moving = false, lastIns = true, placedAt = null;
+  let nIns = 0, nNG = 0, nHold = 0;
+  const tmp = V(0, 0, 0);
+  updaters.push((dt, s, p, t) => {
+    const on = TAPE_ON.has(s);
+    if (on) tIdx += dt / 0.7;
+    const I = Math.floor(tIdx), f = tIdx - I, mv = sm(Math.min(1, f * 2.5));
+    if (I !== curI) { curI = I; moving = lastIns; if (moving) tapeN++; }
+    // dwell events, once per index
+    if (on && f > 0.45 && evI !== I) {
+      evI = I; lastIns = false;
+      for (let k = 0; k < TT.n; k++) {
+        const ps = mod(k + I, TT.n);
+        if (ps === TT_POS.feed) { occ[k] = 1; bad[k] = Math.random() < 0.15 ? 1 : 0; }
+        else if (ps === TT_POS.ng && occ[k] && bad[k]) { occ[k] = 0; nNG++; flights.spawn(at(TT_POS.ng).add(V(0, 0.04, 0)), ngBox.clone().add(V(0, 0.12, 0)), t, 0.4, 0.15); }
+        else if (ps === TT_POS.ins) {
+          if (occ[k]) {
+            occ[k] = 0; lastIns = true; nIns++; insM.emissiveIntensity = 2;
+            flights.spawn(V(inP.x, TT.y + 0.04, inP.z), V(TT.x, TP.y + 0.03, 0), t, 0.12, 0, () => { placedAt = tapeN; placed.visible = true; });
+          } else nHold++;
+        }
+      }
+    }
+    insM.emissiveIntensity *= 0.92;
+    const accT = (I + mv) * STEP_T;
+    tt.rotation.y = -accT;
+    for (let k = 0; k < TT.n; k++) {
+      const a = k * STEP_T;
+      setI(tci, k, tmp.set(TT.r * Math.cos(a), 0.05, TT.r * Math.sin(a)), -a, occ[k] ? 1 : HIDE);
+      tci.setColorAt(k, bad[k] && mod(k + I, TT.n) >= TT_POS.c ? NGC : OKC);
+    }
+    tci.instanceMatrix.needsUpdate = true; tci.instanceColor.needsUpdate = true;
+    const dn = !on ? 0 : f < 0.42 ? 0 : f < 0.52 ? sm((f - 0.42) / 0.1) : f < 0.86 ? 1 : f < 0.96 ? 1 - sm((f - 0.86) / 0.1) : 0;
+    heads.forEach((h, i) => { h.head.position.y = TT.y + 0.03 + (1 - dn) * 0.1; h.hm.emissiveIntensity = 0.15 + dn * (s === 9 ? 1.8 : 0.5); });
+    // tape: advances one pitch only if a chip went into the pocket during the last dwell
+    const pos = (tapeN - (moving ? 1 - mv : 0)) * TP.pitch;
+    texE.offset.x = -pos / TP.pitch; texF.offset.x = -pos / TP.pitch;
+    if (placedAt !== null) {
+      const px = TT.x + pos - placedAt * TP.pitch;
+      placed.position.set(px, TP.y + 0.03, 0);
+      if (px > TP.xb + 0.02) { placed.visible = false; placedAt = null; }
+    }
+    const rw = 0.16 + 0.28 * clamp01(tapeN / 400), rs = 0.46 - 0.1 * clamp01(tapeN / 400);
+    tak.wound.scale.set(rw, rw, 1); sup.wound.scale.set(rs, rs, 1); cov.wound.scale.set(0.2, 0.2, 1);
+    tak.g.rotation.z = -pos / rw; sup.g.rotation.z = -pos / rs; cov.g.rotation.z = -pos / 0.2;
+    spk.rotation.z = -pos / 0.1;
+    dancer.rotation.z = moving && f < 0.4 ? -0.08 * Math.sin(Math.PI * f / 0.4) : 0;
+    const r2 = V(18.95, 1.95, 0).add(V(R2.x - 18.95, R2.y - 1.95, 0).applyAxisAngle(V(0, 0, 1), dancer.rotation.z));
+    setStrip(sS, V(13.9, 2.25 - rs, 0), V(TP.xs, TP.y, 0));
+    setStrip(sT, V(TP.xe, TP.y, 0), V(21.05, 2.25 - rw, 0));
+    setStrip(sC1, V(18.05 + 0.2, 2.48, 0), R1.clone().add(V(0.03, 0.04, 0)));
+    setStrip(sC2, R1.clone().add(V(0.04, 0, 0)), r2.clone().add(V(0.04, 0, 0)));
+    setStrip(sC3, r2.clone().add(V(0, -0.045, 0)), V(JOIN, TP.y + 0.012, 0));
+    seal.position.y = TP.y + 0.04 + (1 - dn) * 0.16;
+    sealM.emissiveIntensity = on ? 0.5 + dn * (s === 11 ? 1.5 : 0.8) : 0.08;
+    cotM.emissiveIntensity = on ? 0.3 + dn * (s === 10 ? 2.6 : 0.8) : 0.15;
+    casiM.emissiveIntensity = on ? 0.3 + dn * (s === 12 ? 2.6 : 0.8) : 0.15;
+    const fr = Math.floor(t * 6);
+    if (fr !== hmi.f) {
+      hmi.f = fr;
+      const x = hmi.x, W = hmi.W;
+      x.fillStyle = '#071521'; x.fillRect(0, 0, W, hmi.H);
+      x.fillStyle = '#7fc7ff'; x.font = 'bold 16px system-ui'; x.fillText('TAPING', 10, 22);
+      x.fillStyle = on ? '#4fd18b' : '#4b6a80'; x.fillText(on ? 'RUN' : 'IDLE', 230, 22);
+      x.fillStyle = '#9db0c2'; x.font = '12px system-ui';
+      x.fillText('재측정 → 삽입 → 포켓 검사 → 실링 → 권취', 10, 42);
+      x.fillStyle = '#e9eef3'; x.font = 'bold 14px system-ui';
+      x.fillText(`삽입 ${nIns}`, 10, 70); x.fillStyle = '#ff6b6b'; x.fillText(`불량 배출 ${nNG}`, 100, 70);
+      x.fillStyle = '#ffc23d'; x.fillText(`빈 포켓 정지 ${nHold}`, 10, 94);
+      x.fillStyle = '#9db0c2'; x.font = '12px system-ui'; x.fillText('실링 슈', 10, 124);
+      x.fillStyle = '#2b4a60'; x.fillRect(70, 114, 190, 12); x.fillStyle = dn > 0.5 ? '#ff7a3a' : '#4b6a80'; x.fillRect(70, 114, 190 * dn, 12);
+      x.fillText('박리 강도 0.1–1.0 N (8 mm)', 10, 152);
+      x.fillText('릴: 이송 구멍 반대쪽 면에 라벨', 10, 172);
+      hmi.tex.needsUpdate = true;
+    }
+  });
+})();
+
+/* -- S13 cover-tape peel tester (bench, sample strip on a moving carriage) -- */
+const PEEL = { x: 23.9, y: 0.98, z: 0.1, L: 0.8, C0: 0.15 };
+(() => {
+  const g = new THREE.Group(); g.position.set(PEEL.x, 0, PEEL.z); scene.add(g);
+  put(g, mk(box(2.0, 0.05, 0.9), std({ color: 0x31373e, roughness: 0.4 })), 0, 0.9, 0);
+  for (const sx of [-0.94, 0.94]) for (const sz of [-0.4, 0.4]) put(g, mk(box(0.05, 0.88, 0.05), M.steelB), sx, 0.44, sz);
+  put(g, mk(box(1.9, 0.05, 0.36), M.paint), 0, 0.95, 0);                            // tester base
+  put(g, mk(box(1.8, 0.03, 0.06), M.steel), -0.1, 0.99, 0);                          // rail
+  put(g, mk(box(0.16, 0.12, 0.3), M.motorG), -0.9, 1.03, 0);                          // drive
+  // load cell + clamp on a fixed post at the right end
+  const CX = PEEL.C0 + PEEL.L / 2 + 0.25;
+  put(g, mk(box(0.1, 0.42, 0.14), M.paint), CX + 0.14, 1.18, 0);
+  put(g, mk(box(0.12, 0.1, 0.1), M.steelB), CX + 0.04, PEEL.y + 0.13, 0);
+  put(g, mk(box(0.04, 0.08, 0.22), M.dark), CX - 0.04, PEEL.y + 0.13, 0);
+  // carriage with the sample strip (filled tape) and its still-attached cover tape
+  const car = dyn(new THREE.Group()); g.add(car);
+  put(car, mk(box(PEEL.L + 0.1, 0.03, 0.2), M.steelB), PEEL.C0, PEEL.y + 0.025, 0);
+  const st = tapeTex(true); st.repeat.set(PEEL.L / TP.pitch, 1);
+  const sm1 = put(car, mk(new THREE.PlaneGeometry(PEEL.L, 0.24), std({ map: st, roughness: 0.85 }), false), PEEL.C0, PEEL.y + 0.042, 0); sm1.rotation.x = -Math.PI / 2;
+  const att = dyn(put(g, mk(box(1, 0.004, 0.2), M.coverLite, false), 0, PEEL.y + 0.048, 0));
+  const leg = dyn(put(g, mk(box(1, 0.004, 0.2), M.coverLite, false), 0, 0, 0));
+  // force display
+  const scr = makeScreen(g, 0.5, 0.32, 256, 164, -0.55, 1.3, -0.1, 0, -0.1);
+  put(g, mk(box(0.56, 0.4, 0.16), M.paint), -0.55, 1.2, -0.22);
+  const trace = Array.from({ length: 80 }, (_, i) => 0.45 + 0.12 * Math.sin(i * 0.7) + 0.06 * Math.sin(i * 2.3));
+  const s0 = PEEL.C0 - PEEL.L / 2 + 0.05;
+  updaters.push((dt, s, p) => {
+    const on = s === 13, d = on ? 0.5 * sm(clamp01((p - 0.08) / 0.8)) : 0;
+    car.position.x = -d;
+    const F = s0 - d / 2, right = PEEL.C0 + PEEL.L / 2 - d;
+    att.position.set((F + right) / 2, PEEL.y + 0.048, 0); att.scale.x = Math.max(0.001, right - F);
+    const a = V(F, PEEL.y + 0.05, 0), b = V(CX - 0.06, PEEL.y + 0.13, 0);
+    leg.position.copy(a).lerp(b, 0.5); leg.rotation.z = Math.atan2(b.y - a.y, b.x - a.x); leg.scale.x = a.distanceTo(b);
+    const x = scr.x, W = scr.W, H = scr.H;
+    if (scr.f !== Math.floor(p * 60) + (on ? 1000 : 0)) {
+      scr.f = Math.floor(p * 60) + (on ? 1000 : 0);
+      x.fillStyle = '#071521'; x.fillRect(0, 0, W, H);
+      x.fillStyle = '#7fc7ff'; x.font = 'bold 14px system-ui'; x.fillText('PEEL FORCE', 8, 18);
+      x.fillStyle = '#9db0c2'; x.font = '11px system-ui'; x.fillText('165–180° · 300 mm/min', 110, 18);
+      const L = 30, R = W - 8, T0 = 28, B = H - 18, Y = (v) => B - (v / 1.2) * (B - T0);
+      x.strokeStyle = 'rgba(255,255,255,.25)'; x.beginPath(); x.moveTo(L, T0); x.lineTo(L, B); x.lineTo(R, B); x.stroke();
+      x.setLineDash([4, 3]); x.strokeStyle = '#ffb547';
+      for (const v of [0.1, 1.0]) { x.beginPath(); x.moveTo(L, Y(v)); x.lineTo(R, Y(v)); x.stroke(); }
+      x.setLineDash([]); x.fillStyle = '#ffb547'; x.fillText('1.0 N', 2, Y(1.0) + 4); x.fillText('0.1 N', 2, Y(0.1) + 4);
+      const nn = Math.floor(trace.length * (on ? clamp01((p - 0.08) / 0.8) : 0));
+      x.strokeStyle = '#4fd18b'; x.lineWidth = 1.6; x.beginPath();
+      for (let i = 0; i < nn; i++) { const xx = L + (i / (trace.length - 1)) * (R - L); i ? x.lineTo(xx, Y(trace[i])) : x.moveTo(xx, Y(trace[i])); }
+      x.stroke(); x.lineWidth = 1;
+      x.fillStyle = '#9db0c2'; x.fillText('8 mm 규격 범위 · 곡선은 예시', L + 6, B + 14);
+      scr.tex.needsUpdate = true;
+    }
+  });
+})();
+
+/* -- S14 reel label + packing -- */
+(() => {
+  const tx = 26.3;
+  const g = new THREE.Group(); g.position.set(tx, 0, 0.2); scene.add(g);
+  put(g, mk(box(1.7, 0.05, 0.85), std({ color: 0x31373e, roughness: 0.4 })), 0, 0.9, 0);
+  for (const sx of [-0.8, 0.8]) for (const sz of [-0.38, 0.38]) put(g, mk(box(0.05, 0.88, 0.05), M.steelB), sx, 0.44, sz);
+  // label printer
+  put(g, mk(box(0.42, 0.3, 0.36), M.paint), -0.5, 1.075, -0.05);
+  put(g, mk(box(0.3, 0.02, 0.02), M.dark), -0.5, 1.0, 0.13);
+  put(g, mk(cyl(0.08, 0.08, 0.3, 20), M.paper), -0.5, 1.15, -0.05).rotation.x = Math.PI / 2;
+  const prS = makeScreen(g, 0.16, 0.08, 128, 64, -0.36, 1.18, 0.135);
+  prS.x.fillStyle = '#071521'; prS.x.fillRect(0, 0, 128, 64); prS.x.fillStyle = '#4fd18b'; prS.x.font = 'bold 20px system-ui'; prS.x.fillText('LABEL', 20, 40); prS.tex.needsUpdate = true;
+  // label texture: bar code + text lines
+  const lt = (() => {
+    const c = document.createElement('canvas'); c.width = 128; c.height = 80; const x = c.getContext('2d');
+    x.fillStyle = '#fafafa'; x.fillRect(0, 0, 128, 80); x.fillStyle = '#111';
+    for (let i = 0; i < 40; i++) if ((i * 7) % 3) x.fillRect(10 + i * 2.6, 8, (i % 4) ? 1.4 : 2.4, 30);
+    for (let r = 0; r < 3; r++) x.fillRect(10, 46 + r * 10, 60 + r * 14, 4);
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+  })();
+  const lab = dyn(put(g, mk(new THREE.PlaneGeometry(0.16, 0.1), std({ map: lt, roughness: 0.6 }), false), 0, 0, 0));
+  lab.rotation.x = -Math.PI / 2;
+  // reel lying flat (label goes on the face opposite the sprocket holes)
+  const reel = dyn(new THREE.Group()); g.add(reel);
+  put(reel, mk(cyl(0.3, 0.3, 0.012, 48), M.reelBlue), 0, 0.075, 0);
+  put(reel, mk(cyl(0.3, 0.3, 0.012, 48), M.reelBlue), 0, 0.0, 0);
+  put(reel, mk(cyl(0.22, 0.22, 0.06, 40), M.paper), 0, 0.037, 0);
+  // cardboard box (open) + closed boxes
+  const card = std({ color: 0xb98b56, roughness: 0.9 });
+  const bxX = 1.35, bxZ = 0.0;
+  put(g, mk(box(0.75, 0.03, 0.75), card), bxX, 0.015, bxZ);
+  for (const sz of [-1, 1]) put(g, mk(box(0.75, 0.55, 0.02), card), bxX, 0.29, bxZ + sz * 0.365);
+  for (const sx of [-1, 1]) put(g, mk(box(0.02, 0.55, 0.75), card), bxX + sx * 0.365, 0.29, bxZ);
+  for (let k = 0; k < 3; k++) put(g, mk(cyl(0.3, 0.3, 0.085, 40), M.reelBlue), bxX, 0.08 + k * 0.09, bxZ);
+  for (let k = 0; k < 2; k++) {
+    put(g, mk(box(0.75, 0.56, 0.75), card), bxX + 0.9, 0.28 + k * 0.57, bxZ - 0.2);
+    put(g, mk(box(0.76, 0.06, 0.08), std({ color: 0xc9a46b, roughness: 0.6 })), bxX + 0.9, 0.56 + k * 0.57, bxZ - 0.2);
+  }
+  // finished reels on a cart
+  const ct = new THREE.Group(); ct.position.set(tx + 3.6, 0, 0.6); scene.add(ct);
+  put(ct, mk(box(1.0, 0.05, 0.7), M.steelB), 0, 0.75, 0);
+  put(ct, mk(box(1.0, 0.05, 0.7), M.steelB), 0, 0.2, 0);
+  for (const sx of [-0.47, 0.47]) for (const sz of [-0.32, 0.32]) { put(ct, mk(box(0.04, 0.8, 0.04), M.steelB), sx, 0.45, sz); put(ct, mk(cyl(0.05, 0.05, 0.05, 12), M.rubber), sx, 0.03, sz); }
+  for (let k = 0; k < 4; k++) put(ct, mk(cyl(0.3, 0.3, 0.07, 48), M.reelBlue), -0.15 + (k % 2) * 0.05, 0.81 + k * 0.075, 0);
+  const R0 = V(0.25, 0.93, 0.05), LP0 = V(-0.5, 1.0, 0.16), LP1 = V(-0.5, 1.0, 0.3);
+  updaters.push((dt, s, p) => {
+    const on = s === 14;
+    const k1 = on ? sm(clamp01((p - 0.05) / 0.2)) : 0, k2 = on ? sm(clamp01((p - 0.3) / 0.2)) : 0, k3 = on ? sm(clamp01((p - 0.58) / 0.3)) : 0;
+    lab.visible = on && p > 0.05;
+    const top = R0.clone().add(V(0.12, 0.083, 0));
+    const lp = LP0.clone().lerp(LP1, k1).lerp(top, k2);
+    lab.position.copy(lp);
+    // reel (with its label) moves into the open box
+    const rp = R0.clone().lerp(V(bxX, 0.35, bxZ), k3); rp.y += Math.sin(Math.PI * k3) * 0.5;
+    reel.position.copy(rp);
+    if (k2 >= 1) lab.position.copy(rp.clone().add(V(0.12, 0.083, 0)));
+    reel.visible = !(on && p > 0.92);
+    if (lab.visible && on && p > 0.92) lab.visible = false;
+  });
+})();
+
+freezeStatic(scene);   // merge every static mesh per material (see dyn())
+
+/* ------------------------------ labels ------------------------------ */
+const stageAnchor = [V(-25.6, 3.9, 0), V(-14.6, 3.2, 0), V(-11.0, 2.7, -1.2), V(-8.9, 2.75, -1.4), V(-9.4, 1.55, 2.4),
+  V(-1.2, 3.1, 0), V(6.6, 3.9, 0), V(16.0, 2.2, 0.4), V(-7.6, 2.45, -0.3), V(15.2, 2.7, -1.2),
+  V(17.2, 2.55, 0.3), V(18.9, 3.05, 0.2), V(20.6, 3.15, 0.2), V(23.9, 2.0, 0.1), V(26.6, 1.8, 0.2)];
+const stageTags = STAGES.map((st, i) => label(`<b>${i + 1}</b>${st.name}`, stageAnchor[i], 'tag', i));
+const SUBS = [
+  [0, '열처리 오븐 150 °C', V(-26.8, 2.2, 0.9)], [0, '방치 랙 24 h', V(-23.8, 2.0, -1.5)], [0, 'LCR 미터 (기준 측정)', V(-24.2, 1.35, 0.9)],
+  [1, '진동 피더', V(-14.6, 1.9, 0.6)], [1, '호퍼', V(-14.7, 2.6, -0.3)], [1, '리니어 트랙', V(-12.4, 1.75, 0.2)], [1, '턴테이블 포켓 (진공)', V(-10.6, 1.45, 0.4)],
+  [1, '로터리 조인트 (진공·공압)', V(-9.4, 1.62, 0)],
+  [2, 'C/DF 스테이션 ×2', V(-10.6, 2.2, -0.4)], [2, '정전용량 미터', V(-9.7, 2.3, -2.3)], [2, '상부 접점 (승강)', V(-10.5, 1.5, -0.5)], [2, '하부 접점 링', V(-10.3, 1.0, -0.75)],
+  [3, 'IR 프리차지', V(-9.6, 2.15, -1.25)], [3, 'IR 소크', V(-8.6, 2.15, -1.15)], [3, 'IR 측정', V(-8.3, 1.75, -0.7)], [3, '소스-측정 유닛', V(-9.1, 1.35, -2.3)],
+  [8, '플래시 스테이션', V(-8.1, 1.75, -0.3)], [8, '소스-측정 유닛 (HV)', V(-9.1, 1.35, -2.3)], [8, 'IR 스테이션', V(-8.6, 2.15, -1.15)],
+  [4, '배출 밸브 열 (포켓 아래)', V(-9.4, 0.98, 1.3)], [4, '배출 매니폴드', V(-9.0, 1.5, 1.25)], [4, '튜브', V(-8.4, 1.85, 1.5)],
+  [4, '공차 빈 1–7', V(-10.4, 0.6, 2.25)], [4, '불량 빈 1–7', V(-8.5, 0.6, 2.25)], [4, '재검 빈', V(-7.5, 1.3, 2.1)], [4, '잼 감지 센서', V(-10.6, 1.55, 0.15)], [4, 'HMI', V(-7.4, 2.3, 1.5)],
+  [5, '유리 원판', V(-1.53, 1.62, 0.89)], [5, '적외선 감지 센서', V(-1.99, 1.82, -0.23)], [5, '윗면 카메라', V(-1.83, 2.25, -0.53)],
+  [5, '옆면 카메라 (안쪽)', V(-1.35, 1.98, -0.37)], [5, '밑면 카메라 (유리 아래)', V(-0.99, 1.12, -0.79)], [5, '두께 레이저 (광절단)', V(-0.5, 2.15, -0.45)],
+  [5, '옆면 카메라 (바깥쪽)', V(0.12, 1.98, -0.22)], [5, '에어 블로 ×3', V(-0.8, 1.72, 0.41)], [5, '용기: 양품 · 두께 · 외관 불량', V(-0.35, 1.38, 0.86)], [5, '엔코더', V(-1.0, 1.12, 0.15)],
+  [6, '번인 보드 (소켓)', V(7.0, 2.0, 0.6)], [6, '전류 감시 컨트롤러', V(5.0, 2.3, 0.5)], [6, '순환 팬·히터', V(6.6, 2.5, -0.7)],
+  [9, '파츠 피더', V(14.65, 1.8, -0.96)], [9, '인덱스 턴테이블', V(15.75, 1.55, -0.25)], [9, 'C 측정 단자', V(15.75, 2.05, -1.45)], [9, 'IR 측정 단자', V(16.3, 1.75, -1.45)], [9, '불량 회수함', V(16.85, 1.32, -1.09)],
+  [7, '공급 릴', V(13.9, 2.95, 0.2)], [7, '캐리어 테이프', V(15.0, 1.35, 0.15)], [7, '에어 삽입 노즐', V(16.0, 1.68, 0.05)], [7, '빈 포켓 센서', V(16.3, 1.62, -0.08)], [7, '스프로킷 구동 (테이프 아래)', V(16.62, 1.42, -0.25)],
+  [10, '포켓 카메라 (COT)', V(17.12, 1.95, 0.15)], [10, '링 조명', V(17.3, 1.45, 0.15)], [10, '칩 수납 포켓', V(17.65, 1.33, 0.2)],
+  [11, '커버 테이프 릴', V(18.05, 2.85, 0.2)], [11, '텐션 롤러', V(18.45, 2.2, 0.15)], [11, '댄서 롤러', V(18.72, 1.55, 0.15)], [11, '실링 슈 (히터)', V(19.3, 1.58, 0.25)], [11, '공압 실린더', V(19.3, 2.45, 0.2)],
+  [12, '실링 카메라 (CASI)', V(19.84, 1.95, 0.15)], [12, '권취 릴', V(21.05, 2.95, 0.2)], [12, 'HMI', V(22.1, 2.25, 0.36)],
+  [13, '로드셀 · 클램프', V(24.74, 1.22, 0.1)], [13, '이동 캐리지 + 테이프 샘플', V(23.8, 1.08, 0.25)], [13, '커버 테이프 (165–180°)', V(24.1, 1.14, 0.0)], [13, '힘 기록 화면', V(23.35, 1.55, 0.0)],
+  [14, '라벨 프린터', V(25.8, 1.35, 0.15)], [14, '릴 (라벨 면)', V(26.55, 1.12, 0.25)], [14, '포장 상자', V(27.65, 0.75, 0.2)], [14, '완성 릴 카트', V(29.9, 1.3, 0.6)],
+].map(([s, t, p]) => ({ s, el: label(t, p, 'sub') }));
+
+/* ------------------------------ UI ------------------------------ */
+/* ------------------------------ process flow (branches) ------------------------------
+   FLOW lists the steps in process order. A number is a STAGES index. An object
+   { i, label, mark } overrides the list label, or marks the step 'repeat' / 'parallel'.
+   A fork { fork, title, opts: [{ key, label, steps, note, onSelect }], def } is a point where the
+   line splits into alternative routes. Only the chosen option's steps play; an option
+   with no steps skips straight to the step after the fork.
+   STAGES indices never change: the animation code keys on them. */
+const ROUTE = {};
+FLOW.forEach((e) => { if (e.fork) ROUTE[e.fork] = e.def || e.opts[0].key; });
+const asStep = (x) => (typeof x === 'number' ? { i: x } : x);
+let SEQ = [];
+const forkStart = {};
+function buildSeq() {
+  SEQ = [];
+  for (const e of FLOW) {
+    if (!e.fork) { SEQ.push(asStep(e)); continue; }
+    forkStart[e.fork] = SEQ.length;
+    const o = e.opts.find((q) => q.key === ROUTE[e.fork]);
+    o.steps.forEach((x) => SEQ.push({ ...asStep(x), fork: e, opt: o }));
+  }
+}
+buildSeq();
+
+const ol = document.getElementById('stages');
+let seqBtns = [];
+function stepButton(step, n, onClick) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  const mk = step.mark === 'repeat' ? '<span class="mk">↻ 반복</span>' : step.mark === 'parallel' ? '<span class="mk">∥ 병행</span>' : '';
+  b.innerHTML = `<span class="n">${n}</span><span style="flex:1">${step.label || STAGES[step.i].name}${mk}<div class="bar"></div></span>`;
+  b.addEventListener('click', onClick);
+  return b;
+}
+function renderFlow() {
+  ol.innerHTML = ''; seqBtns = [];
+  let k = 0;
+  for (const e of FLOW) {
+    const li = document.createElement('li');
+    if (!e.fork) {
+      const kk = k++;
+      const b = stepButton(asStep(e), kk + 1, () => jumpK(kk));
+      seqBtns[kk] = b; li.appendChild(b); ol.appendChild(li); continue;
+    }
+    li.className = 'fork';
+    const head = document.createElement('div'); head.className = 'fork-head';
+    head.innerHTML = `<span class="fk">⑂ ${e.title}</span>`;
+    const seg = document.createElement('div'); seg.className = 'seg';
+    seg.setAttribute('role', 'radiogroup'); seg.setAttribute('aria-label', e.title);
+    for (const o of e.opts) {
+      const sb = document.createElement('button');
+      sb.type = 'button'; sb.textContent = o.label; sb.setAttribute('role', 'radio');
+      sb.setAttribute('aria-checked', String(ROUTE[e.fork] === o.key));
+      sb.addEventListener('click', () => { if (ROUTE[e.fork] !== o.key) setRoute(e.fork, o.key); });
+      seg.appendChild(sb);
+    }
+    head.appendChild(seg); li.appendChild(head);
+    for (const o of e.opts) {
+      const on = ROUTE[e.fork] === o.key;
+      const box = document.createElement('div'); box.className = `opt ${on ? 'on' : 'off'}`;
+      const lab = document.createElement('div'); lab.className = 'opt-label'; lab.textContent = o.label; box.appendChild(lab);
+      if (!o.steps.length) {
+        const sk = document.createElement('div'); sk.className = 'skip';
+        sk.textContent = o.note || '이 경로에서는 해당 단계를 거치지 않습니다.'; box.appendChild(sk);
+      }
+      for (const x of o.steps) {
+        const st = asStep(x);
+        if (on) { const kk = k++; const b = stepButton(st, kk + 1, () => jumpK(kk)); seqBtns[kk] = b; box.appendChild(b); }
+        else box.appendChild(stepButton(st, '·', () => setRoute(e.fork, o.key, st.i)));
+      }
+      li.appendChild(box);
+    }
+    ol.appendChild(li);
+  }
+  // 3D stage tags: number by the active route, fade stations the route skips.
+  const num = new Map();
+  SEQ.forEach((q, n) => { if (!num.has(q.i)) num.set(q.i, n + 1); });
+  stageTags.forEach((el, i) => {
+    el.classList.toggle('off', !num.has(i));
+    const b = el.querySelector('b'); if (b) b.textContent = num.has(i) ? num.get(i) : '·';
+  });
+}
+let curK = 0, lastK = -1;
+function jumpK(k) {
+  curK = ((k % SEQ.length) + SEQ.length) % SEQ.length;
+  simT = curK * STAGE_DUR + 0.01; lastK = -1;
+}
+function setRoute(fid, key, focus = null) {
+  ROUTE[fid] = key; buildSeq(); renderFlow();
+  const opt = FLOW.find((e) => e.fork === fid).opts.find((q) => q.key === key);
+  if (opt.onSelect) opt.onSelect();     // e.g. swap equipment shown for this route
+  let k = focus === null ? -1 : SEQ.findIndex((q) => q.i === focus);
+  if (k < 0) k = forkStart[fid];          // first step of the chosen option, or the step after the fork
+  jumpK(k);
+}
+// Jump by STAGES index (3D tag clicks). A station off the active route switches to its route.
+function jumpTo(i) {
+  const k = SEQ.findIndex((q) => q.i === i);
+  if (k >= 0) { jumpK(k); return; }
+  for (const e of FLOW) if (e.fork) for (const o of e.opts) {
+    if (o.steps.some((x) => asStep(x).i === i)) { setRoute(e.fork, o.key, i); return; }
+  }
+}
+renderFlow();
+const LIT = [
+  { h: '측정·선별 처리 속도 (문헌값)', cap: '출처 <code>[esi-allegro-xp-2020]</code> <code>[murata-meas-web]</code> · 점선은 <code>[esi-allegro-web]</code> 검색 요약 (미확인)' },
+  { h: '번인 시간 (문헌값)', cap: '출처 <code>[nepp-guidelines-2012]</code> (NEPP Level) · <code>[nepp-crack-teverovsky]</code> (MIL) · 모두 2×V<sub>R</sub>' },
+  { h: '릴당 수량 (문헌값)', cap: '출처 <code>[johanson-tape-reel]</code> · 막대 끝 = 큰 값, 표시선 = 작은 옵션 (두께·릴 크기 의존)' },
+  { h: '외관 검사 · 테이핑 처리 속도 (문헌값)', cap: '출처 <code>[tokyo-weld-dempa]</code> <code>[us6294747]</code> (70,000 개/h 환산) <code>[shibuya-etm486]</code> · 점선은 <code>[jinsung-jt310]</code> 검색 요약 (미확인)' },
+  { h: '커버 테이프 박리 강도 규격 (문헌값)', cap: '출처 <code>[kemet-pack]</code> (8 · 12 mm, 진한 막대 = 허용 범위) · 점선은 검색 요약만 (미확인)' },
+];
+const litOf = (i) => (i === 6 ? 1 : i === 5 || i === 9 || i === 7 || i === 10 ? 3 : i === 11 || i === 12 || i === 14 ? 2 : i === 13 ? 4 : 0);
+const info = document.getElementById('info');
+if (window.innerHeight < 720 || window.innerWidth < 820) info.classList.add('collapsed');
+function renderInfo(k) {
+  const q = SEQ[k], st = STAGES[q.i], L = LIT[litOf(q.i)];
+  info.innerHTML = `
+    <div class="head"><div><div class="kicker">STEP ${k + 1} / ${SEQ.length}${q.opt ? ` · ${q.fork.title}: ${q.opt.label}` : ''} · ${st.en}</div>
+    <h2>${q.label || st.name}</h2></div><button class="fold" id="fold">${info.classList.contains('collapsed') ? '펼치기' : '접기'}</button></div>
+    <div class="body">
+    <p>${q.desc || st.desc}</p>
+    <h3>설비</h3><ul>${st.equip.map((e) => `<li>${e}</li>`).join('')}</ul>
+    <h3>공정 조건 (문헌 예)</h3><ul>${st.params.map((e) => `<li>${e}</li>`).join('')}</ul>
+    <h3>칩·재료 상태 (모식도)</h3>
+    <div class="canvas-wrap"><canvas id="micro" width="600" height="250"></canvas>
+      <div class="cap" id="microCap"></div></div>
+    <h3>${L.h}</h3>
+    <div class="canvas-wrap"><canvas id="lit" width="600" height="200"></canvas>
+      <div class="cap">${L.cap}</div></div>
+    <div class="foot">출처 키는 위키 문서 <code>wiki/concepts/production-test-and-screening-mlcc.md</code>, 원자료 <code>resources/manufacturing/80-test-sort-and-packaging.md</code>, 설비 구조·순서 원자료 <code>resources/manufacturing/eq-10-test-sort-pack.md</code>, <code>wiki/queries/mlcc-process-substeps-and-equipment.md</code> (§15–16) 기준입니다.
+      특허 키(<code>[us…]</code>)는 발명자 실시예라 양산 조건과 다를 수 있습니다.
+      <span class="g">(g)</span>는 위키 문헌에 근거가 없는 일반 관행입니다.
+      설비 형상은 특정 제조사 모델이 아닌 대표 구조로 그렸고, 크기 비율은 실제와 다릅니다 (칩은 보이도록 크게 과장). 턴테이블 스테이션 수, 빈·튜브 배치, 테이핑기 부품 배치도 모식적입니다.</div></div>`;
+  document.getElementById('fold').addEventListener('click', () => {
+    info.classList.toggle('collapsed');
+    document.getElementById('fold').textContent = info.classList.contains('collapsed') ? '펼치기' : '접기';
+  });
+}
+
+let simT = 0.01, playing = true, speed = 1, autoTour = true, lastStage = -1;
+const playBtn = document.getElementById('play');
+playBtn.addEventListener('click', () => { playing = !playing; playBtn.textContent = playing ? '❚❚ 일시정지' : '▶ 재생'; });
+document.getElementById('speed').addEventListener('change', (e) => { speed = parseFloat(e.target.value); });
+const tourBox = document.getElementById('tour');
+tourBox.addEventListener('change', (e) => { autoTour = e.target.checked; if (autoTour) flyTo(lastStage); });
+document.getElementById('cut').addEventListener('change', (e) => setCut(e.target.checked));
+document.getElementById('overview').addEventListener('click', () => { autoTour = false; tourBox.checked = false; flyToView(V(...OVERVIEW[0]), V(...OVERVIEW[1])); });
+function setCut(on) {
+  cutParts.forEach((m) => { m.visible = on; });
+  fullParts.forEach((m) => { m.visible = !on; });
+  pipeMat.opacity = on ? 0.5 : 1; pipeMat.depthWrite = !on; pipeMat.transparent = on; pipeMat.needsUpdate = true;
+}
+setCut(true);
+
+/* ------------------------------ camera tour ------------------------------ */
+let tween = null;
+// Narrow (portrait) screens see less width, so pull the camera back along its view line.
+function viewScale() { const a = camera.aspect; return a < 0.8 ? 1.5 : a < 1.2 ? 1.25 : 1; }
+function flyToView(pos, tgt) {
+  const p1 = tgt.clone().add(pos.clone().sub(tgt).multiplyScalar(viewScale()));
+  tween = { p0: camera.position.clone(), t0: controls.target.clone(), p1, t1: tgt, k: 0 };
+}
+function flyTo(i) {
+  if (i < 0) return;
+  const c = STAGES[i].cam;
+  flyToView(V(...c[0]), V(...c[1]));
+}
+controls.addEventListener('start', () => { if (tween) tween = null; if (autoTour) { autoTour = false; tourBox.checked = false; } });
+
+/* ------------------------------ microview canvas (schematics) ------------------------------ */
+const rng = (() => { let s = 11; return () => (s = (s * 16807) % 2147483647) / 2147483647; })();
+const dom = Array.from({ length: 40 }, () => rng() * 6.28);
+const jumble = Array.from({ length: 22 }, () => ({ x: rng(), y: rng(), a: rng() * 6.28, w: (rng() - 0.5) * 2 }));
+const biTr = Array.from({ length: 11 }, () => 0.55 + rng() * 0.2);
+function chip2d(x, cx, cy, w, h, ang = 0) {
+  x.save(); x.translate(cx, cy); x.rotate(ang);
+  x.fillStyle = '#b48a55'; x.fillRect(-w / 2, -h / 2, w, h);
+  x.fillStyle = '#dfe3e6'; x.fillRect(-w / 2, -h / 2, w * 0.2, h); x.fillRect(w / 2 - w * 0.2, -h / 2, w * 0.2, h);
+  x.restore();
+}
+function arrow(x, cx, cy, a, L, col) {
+  const dx = Math.cos(a) * L / 2, dy = Math.sin(a) * L / 2;
+  x.strokeStyle = col; x.fillStyle = col; x.lineWidth = 2.5;
+  x.beginPath(); x.moveTo(cx - dx, cy - dy); x.lineTo(cx + dx, cy + dy); x.stroke();
+  x.beginPath(); x.moveTo(cx + dx, cy + dy);
+  x.lineTo(cx + dx - Math.cos(a - 0.5) * 7, cy + dy - Math.sin(a - 0.5) * 7);
+  x.lineTo(cx + dx - Math.cos(a + 0.5) * 7, cy + dy - Math.sin(a + 0.5) * 7); x.fill();
+}
+function axes(x, L, T0, R, B, xl, yl) {
+  x.strokeStyle = 'rgba(255,255,255,.3)'; x.lineWidth = 1.2;
+  x.beginPath(); x.moveTo(L, T0); x.lineTo(L, B); x.lineTo(R, B); x.stroke();
+  x.fillStyle = '#9db0c2'; x.font = '15px system-ui';
+  x.fillText(yl, L + 6, T0 + 12); x.textAlign = 'right'; x.fillText(xl, R, B + 18); x.textAlign = 'left';
+}
+function drawMicro(s, p, t) {
+  const cv = document.getElementById('micro'); if (!cv) return;
+  const x = cv.getContext('2d'), W = cv.width, H = cv.height;
+  x.clearRect(0, 0, W, H); x.fillStyle = '#24282c'; x.fillRect(0, 0, W, H);
+  x.font = '16px system-ui'; x.textAlign = 'left';
+  let msg = '';
+  if (s === 0) {
+    const heat = p > 0.18 && p < 0.72, ageK = p < 0.18 ? 1 : p >= 0.72 ? Math.min(0.4, (p - 0.72) * 1.4) : 0;
+    for (let i = 0; i < 8; i++) for (let j = 0; j < 5; j++) {
+      const cx = 30 + i * 32, cy = 45 + j * 38, a0 = dom[i * 5 + j];
+      if (heat) { x.fillStyle = '#ffb547'; x.beginPath(); x.arc(cx + Math.sin(t * 9 + a0) * 2, cy + Math.cos(t * 8 + a0) * 2, 4, 0, 7); x.fill(); }
+      else { const al = ((i >> 1) + (j >> 1)) % 2 ? 0 : Math.PI; arrow(x, cx, cy, a0 * (1 - ageK) + al * ageK, 20, '#8fd0ff'); }
+    }
+    x.fillStyle = '#e9eef3'; x.fillText(heat ? 'T > T_C : 도메인 해소' : p < 0.18 ? '에이징된 도메인' : '도메인 재형성', 20, 24);
+    const L = 320, T0 = 30, R = 585, B = 200;
+    axes(x, L, T0, R, B, 'log t (마지막 T_C 초과 이후)', 'C');
+    x.strokeStyle = '#ffb547'; x.lineWidth = 2.5; x.beginPath(); x.moveTo(L + 10, T0 + 30); x.lineTo(R - 10, B - 40); x.stroke();
+    const ux = p < 0.18 ? 0.92 : heat ? null : 0.05 + Math.min(0.45, (p - 0.72) * 1.6);
+    x.setLineDash([5, 5]); x.strokeStyle = 'rgba(143,208,255,.7)'; x.beginPath();
+    const mx = L + 10 + 0.5 * (R - L - 20); x.moveTo(mx, T0 + 10); x.lineTo(mx, B); x.stroke(); x.setLineDash([]);
+    x.fillStyle = '#8fd0ff'; x.fillText('24 h 방치 → 측정', mx + 6, T0 + 18);
+    if (ux !== null) { const px = L + 10 + ux * (R - L - 20), py = T0 + 30 + ux * (B - 40 - T0 - 30); x.fillStyle = '#fff'; x.beginPath(); x.arc(px, py, 7, 0, 7); x.fill(); }
+    else { x.fillStyle = '#ffb547'; x.fillText('150 °C 열처리 중', L + 20, B - 10); }
+    msg = 'T_C 위로 가열하면 에이징이 초기화되고 C가 회복, 이후 시간에 따라 다시 감소';
+  } else if (s === 1) {
+    x.strokeStyle = 'rgba(255,255,255,.3)'; x.lineWidth = 2; x.beginPath(); x.arc(130, 125, 100, 0, 7); x.stroke();
+    for (const q of jumble) chip2d(x, 130 + (q.x - 0.5) * 140, 125 + (q.y - 0.5) * 140, 34, 16, q.a + t * q.w * 0.6);
+    x.fillStyle = 'rgba(255,255,255,.12)'; x.fillRect(240, 112, 330, 26);
+    const off = (t * 60) % 44;
+    for (let k = 0; k < 8; k++) { const cx = 250 + k * 44 + off; if (cx < 560) chip2d(x, cx, 125, 34, 16, 0); }
+    x.strokeStyle = '#ffb547'; x.lineWidth = 2; x.strokeRect(556, 108, 30, 34);
+    x.fillStyle = '#9db0c2'; x.fillText('무작위 방향', 80, 24); x.fillText('한 줄 정렬 → 포켓', 330, 100);
+    msg = '진동으로 칩을 한 방향으로 세워 한 줄로 공급';
+  } else if (s === 2) {
+    chip2d(x, 140, 125, 170, 70);
+    for (const cx of [72, 208]) { x.fillStyle = '#c8ccd0'; x.beginPath(); x.arc(cx, 72, 16, 0, 7); x.fill(); x.fillRect(cx - 4, 20, 8, 40); x.fillStyle = '#8d949b'; x.fillRect(cx - 14, 162, 28, 14); }
+    x.fillStyle = '#9db0c2'; x.fillText('상부 롤러 접점', 80, 18); x.fillText('하부 접점', 100, 200);
+    const L = 300, R = 585, mid = 90;
+    x.strokeStyle = 'rgba(255,255,255,.2)'; x.beginPath(); x.moveTo(L, mid); x.lineTo(R, mid); x.stroke();
+    const dl = 0.25;
+    for (const [col, ph, amp] of [['#8fd0ff', 0, 40], ['#ffb547', Math.PI / 2 - dl, 30]]) {
+      x.strokeStyle = col; x.lineWidth = 2; x.beginPath();
+      for (let i = 0; i <= 140; i++) { const u = i / 140, xx = L + u * (R - L), yy = mid - amp * Math.sin(u * 12 + ph - t * 3); i ? x.lineTo(xx, yy) : x.moveTo(xx, yy); }
+      x.stroke();
+    }
+    x.fillStyle = '#8fd0ff'; x.fillText('V', R - 14, 40); x.fillStyle = '#ffb547'; x.fillText('I', R - 14, 62);
+    const ox = 330, oy = 225;
+    arrow(x, ox + 50, oy, 0, 100, '#8fd0ff');
+    const a = -(Math.PI / 2 - dl); arrow(x, ox + Math.cos(a) * 40, oy + Math.sin(a) * 40, a, 80, '#ffb547');
+    x.strokeStyle = '#e9eef3'; x.lineWidth = 1; x.beginPath(); x.arc(ox, oy, 55, -Math.PI / 2, a); x.stroke();
+    x.fillStyle = '#e9eef3'; x.fillText('δ', ox + 20, oy - 52); x.fillText('DF = tan δ', 450, 220);
+    msg = '교류를 걸어 전류·전압 위상차에서 C와 DF(tan δ)를 구함';
+  } else if (s === 3) {
+    const L = 50, T0 = 24, R = 585, B = 200;
+    axes(x, L, T0, R, B, '시간 →', 'log I');
+    const bands = [[0, 0.22, '프리차지', 'rgba(255,194,61,.12)'], [0.22, 0.55, '소크', 'rgba(255,154,61,.10)'], [0.55, 0.75, 'IR 측정', 'rgba(79,209,139,.14)'], [0.8, 0.97, '플래시', 'rgba(255,77,77,.16)']];
+    for (const [a, b, n2, c] of bands) { x.fillStyle = c; x.fillRect(L + a * (R - L), T0, (b - a) * (R - L), B - T0); x.fillStyle = '#9db0c2'; x.fillText(n2, L + a * (R - L) + 4, B - 6); }
+    const cur = (u, plat) => T0 + 8 + (plat - 8) * (1 - Math.exp(-u / 0.12));
+    for (const [plat, col, dash] of [[150, '#4fd18b', []], [100, '#ff6b6b', [6, 5]]]) {
+      x.setLineDash(dash); x.strokeStyle = col; x.lineWidth = 2.2; x.beginPath();
+      for (let i = 0; i <= 120; i++) { const u = i / 120 * 0.77, xx = L + u * (R - L), yy = cur(u, plat); i ? x.lineTo(xx, yy) : x.moveTo(xx, yy); }
+      x.stroke(); x.setLineDash([]);
+    }
+    x.fillStyle = '#4fd18b'; x.fillText('양품: 누설만 남음', L + 0.56 * (R - L), 168); x.fillStyle = '#ff6b6b'; x.fillText('결함 칩', L + 0.6 * (R - L), 94);
+    x.fillStyle = 'rgba(255,77,77,.8)'; x.fillRect(L + 0.84 * (R - L), T0 + 20, 0.08 * (R - L), 18);
+    x.fillStyle = '#ffd0d0'; x.font = '13px system-ui'; x.fillText('고전압 펄스', L + 0.81 * (R - L), T0 + 54);
+    x.strokeStyle = '#fff'; x.lineWidth = 1.5; x.beginPath(); x.moveTo(L + p * (R - L), T0); x.lineTo(L + p * (R - L), B); x.stroke();
+    msg = '충전·흡수 전류가 가라앉은 뒤 남는 누설로 IR 판정 (곡선은 정성적)';
+  } else if (s === 4) {
+    const L = 30, R = 585, B = 200, nb = 29;
+    const bw = (R - L) / nb;
+    const grow = Math.min(1, p * 1.4 + 0.15);
+    for (let i = 0; i < nb; i++) {
+      const u = (i - 14) / 5, h = 150 * Math.exp(-u * u / 2) * grow + 3;
+      const inTol = i >= 4 && i <= 24;
+      const bin = Math.floor((i - 4) / 3);
+      x.fillStyle = inTol ? `hsl(${140 + bin * 6}, 55%, ${48 + (bin % 2) * 10}%)` : '#ff6b6b';
+      x.fillRect(L + i * bw + 1, B - h, bw - 2, h);
+    }
+    for (let b = 0; b <= 7; b++) { const xx = L + (4 + b * 3) * bw; x.strokeStyle = 'rgba(255,255,255,.35)'; x.beginPath(); x.moveTo(xx, 30); x.lineTo(xx, B); x.stroke(); }
+    x.fillStyle = '#e9eef3'; x.fillText('공차 빈 1 … 7', L + 10.5 * bw, 26);
+    x.fillStyle = '#ff6b6b'; x.fillText('불량', L + 2, 60); x.fillText('불량', R - 36, 60);
+    x.fillStyle = '#9db0c2'; x.textAlign = 'right'; x.fillText('C 측정값 →', R, B + 18); x.textAlign = 'left';
+    msg = '측정값에 따라 공차 빈 · 불량 빈 · 재검 빈으로 분류 (분포는 정성적)';
+  } else if (s === 5) {
+    const cx = 300, cy = 120, w = 380, h = 130;
+    x.fillStyle = '#b48a55'; x.fillRect(cx - w / 2, cy - h / 2, w, h);
+    x.fillStyle = '#dfe3e6'; x.fillRect(cx - w / 2, cy - h / 2, w * 0.18, h); x.fillRect(cx + w / 2 - w * 0.18, cy - h / 2, w * 0.18, h);
+    x.fillStyle = '#24282c'; x.beginPath(); x.moveTo(cx + w / 2, cy - h / 2); x.lineTo(cx + w / 2 - 50, cy - h / 2); x.lineTo(cx + w / 2, cy - h / 2 + 38); x.fill();
+    x.fillStyle = 'rgba(80,50,30,.45)'; x.beginPath(); x.ellipse(cx - 40, cy + 15, 46, 22, 0.3, 0, 7); x.fill();
+    const sx = cx - w / 2 + ((p * 1.3) % 1) * w;
+    x.strokeStyle = 'rgba(143,208,255,.9)'; x.lineWidth = 2; x.beginPath(); x.moveTo(sx, cy - h / 2 - 10); x.lineTo(sx, cy + h / 2 + 10); x.stroke();
+    const found = [[cx + w / 2 - 58, cy - h / 2 - 6, 64, 50, '형상 (깨짐)'], [cx - 92, cy - 12, 104, 54, '색 얼룩']];
+    for (const [bx, by, bw2, bh, lb] of found) if (sx > bx || p > 0.77) { x.strokeStyle = '#ff6b6b'; x.strokeRect(bx, by, bw2, bh); x.fillStyle = '#ff6b6b'; x.fillText(lb, bx, by - 6); }
+    x.strokeStyle = '#8fd0ff'; x.lineWidth = 1;
+    x.beginPath(); x.moveTo(cx - w / 2, cy + h / 2 + 24); x.lineTo(cx + w / 2, cy + h / 2 + 24); x.stroke();
+    x.fillStyle = '#8fd0ff'; x.fillText('치수 L', cx - 20, cy + h / 2 + 44);
+    msg = '화상으로 치수·형상·색 얼룩을 판정, 0.4 × 0.2 mm 칩까지 (그림은 확대)';
+  } else if (s === 6) {
+    const L = 50, T0 = 24, R = 585, B = 200;
+    axes(x, L, T0, R, B, '번인 시간 →', 'log I (누설)');
+    const prog = clamp01((p - 0.3) / 0.56) || 0.02;
+    const th = 70;
+    x.setLineDash([6, 5]); x.strokeStyle = '#ffb547'; x.beginPath(); x.moveTo(L, th); x.lineTo(R, th); x.stroke(); x.setLineDash([]);
+    x.fillStyle = '#ffb547'; x.font = '14px system-ui'; x.fillText('판정선: 10 nA 또는 1 h 값 × 150% (큰 쪽)', L + 8, th - 6);
+    const x1h = L + 0.08 * (R - L);
+    x.strokeStyle = 'rgba(143,208,255,.5)'; x.beginPath(); x.moveTo(x1h, T0 + 20); x.lineTo(x1h, B); x.stroke(); x.fillStyle = '#8fd0ff'; x.fillText('1 h', x1h + 4, B - 6);
+    biTr.forEach((lv, k) => {
+      const bad = k === 4;
+      x.strokeStyle = bad ? '#ff6b6b' : 'rgba(79,209,139,.85)'; x.lineWidth = 1.8; x.beginPath();
+      for (let i = 0; i <= 100 * prog; i++) {
+        const u = i / 100, xx = L + u * (R - L);
+        let yy = T0 + 30 + (B - T0 - 40) * lv * (1 - Math.exp(-u * 10)) + Math.sin(u * 40 + k) * 1.5;
+        if (bad && u > 0.5) yy -= (u - 0.5) * 300;
+        i ? x.lineTo(xx, Math.max(T0, yy)) : x.moveTo(xx, yy);
+      }
+      x.stroke();
+    });
+    msg = '칩별 누설을 계속 기록: 양품은 감소·안정, 결함 칩은 상승해 판정선 초과 (곡선은 정성적)';
+  } else if (s === 8) {
+    const L = 50, T0 = 24, R = 585, B = 200;
+    axes(x, L, T0, R, B, '시간 →', 'V, I');
+    const x0 = L + 0.25 * (R - L), x1 = L + 0.6 * (R - L), vT = 60, vR = 140;
+    x.setLineDash([5, 4]); x.strokeStyle = 'rgba(143,208,255,.6)'; x.beginPath(); x.moveTo(L, vR); x.lineTo(R, vR); x.stroke(); x.setLineDash([]);
+    x.fillStyle = '#8fd0ff'; x.fillText('V_R', R - 40, vR - 6);
+    x.strokeStyle = '#ffb547'; x.lineWidth = 2.5; x.beginPath(); x.moveTo(L, B - 2); x.lineTo(x0, B - 2); x.lineTo(x0 + 8, vT); x.lineTo(x1, vT); x.lineTo(x1 + 8, B - 2); x.lineTo(R, B - 2); x.stroke();
+    x.fillStyle = '#ffb547'; x.fillText('2–2.5 × V_R, 40–50 ms (특허 예)', x0 + 10, vT - 8);
+    const cur = (bad) => { x.beginPath(); for (let i = 0; i <= 120; i++) { const u = i / 120, xx = L + u * (R - L); let yy = B - 4;
+      if (xx > x0) yy -= 60 * Math.exp(-(xx - x0) / 14); if (bad && xx > x0 + 70 && xx < x1) yy -= 70; i ? x.lineTo(xx, yy) : x.moveTo(xx, yy); } x.stroke(); };
+    x.lineWidth = 2; x.strokeStyle = '#4fd18b'; cur(false); x.setLineDash([6, 5]); x.strokeStyle = '#ff6b6b'; cur(true); x.setLineDash([]);
+    x.fillStyle = '#4fd18b'; x.fillText('양품: 충전 전류만', x1 + 20, B - 30); x.fillStyle = '#ff6b6b'; x.fillText('약한 칩: 누설·방전', x0 + 80, B - 80);
+    x.strokeStyle = '#fff'; x.lineWidth = 1.5; x.beginPath(); x.moveTo(L + p * (R - L), T0); x.lineTo(L + p * (R - L), B); x.stroke();
+    msg = '정격보다 높은 전압을 짧게 걸어 절연이 약한 칩을 거름 (곡선은 정성적)';
+  } else if (s === 9) {
+    const cx = 150, cy = 125, r = 90;
+    x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 2; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.stroke();
+    const st = [[195, '공급', '#9db0c2'], [255, 'C', '#3d8bff'], [285, 'IR', '#4fd18b'], [330, '불량 배출', '#ff6b6b'], [60, '빈 포켓 센서', '#ffc23d'], [90, '삽입 → 테이프', '#ffb547']];
+    for (const [d, n2, c] of st) {
+      const a = d * DEG, px = cx + r * Math.cos(a), py = cy + r * Math.sin(a);
+      x.fillStyle = c; x.beginPath(); x.arc(px, py, 7, 0, 7); x.fill();
+      x.fillText(n2, px + (Math.cos(a) > 0 ? 12 : -12 - x.measureText(n2).width), py + (Math.sin(a) > 0 ? 16 : -6));
+    }
+    const ma = (195 + mod(t * 40, 255)) * DEG; chip2d(x, cx + r * Math.cos(ma), cy + r * Math.sin(ma), 22, 10, ma);
+    const L = 330, T0 = 30, R = 585, B = 200;
+    axes(x, L, T0, R, B, 't (log)', 'I');
+    x.strokeStyle = '#4fd18b'; x.lineWidth = 2; x.beginPath();
+    for (let i = 0; i <= 80; i++) { const u = i / 80, xx = L + u * (R - L), yy = T0 + 10 + (B - T0 - 20) * (1 - Math.exp(-u * 4)); i ? x.lineTo(xx, yy) : x.moveTo(xx, yy); }
+    x.stroke();
+    x.fillStyle = 'rgba(79,209,139,.18)'; x.fillRect(L + 4, T0, 46, B - T0); x.fillStyle = '#4fd18b'; x.fillText('1–10 ms', L + 4, B - 6);
+    x.setLineDash([5, 4]); x.strokeStyle = '#ffb547'; x.beginPath(); x.moveTo(L + 50, B - 60); x.lineTo(R - 10, B - 12); x.stroke(); x.setLineDash([]);
+    x.fillStyle = '#ffb547'; x.fillText('→ 약 60 s 값 예측', R - 140, B - 24);
+    msg = '턴테이블 위 재측정: 초기 충전 전류로 IR을 예측해 시간 단축 (특허 예, 곡선은 정성적)';
+  } else if (s === 7) {
+    x.fillStyle = '#3a4048'; x.fillRect(60, 40, 260, 26); x.fillStyle = '#20252b'; x.fillRect(160, 40, 60, 26);
+    x.fillStyle = '#9db0c2'; x.fillText('턴테이블 포켓', 60, 32);
+    const k = clamp01((p * 3) % 1 * 1.6 - 0.2), cy = 53 + k * 95;
+    chip2d(x, 190, cy, 48, 18);
+    arrow(x, 190, 22 + k * 30, Math.PI / 2, 26, '#8fd0ff'); x.fillStyle = '#8fd0ff'; x.fillText('공기', 205, 20);
+    x.fillStyle = '#e6dcc6'; x.fillRect(40, 150, 300, 14); x.fillStyle = '#9a8f78'; x.fillRect(160, 150, 60, 14);
+    x.fillStyle = '#e6dcc6'; x.fillRect(40, 164, 120, 20); x.fillRect(220, 164, 120, 20);
+    x.fillStyle = '#24282c'; x.fillRect(165, 164, 50, 4);
+    x.fillStyle = '#9db0c2'; x.fillText('캐리어 테이프 포켓', 40, 205);
+    x.fillStyle = '#e6dcc6'; x.fillRect(380, 70, 200, 40);
+    for (let i = 0; i < 5; i++) { x.fillStyle = '#5b5446'; x.beginPath(); x.arc(395 + i * 40, 78, 4, 0, 7); x.fill(); x.fillStyle = '#9a8f78'; x.fillRect(388 + i * 40, 88, 16, 18); }
+    x.fillStyle = '#9db0c2'; x.fillText('이송 구멍 · 포켓 (평면)', 380, 60);
+    x.fillStyle = '#ffc23d'; x.fillText('턴테이블 포켓이 비면 테이프 정지', 380, 150); x.fillStyle = '#9db0c2'; x.fillText('→ 빈 포켓 없음', 380, 172);
+    msg = '턴테이블과 테이프가 함께 멈춘 동안 공기로 칩을 포켓에 밀어 넣음 (모식도)';
+  } else if (s === 10) {
+    const ph = Math.floor(t / 1.5) % 3, names = ['정상', '기울어짐', '빈 포켓'], cols = ['#4fd18b', '#ff6b6b', '#ff6b6b'];
+    for (let i = 0; i < 3; i++) {
+      const bx = 30 + i * 190, by = 40;
+      x.fillStyle = '#20303c'; x.fillRect(bx, by, 160, 150);
+      x.fillStyle = '#9a8f78'; x.fillRect(bx + 45, by + 25, 70, 100);
+      if (i === 0) chip2d(x, bx + 80, by + 75, 30, 76, 0);
+      if (i === 1) chip2d(x, bx + 80, by + 75, 30, 76, 0.45);
+      x.strokeStyle = ph === i ? cols[i] : 'rgba(255,255,255,.25)'; x.lineWidth = ph === i ? 3 : 1; x.strokeRect(bx, by, 160, 150);
+      x.fillStyle = ph === i ? cols[i] : '#9db0c2'; x.fillText(`${names[i]} → ${i ? 'NG' : 'OK'}`, bx + 8, by + 172);
+    }
+    x.fillStyle = '#9db0c2'; x.fillText('포켓 위 카메라 화면 (커버 테이프 전)', 30, 26);
+    msg = '포켓마다 칩 유무·자세 확인, 회전 허용 예 ≤20° [kemet-pack] (그림은 모식)';
+  } else if (s === 11) {
+    const cx = 300, top = 120;
+    x.fillStyle = '#e6dcc6'; x.fillRect(cx - 220, top, 440, 18); x.fillRect(cx - 220, top + 18, 150, 40); x.fillRect(cx + 70, top + 18, 150, 40);
+    x.fillStyle = '#24282c'; x.fillRect(cx - 70, top + 18, 140, 40); chip2d(x, cx, top + 30, 100, 26);
+    x.fillStyle = 'rgba(200,226,242,.75)'; x.fillRect(cx - 190, top - 6, 380, 6);
+    const dn = clamp01(Math.sin(t * 3) * 1.4);
+    for (const sx of [-150, 150]) {
+      const yy = top - 70 + dn * 58;
+      x.fillStyle = dn > 0.9 ? '#ff7a3a' : '#8a6a4c'; x.fillRect(cx + sx - 22, yy, 44, 16);
+      x.fillStyle = '#5a6068'; x.fillRect(cx + sx - 30, yy - 30, 60, 30);
+      if (dn > 0.9) { x.fillStyle = 'rgba(255,122,58,.5)'; x.fillRect(cx + sx - 20, top - 8, 40, 4); }
+    }
+    x.fillStyle = '#9db0c2'; x.fillText('실링 슈 (양쪽 가장자리)', cx - 80, 30);
+    x.fillText('커버 테이프', cx + 200, top - 10); x.fillText('캐리어 테이프 단면', cx - 220, top + 80);
+    x.fillStyle = '#ffb547'; x.fillText('열 활성형: 전면 접착층 · 감압형: 가장자리 두 줄', 20, 238);
+    msg = '테이프가 멈춘 동안 가열한 실링 슈가 양쪽 가장자리를 눌러 커버 테이프를 붙임 (모식도)';
+  } else if (s === 13) {
+    const y0 = 150, xf = 300 - ((t * 20) % 120);
+    x.fillStyle = '#e6dcc6'; x.fillRect(40, y0, 520, 22);
+    for (let i = 0; i < 9; i++) { x.fillStyle = '#9a8f78'; x.fillRect(60 + i * 56, y0 + 4, 26, 14); }
+    x.fillStyle = 'rgba(200,226,242,.85)'; x.fillRect(xf, y0 - 5, 560 - xf, 5);
+    x.strokeStyle = 'rgba(200,226,242,.95)'; x.lineWidth = 5; x.beginPath(); x.moveTo(xf, y0 - 3); x.quadraticCurveTo(xf - 22, y0 - 12, xf, y0 - 24); x.lineTo(560, y0 - 30); x.stroke(); x.lineWidth = 1;
+    arrow(x, 520, y0 - 52, 0, 60, '#ffb547'); x.fillStyle = '#ffb547'; x.fillText('당김 165–180°, 300 mm/min', 330, y0 - 64);
+    arrow(x, 160, y0 + 48, Math.PI, 70, '#8fd0ff'); x.fillStyle = '#8fd0ff'; x.fillText('캐리어 테이프', 200, y0 + 54);
+    x.fillStyle = '#e9eef3'; x.fillText('박리 지점', xf - 40, y0 + 42);
+    x.fillStyle = '#9db0c2'; x.fillText('8 mm: 0.1–1.0 N · 12 mm: 0.1–1.3 N [kemet-pack]', 40, 40);
+    msg = '커버 테이프를 테이프 면에서 165–180°로 당기며 힘 기록 (모식도)';
+  } else if (s === 14) {
+    const cx = 170, cy = 125;
+    x.fillStyle = '#2f6fd6'; x.beginPath(); x.arc(cx, cy, 100, 0, 7); x.fill();
+    x.fillStyle = '#24282c'; for (let k = 0; k < 3; k++) { const a = k / 3 * FULL + t * 0.2; x.beginPath(); x.arc(cx, cy, 80, a + 0.25, a + 1.75); x.arc(cx, cy, 36, a + 1.75, a + 0.25, true); x.fill(); }
+    x.fillStyle = '#e6dcc6'; x.beginPath(); x.arc(cx, cy, 30, 0, 7); x.fill();
+    x.fillStyle = '#fafafa'; x.fillRect(cx + 26, cy - 70, 62, 38);
+    x.fillStyle = '#111'; for (let i = 0; i < 18; i++) x.fillRect(cx + 30 + i * 3, cy - 66, i % 3 ? 1.5 : 2.5, 18);
+    x.fillStyle = '#e9eef3'; x.fillText('바코드 라벨', cx + 100, cy - 50);
+    x.fillStyle = '#9db0c2'; x.fillText('릴 앞면 (이송 구멍 반대쪽)', 40, 24);
+    x.fillStyle = '#b98b56'; x.fillRect(360, 90, 200, 120); x.fillStyle = '#c9a46b'; x.fillRect(360, 140, 200, 12);
+    x.fillStyle = '#9db0c2'; x.fillText('상자 포장 (g)', 410, 80);
+    msg = '바코드 라벨은 이송 구멍 반대쪽 릴 면에, EIA-556 [kemet-pack] (모식도)';
+  } else {
+    const paper = Math.floor(t / 4) % 2 === 0;
+    const L = 20, R = 580, ty = 30, th = 70, pitch = 70, off = (t * 40) % pitch;
+    x.fillStyle = paper ? '#e6dcc6' : '#3a3f45'; x.fillRect(L, ty, R - L, th);
+    for (let k = -1; k < 9; k++) {
+      const px = L + k * pitch + off;
+      if (px < L - 10 || px > R - 30) continue;
+      x.fillStyle = '#24282c'; x.beginPath(); x.arc(px + 35, ty + 10, 5, 0, 7); x.fill();
+      x.fillStyle = paper ? '#9a8f78' : '#20252b'; x.fillRect(px + 18, ty + 24, 34, 40);
+      chip2d(x, px + 35, ty + 44, 30, 16, Math.PI / 2);
+    }
+    x.fillStyle = 'rgba(234,244,251,.35)'; x.fillRect(L + (R - L) * 0.45, ty + 20, (R - L) * 0.55, 48);
+    x.fillStyle = '#e9eef3'; x.fillText('커버 테이프 →', L + (R - L) * 0.47, ty + th + 18);
+    const cy = 175;
+    if (paper) {
+      x.fillStyle = '#e6dcc6'; x.fillRect(120, cy - 20, 360, 40); x.fillStyle = '#24282c'; x.fillRect(270, cy - 20, 60, 32);
+      chip2d(x, 300, cy - 4, 46, 22); x.fillStyle = '#c9e2f2'; x.fillRect(120, cy - 24, 360, 4);
+      x.fillStyle = '#9db0c2'; x.fillText('종이 테이프 단면: EIA 0603 이하·얇은 칩', 140, 238);
+    } else {
+      x.fillStyle = '#3a3f45'; x.fillRect(120, cy - 22, 150, 6); x.fillRect(330, cy - 22, 150, 6);
+      x.fillRect(264, cy - 22, 6, 48); x.fillRect(330, cy - 22, 6, 48); x.fillRect(264, cy + 20, 72, 6);
+      chip2d(x, 300, cy + 4, 50, 28); x.fillStyle = '#c9e2f2'; x.fillRect(120, cy - 26, 360, 4);
+      x.fillStyle = '#9db0c2'; x.fillText('엠보스 테이프 단면: 두껍거나 큰 칩', 150, 238);
+    }
+    msg = '실링된 테이프를 릴에 권취: 종이 / 엠보스 테이프 단면 (8 mm, EIA-481)';
+  }
+  const cap = document.getElementById('microCap'); if (cap) cap.textContent = `${msg} · 모식도, 축척 없음`;
+}
+
+/* ------------------------------ literature chart ------------------------------ */
+function hbar(x, rows, max, ticks, unit) {
+  const L = 190, R = 580, top = 18, rh = (200 - 44) / rows.length;
+  const X = (v) => L + v / max * (R - L);
+  x.font = '14px system-ui';
+  rows.forEach((r, i) => {
+    const y = top + i * rh, bh = rh * 0.56;
+    x.fillStyle = '#d5dde5'; x.textAlign = 'right'; x.fillText(r.l, L - 8, y + bh * 0.8); x.textAlign = 'left';
+    if (r.dash) { x.setLineDash([5, 4]); x.strokeStyle = '#ffb547'; x.lineWidth = 1.5; x.strokeRect(X(0), y, X(r.v) - X(0), bh); x.setLineDash([]); }
+    else if (r.lo !== undefined) {
+      x.fillStyle = 'rgba(255,181,71,.35)'; x.fillRect(X(0), y, X(r.v) - X(0), bh);
+      x.fillStyle = '#ffb547'; x.fillRect(X(r.lo), y, X(r.v) - X(r.lo), bh);
+      if (r.mark) { x.fillStyle = '#fff'; x.fillRect(X(r.lo) - 1.5, y - 3, 3, bh + 6); }
+    } else { x.fillStyle = '#ffb547'; x.fillRect(X(0), y, X(r.v) - X(0), bh); }
+    x.fillStyle = '#e9eef3'; x.fillText(r.t, Math.min(X(r.v) + 6, R - 60), y + bh * 0.8);
+  });
+  x.strokeStyle = 'rgba(255,255,255,.25)'; x.beginPath(); x.moveTo(L, 176); x.lineTo(R, 176); x.stroke();
+  x.fillStyle = '#9db0c2'; x.font = '13px system-ui'; x.textAlign = 'center';
+  for (const v of ticks) { x.fillRect(X(v), 174, 1, 5); x.fillText(v.toLocaleString('en-US'), X(v), 194); }
+  x.textAlign = 'right'; x.fillText(unit, L - 8, 194); x.textAlign = 'left';
+}
+function drawLit(s) {
+  const cv = document.getElementById('lit'); if (!cv) return;
+  const x = cv.getContext('2d');
+  x.clearRect(0, 0, cv.width, cv.height);
+  const k = litOf(s);
+  if (k === 0) hbar(x, [
+    { l: '핸들러 사양 0603–1210', v: 16666, t: '16,666' },
+    { l: 'Murata 사내 측정', v: 10000, t: '> 10,000' },
+    { l: '핸들러 ~0201 (미확인)', v: 20000, t: '20,000', dash: true },
+  ], 20000, [0, 5000, 10000, 15000, 20000], '개/분');
+  else if (k === 1) hbar(x, [
+    { l: 'NEPP Level 1', v: 168, t: '168 h' }, { l: 'NEPP Level 2', v: 96, t: '96 h' }, { l: 'NEPP Level 3', v: 48, t: '48 h' },
+    { l: 'M55681 (@T_max)', v: 100, t: '100 h' }, { l: 'M123 · M32535', v: 264, lo: 168, t: '168–264 h' },
+  ], 300, [0, 50, 100, 150, 200, 250, 300], 'h');
+  else if (k === 3) hbar(x, [
+    { l: '6면 외관 검사기', v: 12000, t: '12,000' },
+    { l: '측정·테이핑기', v: 5000, t: '5,000' },
+    { l: '휠 외관 검사 (특허)', v: 1167, t: '≥ 1,167' },
+    { l: '검사 테이핑기 (SMD)', v: 500, t: '500' },
+    { l: '테이핑기 @1005 (미확인)', v: 1300, t: '1,300', dash: true },
+  ], 12000, [0, 3000, 6000, 9000, 12000], '개/분');
+  else if (k === 4) hbar(x, [
+    { l: '8 mm 테이프', v: 1.0, lo: 0.1, t: '0.1–1.0 N' },
+    { l: '12 mm 테이프', v: 1.3, lo: 0.1, t: '0.1–1.3 N' },
+    { l: '24 mm (미확인)', v: 1.6, t: '0.1–1.6 N', dash: true },
+    { l: '부품사 예 (미확인)', v: 0.6, t: '0.1–0.6 N', dash: true },
+  ], 1.8, [0, 0.5, 1, 1.5], 'N');
+  else hbar(x, [
+    { l: '01005', v: 30000, lo: 20000, t: '20,000 / 30,000', mark: true },
+    { l: '0201', v: 15000, t: '15,000' }, { l: '0402', v: 10000, t: '10,000' },
+    { l: '0603', v: 10000, lo: 4000, t: '4,000 / 10,000', mark: true },
+    { l: '0805', v: 10000, lo: 4000, t: '4,000 / 10,000', mark: true },
+  ], 30000, [0, 10000, 20000, 30000], '개/릴');
+}
+
+/* ------------------------------ loop ------------------------------ */
+const clock = new THREE.Clock();
+let infoTick = 0;
+function frame() {
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const sdt = playing ? dt * speed : 0;
+  simT += sdt;
+  const total = simT / STAGE_DUR;
+  const k = Math.floor(total) % SEQ.length, p = total - Math.floor(total), t = simT;
+  const s = SEQ[k].i;
+  if (k !== lastK) {
+    lastK = curK = k; lastStage = s;
+    seqBtns.forEach((b, n) => b.classList.toggle('active', n === k));
+    { // keep the active step visible in the list (horizontal on phones, scrolling panel on short screens)
+      const btn = seqBtns[k], list = document.getElementById('stages'), panel = document.getElementById('left');
+      if (btn) {
+        const br = btn.getBoundingClientRect();
+        if (list.scrollWidth > list.clientWidth + 2) { const lr = list.getBoundingClientRect(); list.scrollTo({ left: list.scrollLeft + br.left - lr.left - (list.clientWidth - br.width) / 2, behavior: 'smooth' }); }
+        if (panel.scrollHeight > panel.clientHeight + 2) { const pr = panel.getBoundingClientRect(); if (br.top < pr.top || br.bottom > pr.bottom) panel.scrollTo({ top: panel.scrollTop + br.top - pr.top - (panel.clientHeight - br.height) / 2, behavior: 'smooth' }); }
+      }
+    }
+    stageTags.forEach((el, i) => el.classList.toggle('active', i === s));
+    SUBS.forEach((q) => q.el.classList.toggle('show', q.s === s));
+    renderInfo(k);
+    drawLit(s);
+    if (autoTour) flyTo(s);
+  }
+  seqBtns.forEach((b, n) => { b.querySelector('.bar').style.width = n === k ? `${p * 100}%` : '0'; });
+
+  for (const r of rotors) {
+    const target = r.run.includes(s) ? r.w : r.w * 0.06;
+    r.cur += (target - r.cur) * Math.min(1, dt * 1.5);
+    r.obj.rotation[r.axis] += r.cur * sdt;
+  }
+  for (const u of updaters) u(sdt, s, p, t);
+
+  if (tween) {
+    tween.k = Math.min(1, tween.k + dt / 2.2);
+    const e = sm(tween.k);
+    camera.position.lerpVectors(tween.p0, tween.p1, e);
+    controls.target.lerpVectors(tween.t0, tween.t1, e);
+    if (tween.k >= 1) tween = null;
+  }
+  infoTick += dt;
+  if (infoTick > 1 / 30) { infoTick = 0; drawMicro(s, p, t); }
+
+  controls.update();
+  renderer.render(scene, camera);
+  labelRenderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight); labelRenderer.setSize(window.innerWidth, window.innerHeight);
+});
+document.getElementById('loading').remove();
+frame();
+</script>
+</body>
+</html>

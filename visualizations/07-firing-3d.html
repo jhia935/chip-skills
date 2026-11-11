@@ -1,0 +1,1760 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MLCC 소성 공정 3D</title>
+<style>
+  :root {
+    --panel: rgba(15, 20, 27, 0.80);
+    --panel-line: rgba(255, 255, 255, 0.12);
+    --text: #e9eef3;
+    --muted: #9db0c2;
+    --accent: #ffb547;
+    --accent-ink: #1d1406;
+    --g: #8fd0ff;
+  }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #1b2229; color: var(--text);
+    font-family: system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; }
+  #scene { position: fixed; inset: 0; }
+  #scene canvas { display: block; }
+  .labels { position: absolute; inset: 0; pointer-events: none; }
+  .tag { pointer-events: auto; cursor: pointer; transform: translateY(-6px);
+    background: rgba(14, 18, 24, 0.84); color: var(--text); border: 1px solid rgba(255,255,255,.2);
+    border-radius: 999px; padding: 4px 10px; font-size: 12px; white-space: nowrap; transition: background .25s, color .25s; }
+  .tag b { color: var(--accent); margin-right: 4px; }
+  .tag.active { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .tag.active b { color: var(--accent-ink); }
+  .sub { pointer-events: none; font-size: 11px; padding: 2px 8px; border-radius: 6px;
+    background: rgba(255,255,255,.88); color: #1d242c; opacity: 0; transition: opacity .3s; white-space: nowrap; }
+  .sub.show { opacity: 1; }
+  .panel { position: fixed; background: var(--panel); border: 1px solid var(--panel-line); border-radius: 12px;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  #left { top: 16px; left: 16px; width: 268px; padding: 14px 14px 12px; }
+  #left h1 { font-size: 15px; margin: 0 0 2px; letter-spacing: -.01em; }
+  #left .sub-h { font-size: 11.5px; color: var(--muted); margin: 0 0 10px; }
+  #stages { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+  #stages button { width: 100%; text-align: left; background: transparent; color: var(--text); border: 0;
+    border-radius: 8px; padding: 6px 8px; font: inherit; font-size: 13px; cursor: pointer; display: flex; gap: 8px; align-items: center; }
+  #stages button:hover { background: rgba(255,255,255,.07); }
+  #stages button.active { background: rgba(255,181,71,.16); color: #fff; }
+  #stages .n { width: 20px; height: 20px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 11px;
+    background: rgba(255,255,255,.1); flex: none; }
+  #stages button.active .n { background: var(--accent); color: var(--accent-ink); }
+  #stages .bar { height: 2px; background: var(--accent); width: 0; border-radius: 2px; margin-top: 2px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; align-items: center; }
+  .controls button, .controls select { background: rgba(255,255,255,.08); color: var(--text); border: 1px solid var(--panel-line);
+    border-radius: 8px; padding: 5px 9px; font: inherit; font-size: 12px; cursor: pointer; }
+  .controls label { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 4px; cursor: pointer; }
+  #info { right: 16px; bottom: 16px; width: 390px; max-height: calc(100vh - 32px); overflow: auto; padding: 16px; box-sizing: border-box; }
+  #info .head { display: flex; justify-content: space-between; align-items: start; gap: 8px; }
+  #info .fold { background: rgba(255,255,255,.08); color: var(--text); border: 1px solid var(--panel-line); border-radius: 8px; padding: 3px 8px; font: inherit; font-size: 11.5px; cursor: pointer; flex: none; }
+  #info.collapsed .body { display: none; }
+  #info.collapsed h2 { margin-bottom: 0; }
+  #info .kicker { font-size: 11px; color: var(--accent); letter-spacing: .06em; text-transform: uppercase; }
+  #info h2 { font-size: 18px; margin: 2px 0 6px; }
+  #info p { font-size: 13px; line-height: 1.55; color: #d5dde5; margin: 0 0 10px; }
+  #info h3 { font-size: 11.5px; color: var(--muted); margin: 12px 0 5px; font-weight: 600; letter-spacing: .03em; }
+  #info ul { margin: 0; padding-left: 16px; font-size: 12.5px; line-height: 1.55; }
+  #info li { margin-bottom: 2px; }
+  #info code { font-size: 11px; color: var(--g); }
+  #info .warn { font-size: 12px; line-height: 1.5; color: #ffd9a0; background: rgba(255,181,71,.10); border-left: 3px solid var(--accent); padding: 6px 8px; border-radius: 4px; margin-top: 8px; }
+  .g { color: #ffcf8a; font-size: 11px; }
+  .canvas-wrap { margin-top: 8px; background: rgba(0,0,0,.25); border-radius: 8px; padding: 6px; }
+  .canvas-wrap canvas { width: 100%; display: block; }
+  .cap { font-size: 10.5px; color: var(--muted); margin-top: 3px; }
+  .foot { font-size: 10.5px; color: var(--muted); margin-top: 12px; line-height: 1.5; border-top: 1px solid var(--panel-line); padding-top: 8px; }
+  /* process-flow branches */
+  #left { max-height: calc(100vh - 32px); overflow: auto; box-sizing: border-box; }
+  #stages li.fork { display: grid; gap: 3px; margin: 3px 0; padding: 6px 6px 6px 7px;
+    border: 1px dashed rgba(255,255,255,.2); border-radius: 10px; }
+  #stages .fork-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; flex-wrap: wrap; padding: 0 2px 2px; }
+  #stages .fk { font-size: 11.5px; color: var(--muted); font-weight: 600; }
+  #stages .seg { display: inline-flex; background: rgba(255,255,255,.07); border-radius: 999px; padding: 2px; gap: 2px; }
+  #stages .seg button { width: auto; display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 11.5px; color: var(--muted); }
+  #stages .seg button[aria-checked="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  #stages .opt { display: grid; gap: 2px; padding-left: 7px; border-left: 2px solid rgba(255,255,255,.14); }
+  #stages .opt.on { border-left-color: var(--accent); }
+  #stages .opt-label { font-size: 10.5px; color: var(--muted); padding: 1px 0 0 2px; }
+  #stages .opt.off > button { opacity: .45; }
+  #stages .opt.off .n { background: transparent; border: 1px dashed rgba(255,255,255,.3); }
+  #stages .skip { font-size: 11.5px; line-height: 1.45; color: var(--muted); padding: 3px 8px 4px; }
+  #stages .mk { font-size: 10.5px; color: var(--muted); margin-left: 5px; white-space: nowrap; }
+  .tag.off { opacity: .35; }
+  @media (max-width: 820px) {
+    #left { max-height: none; overflow: visible; }
+    #stages li.fork { display: flex; align-items: center; gap: 4px; padding: 3px 5px; margin: 0; }
+    #stages .fork-head { padding: 0; }
+    #stages .fk { display: none; }
+    #stages .opt { display: flex; gap: 4px; border-left: 0; padding-left: 0; }
+    #stages .opt.off, #stages .opt-label { display: none; }
+    #stages .skip { white-space: nowrap; padding: 0 4px; font-size: 11px; max-width: 46vw; overflow: hidden; text-overflow: ellipsis; }
+  }
+  #loading { position: fixed; inset: 0; display: grid; place-items: center; font-size: 14px; color: var(--muted); }
+  @media (max-width: 820px) {
+    #left { left: 8px; right: 8px; top: 8px; width: auto; padding: 10px; }
+    #left .sub-h { display: none; }
+    #stages { display: flex; overflow-x: auto; gap: 4px; }
+    #stages li { flex: none; }
+    #stages button { white-space: nowrap; padding: 5px 8px; }
+    #info { left: 8px; right: 8px; bottom: 8px; width: auto; max-height: 40vh; }
+  }
+</style>
+</head>
+<body>
+<div id="scene"></div>
+<div id="loading">3D 설비 모형을 불러오는 중…</div>
+
+<div id="left" class="panel">
+  <h1>MLCC 탈바인더 · 소성 · 재산화</h1>
+  <p class="sub-h">칩 적재·세터 적층 → 1·2차 탈바인더 → 연속 킬른 소성·재산화 → 하역. 설비 3D 모형 · 2차 탈바인더·킬른 반송·재산화 설비는 선택 경로</p>
+  <ol id="stages"></ol>
+  <div class="controls">
+    <button id="play">❚❚ 일시정지</button>
+    <select id="speed" aria-label="재생 속도">
+      <option value="0.5">0.5×</option>
+      <option value="1" selected>1×</option>
+      <option value="2">2×</option>
+    </select>
+    <button id="overview">전체 보기</button>
+    <label><input type="checkbox" id="tour" checked> 카메라 따라가기</label>
+    <label><input type="checkbox" id="cut" checked> 단면 보기</label>
+  </div>
+</div>
+
+<div id="info" class="panel"></div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+/* ------------------------------------------------------------------
+   Stage data. Two kinds of source keys:
+   - wiki page names: wiki/concepts/binder-burnout-debinding.md, sintering-profile-mlcc.md,
+     bme-sintering-atmosphere.md, re-oxidation-anneal.md, mlcc-manufacturing-process.md,
+     wiki/queries/mlcc-process-substeps-and-equipment.md (§8–10);
+   - raw-note keys from resources/manufacturing/eq-07-firing.md (patents, vendor pages, papers).
+   (g) = general industry practice with no source found.
+------------------------------------------------------------------- */
+const K = (k) => `<code>[${k}]</code>`;
+const BB = K('binder-burnout-debinding'), SP = K('sintering-profile-mlcc'), AT = K('bme-sintering-atmosphere'),
+      RO = K('re-oxidation-anneal'), MP = K('mlcc-manufacturing-process'), QE = K('mlcc-process-substeps-and-equipment');
+const HL = K('hengli-3dincites-2026'), MH = K('murata-ht-web'), LR = K('lee-2013-rhk-kais'), RB = K('us12729914-bg'),
+      KE = K('us6185087'), SE = K('us12374492'), U83 = K('us8953300'), MY = K('us6461156'), TS = K('jp2005170769'),
+      TP = K('jp5742293'), FG = K('us12623968'), JS = K('jps6129114'), KP = K('krosaki-platect-int'),
+      NP = K('noritake-pusher-web'), NR = K('noritake-rhk-web'), BT = K('btu-carts-2001'), WR = K('weirong-2025'),
+      JC = K('jiang-2025-ep'), HO = K('horiba-cc-web'), CS = K('csensotec-cc-web'), KA = K('kanthal-mlcc-web'),
+      OR = K('orist-debind-2021');
+const G = '<span class="g">(g)</span>', SN = '<span class="g">(snippet, 미검증)</span>';
+// NEVER reorder or delete entries: animation code keys on these indices. New stages are appended; order lives in FLOW.
+const STAGES = [
+  /* 0 */ { name: '세터에 칩 적재', en: 'Chip loading',
+    desc: `절단·분리된 그린 칩을 세터 위에 한 층으로 펼칩니다. 피더에서 나온 칩을 분배 헤드가 세터 위를 오가며 흩뿌립니다 ${G}. 칩에 점착제가 남아 있으면 정렬할 때 서로 붙기 쉽습니다 ${JS}. 세터 위 배치가 생산성과 불량·산포를 좌우합니다 ${MH}. 이 시점의 칩에는 바인더·가소제 같은 유기물이 그대로 남아 있습니다.`,
+    equip: [`세터: 지르코니아 판, 또는 알루미나·멀라이트 기재에 지르코니아 용사 ${MY} ${KP}`, `칩 피더(호퍼 + 진동 볼) · X-Y 분배 헤드 ${G}`,
+      `제품을 정해진 위치로 옮기는 자동 반송 ${MH}`, `이형 분말(Al₂O₃·ZrO₂) 살포: 소성 치구 일반 관행, MLCC 자료는 못 찾음 ${FG}`],
+    params: [`그린 테이프 유기물 ≈ 8–10 wt%로 관리 ${BB}`, `표준 레시피 예: PVB 4.73 wt% + 가소제 4.47 wt% (Heunisch 2010) ${BB}`,
+      `지르코니아는 세라믹 커패시터와 잘 반응하지 않음. 단 무겁고 깨지기 쉬움 ${KP}`,
+      `세터 한 장에 많이 담을수록 온도·분위기 균일성이 나빠짐 ${MY}`, `한 번의 열처리에 수백만 개를 넣고 산포를 줄인다는 설명 ${MH}`] },
+  /* 1 */ { name: '1차 탈바인더 (배치로)', en: 'Binder burnout · 1st',
+    desc: `낮은 온도에서 천천히 바인더 대부분을 태워 없앱니다. 박스형 배치로에 카트째 넣고 문을 닫은 뒤 승온합니다 ${HL}. Ni 내부전극이 산화되지 않을 만큼만 산소를 둡니다. 분해 가스는 배기 쪽 수랭 타르 트랩을 거쳐 연소기에서 산화 처리됩니다 (일반 세라믹 탈지로 구성) ${OR}. 가스가 확산보다 빨리 나오면 부풂·크랙이 생깁니다.`,
+    equip: [`박스형 배치로: 스테인리스 챔버, 자동 압력 제어 ${HL}`, `순환 팬 · 측벽 히터 ${G}`,
+      `분위기 가스: N₂ · H₂ · 수증기 ${HL} / Ar + 1 vol% O₂ ${BB} / 공기 ${KE}`,
+      `배기 → 수랭 타르 트랩 → 배기가스 연소기 (MLCC 전용 자료 아님) ${OR}`, `제어반 HMI ${G}`],
+    params: [`→200 °C 1–3 °C/min · 200→400 °C 0.5–1 °C/min (위험 구간) · 400→600 °C 1–3 °C/min ${BB}`,
+      `특허 일반 조건: 공기, 승온 5–300 °C/h, 200–400 °C에서 0.5–24 h 유지 (예: 10 °C/h → 280 °C) ${KE}`,
+      `예: 공기 중 230 °C × 60 h ${U83}`,
+      `Ar + 1 vol% O₂ (PO₂ ~10⁻⁴ atm): 바인더 74 % 제거, Ni 표면 O 흡수 ~1600 ppm ${BB} ${AT}`,
+      `PVB 분해 피크 ~300–450 °C, E<sub>a</sub> ≈ 150–250 kJ/mol ${BB}`,
+      `가스 교환↑ · 승온 속도↓ · 유지 시간↑ → 잔류 탄소↓, 전극 연속성↑ ${JC}`,
+      `구간 총 2–4 h · 탈바인더 수축 1–3 % ${BB}`,
+      `불량: 부풂, 판상 크랙, 박리, 블랙 코어(잔류 C), NiO 스케일 ${BB}`],
+    warn: `문헌마다 분위기와 속도가 다릅니다: 공기 ${KE} ${U83}, Ar + 1 vol% O₂ ${BB}, N₂·H₂·수증기 ${HL}. 승온도 위키는 0.5–3 °C/min(30–180 °C/h), 특허 예는 10 °C/h입니다. 한쪽으로 고치지 않고 모두 적었습니다.` },
+  /* 2 */ { name: '예열 · 분위기 전환', en: 'Pre-sinter zone',
+    desc: '킬른 입구 쪽 예열 존입니다. 세터 묶음이 한 칸씩(푸셔) 또는 연속으로(롤러) 들어가며, 분위기가 약산화에서 N₂/H₂ 환원으로 바뀝니다. 칩 크기는 아직 거의 변하지 않습니다.',
+    equip: [`연속 킬른 예열 존 ${QE}`, `존별 가스 인렛으로 구간마다 분위기 혼합 ${HL}`, `발열체·내화 단열 라이닝 ${G}`, `입·출구 가스 커튼 ${G}`],
+    params: [`600 → 1100 °C, 10–30 °C/min, N₂/H₂로 전환 ${SP}`, `PO₂ ~10⁻⁸ → 10⁻¹⁰ atm ${AT}`,
+      `25 → 950 °C 칩 선형수축 ~0 % (Ni는 450–950 °C에서 치밀화) ${SP}`,
+      `연속 운전이면 탈바인더 뒤 식히지 않고 분위기만 바꿔 소성 온도로 올림 ${KE}`] },
+  /* 3 */ { name: '피크 소성 (BME 동시소성)', en: 'Peak co-firing',
+    desc: 'BaTiO₃ 유전체와 Ni 전극을 환원 분위기에서 함께 치밀화합니다. 1000–1100 °C 부근의 (Ni,Ba,Ti) 액상 합금 구간을 빠르게 지나야 전극이 끊기지 않습니다. 칩은 여기서 약 12 % 줄어듭니다.',
+    equip: [`킬른 고온 존 ${QE}`, `MoSi₂ 발열체 (N₂ 중 1250 °C 이상용 등급, 천장 수평 설치) ${KA}`, `열전대 ${G}`],
+    params: [`1100 → 1250 °C, 30–60 °C/min (액상 합금 구간 고속 통과) ${SP}`,
+      `가열속도 200–3000 °C/h 비교, 1250 °C 피크에서 60 °C/min 최적 (Polotai 2007) ${SP}`,
+      `피크 1250 °C × 1–2 h, PO₂ ≈ 10⁻¹⁰–10⁻¹² atm ${SP}`,
+      `특허 예: 120 °C/h 승온, 1315 °C × 3 h, 가습 N₂/H₂, PO₂ 10⁻⁸ atm ${KE}`,
+      `특허 예: 0.1–0.5 % H₂ / N₂ (H₂O/H₂/N₂), 1150–1200 °C × 2 h ${SE}`,
+      `최신 조성의 치밀화 온도 1100–1250 °C (과거 1200–1350 °C) ${SP}`,
+      `선형수축: 950→1150 °C 6–7 % + 유지 30 min 5–6 % → 총 ~12 % (Yan 2013) ${SP}`,
+      `전체 사이클 6–18 h · 챔버당 ~10⁶ 칩/일 ${SP}`],
+    warn: `값 차이: ${SP}는 피크 1250 °C, ${AT}·${RO}는 소결 ~1300 °C 기준으로 PO₂ 창을 적습니다. 특허 예 승온 120 °C/h(2 °C/min)는 위키의 30–60 °C/min과 크게 다릅니다. 한쪽으로 고치지 않고 모두 표시했습니다.` },
+  /* 4 */ { name: '분위기 제어 (PO₂)', en: 'Atmosphere control',
+    desc: '피크 다음에 오는 별도 단계가 아니라, 예열·피크·서랭의 환원 존 전체에 걸쳐 함께 돌아가는 제어입니다. Ni는 금속으로 남기고 BaTiO₃는 과환원되지 않는 좁은 PO₂ 창을 지킵니다. N₂/H₂에 습윤기로 수증기를 섞어 H₂/H₂O 평형으로 PO₂를 맞추고, ZrO₂ 산소 센서와 이슬점 신호로 유량계(MFC)를 폐루프 제어합니다.',
+    equip: [`ZrO₂ 산소 센서 + 입구 가스 MFC + 수증기 주입 ${AT} ${QE}`, `자동 O₂ · 이슬점 제어, 존별 가스 혼합 ${HL}`,
+      `습윤기(wetter)로 N₂·혼합 가스 가습 ${KE}`, `H₂O 기화기 · 압력 모니터 · MFC ${HO}`, `로 안에서 sub-ppm O₂ 직접 측정 ${CS}`,
+      `H₂ 실린더 번들·N₂ 저장탱크 ${G}`, `제어반 HMI ${G}`],
+    params: [`1300 °C 기준 창: 하한 PO₂ > 10⁻¹² atm (BaTiO₃ 환원 방지), 상한 < 10⁻⁹ atm (Ni/NiO) ${AT}`,
+      `운전 설정 10⁻¹⁰–10⁻¹¹ atm ${AT}`, `고온 존 전체 ±0.1 decade 유지 (2020s 폐루프) ${AT}`,
+      `특허 범위: Ni 전극 소성 PO₂ 10⁻⁸–10⁻¹² atm ${KE}`,
+      `습윤기 물 온도 5–75 °C (예 35 °C) ${KE}`,
+      `O₂ 센서 EMF @850 °C: 680 mV (0.1 % H₂) – 760 mV (0.5 % H₂) ${SE}`,
+      `≥ 500층 고적층품은 PO₂ 이탈 시 국부 Ni 산화 또는 유전체 과환원 → IR 산포 ${AT}`] },
+  /* 5 */ { name: '서랭', en: 'Controlled cooldown',
+    desc: '피크에서 내려오는 구간입니다. 너무 빠르면 열충격이, 너무 느리면 생산성이 문제입니다. 정방정 상전이 도메인이 열충격 없이 생기도록 천천히 식힙니다.',
+    equip: [`킬른 서랭 존 ${QE}`, `존 분리 배플 ${G}`],
+    params: [`1250 → 1000 °C, 5–10 °C/min, 분위기 제어 유지 ${SP}`,
+      `특허 범위: 냉각 50–500 °C/h (선호 200–300, 예 120) ${KE}`,
+      `PO₂는 구배를 두며, 일부 문헌은 여기서 약간 올림 ("post-firing oxidation") ${AT}`] },
+  /* 6 */ { name: '재산화 어닐', en: 'Re-oxidation anneal',
+    desc: `환원 소성 중 생긴 산소 공공을 입계 근처에서 일부 메웁니다. Ni가 산화되지 않을 만큼만 PO₂를 올립니다. 킬른 안에서 이어서 할 때는 식히지 않고 어닐 온도로 내린 뒤 분위기만 바꿉니다 ${KE}. 이 단계에서 절연저항이 크게 좋아집니다.`,
+    equip: [`같은 킬른의 재산화 존 또는 별도 어닐로 ${QE} ${KE}`, `재산화 존 가스 인렛 ${G}`],
+    params: [`900–1100 °C × 1–2 h, PO₂ ≈ 10⁻⁸–10⁻⁹ atm ${SP} ${RO}`,
+      `특허: < 1100 °C (선호 500–1000), 6–10 h, PO₂ 10⁻⁵–10⁻⁴ atm, 습윤 N₂ (예 1000 °C × 6 h) ${KE}`,
+      `특허 예: 1000 °C × 3 h (범위 900–1100 °C, 2–4 h), N₂ ${SE}`,
+      `시간은 유전체 두께·입경에 따라 수 분–수 시간 (O 확산 길이 제한) ${RO}`,
+      `IR 1–3 자릿수 향상 (소성만 한 칩 대비) ${RO}`,
+      `과산화 → Ni 전극 산화·ESR 상승 / 과소 → IR 산포 ${RO} ${MP}`,
+      `CaZrO₃계 Class I BME는 "필수가 아닌 보정" 단계 ${RO}`],
+    warn: `재산화 PO₂가 위키는 10⁻⁸–10⁻⁹ atm, 특허 ${KE}는 10⁻⁵–10⁻⁴ atm입니다. 둘 다 표시했습니다.` },
+  /* 7 */ { name: '냉각', en: 'Final cooling',
+    desc: '출구 쪽 냉각 존에서 상온 가까이 식힙니다. 600 °C 아래는 분위기가 중요하지 않습니다. 수랭 자켓과 팬으로 열을 뺍니다.',
+    equip: [`킬른 냉각 존 ${QE}`, `수랭 자켓 · 냉각 팬 ${G}`],
+    params: [`1000 → 25 °C, 5 °C/min ${SP}`, `특허 예: 냉각 120 °C/h ${KE}`, `< 600 °C: PO₂ 비임계 ${AT}`] },
+  /* 8 */ { name: '세터 다단 적층', en: 'Setter stacking',
+    desc: '칩을 담은 세터를 기둥(스페이서)으로 띄워 여러 단으로 쌓습니다. 단 사이 틈으로 바인더 가스가 빠지고 분위기 가스가 들어갑니다. 압전 부품 특허 예에서는 같은 재질의 지르코니아 기둥을 쓰고 맨 위에 빈 세터를 덮습니다. 쌓은 묶음은 탈바인더로에 들어갈 카트에 실립니다.',
+    equip: [`트레이형 세터를 겹쳐 쌓아 한 번에 대량 소성 ${MY}`, `세터와 같은 재질의 기둥 스페이서, 맨 위 빈 세터 (압전 부품 예) ${TS} ${TP}`,
+      `이송 갠트리 · 승강 그리퍼 ${G}`, `적재 카트 ${G}`],
+    params: [`세터 예: 100 × 100 × 1.5 mm, Y₂O₃ 3–8 mol% 안정화 ZrO₂, 기공률 < 3 % (압전 부품) ${TS}`,
+      `너무 치밀한 세터는 아래 면 바인더 가스를 가둬 부품을 들뜨게 함 ${TS}`,
+      `세터·덮개판에 어느 정도 기공이 있어야 바인더 가스가 빠짐 ${FG}`,
+      `안정화 ZrO₂는 ~1100 °C 위에서 처짐, Y-ZrO₂는 ~980 °C 위에서 도펀트와 반응 가능 ${FG}`,
+      `가벼운 세터는 킬른 바닥 하중을 줄여 더 많이 적재 ${KP}`] },
+  /* 9 */ { name: '2차 탈바인더 (벨트로)', en: 'Binder burnout · 2nd',
+    desc: `남은 유기물을 더 높은 온도에서 연속 벨트로로 마저 태웁니다 ${HL}. 세터 묶음이 메시 벨트를 타고 머플 안을 지나갑니다. H₂가 섞인 가습 분위기를 쓰며, 실제 PO₂는 수소 함량·가습 온도·로 온도로 정해집니다. 이 값이 Ni의 평형 PO₂보다 높으면 전극이 산화됩니다 ${WR}.`,
+    equip: [`연속 벨트로: 상·하 가열 패널, 존별 온도 제어 모듈 ${HL}`, `O₂ · H₂ 모니터링 모듈 · 자동 가습 · 로압 모니터링 ${HL}`,
+      `벨트 자동 트래킹(사행 보정) · 자동 장력 조절 ${HL}`, `메시 벨트 · 머플 ${HL}`, `구동 드럼·모터, 입·출구 N₂ 커튼, 배기 후드 ${G}`],
+    params: [`2차 탈바인더 온도↑ · 수소 함량↓ → 용량↑ (모델과 실측 일치) ${WR}`,
+      `실제 PO₂ = f(H₂ 함량, 가습 온도, 로 온도) — Ni 평형 PO₂와 비교해 산화 판정 ${WR}`,
+      `온도·시간·벨트 속도 수치는 찾은 자료에 없음`, `롤러 하스 킬른은 2차 탈바인더를 미리 끝내야 하는 경우가 있음 ${HL}`] },
+  /* 10 */ { name: '하역 · 칩 회수', en: 'Unload & collect',
+    desc: `출구에서 세터 묶음을 풀어 칩을 회수 통에 쏟고, 빈 세터는 다시 적재 쪽으로 돌려보냅니다 ${G}. 붙은 칩 덩어리나 세터 조각은 체로 거릅니다 ${G}. 이 단계 설비는 출처를 찾지 못했습니다. 별도 어닐로 경로라면 여기서 꺼낸 칩을 어닐로에 넣어 재산화합니다. 다음은 바렐 연마(모따기)입니다. 일부 라인은 소성 전 그린 칩을 먼저 모따기하지만, 사이드 마진을 붙인 칩은 소성 전 마진이 덜 치밀해 계면이 갈라지거나 벗겨질 수 있습니다 ${K('barrel-chamfering-mlcc')}.`,
+    equip: [`출구 컨베이어 · 흡착 디스태커 ${G}`, `진동 체 · 회수 통 ${G}`, `빈 세터 회수 컨베이어 ${G}`, `세터 수명 관리 · 교체 ${KP}`],
+    params: [`하역 조건 수치 자료 없음`, `세터 교체 빈도를 줄이는 것이 세터 쪽 개선 목표 ${KP}`] },
+  /* 11 */ { name: '킬른 투입 (푸셔)', en: 'Pusher feed',
+    desc: '세터 묶음을 받침판(푸셔 플레이트)에 올려 입구 컨베이어에 놓습니다. 유압 푸셔가 일정 주기로 한 칸 밀면, 줄지어 선 받침판 전체가 한 칸씩 킬른 안으로 전진합니다. 입구에서 공기를 N₂로 바꿔 넣습니다.',
+    equip: [`푸셔 킬른: 받침판을 유압으로 밀어 반송 ${NP} ${HL}`, `머플 챔버, 다점 가열·점별 폐루프, 존별 가스 인렛 ${HL}`,
+      `받침판 또는 세터/새거 적재 ${HL}`, `입구 진공 치환 (일반 푸셔 킬른, N₂ 최대 75 % 절감) ${NP}`, `유압 유닛 · 입구 롤러 컨베이어 · 가스 커튼 ${G}`],
+    params: [`반송 속도 정밀도 ±1 % (표준 ±2 %), 최고 1600 °C — 일반 푸셔 킬른 ${NP}`,
+      `긴 온도 프로파일·안정된 고온·일정한 적재에 맞음 ${HL}`, `긴 푸셔는 2차 탈바인더와 소결을 한 로에서 처리 가능 ${HL}`,
+      `BME MLCC 푸셔로의 분위기 분리·O₂ 폐루프 제어 (CARTS 2001, 본문 못 읽음) ${BT}`] },
+  /* 12 */ { name: '킬른 투입 (롤러 하스)', en: 'Roller-hearth feed',
+    desc: `세터 묶음을 트레이째 세라믹 롤러 위에 올립니다. 롤러가 함께 돌며 연속으로 보내므로 푸셔가 없습니다. 롤러 아래·위의 발열관이 재료를 위아래에서 가열하고, 아래쪽에서 N₂를 넣어 위로 빼며 분해 가스를 내보냅니다 ${LR}.`,
+    equip: [`롤러 하스 킬른: 세라믹 롤러 반송, 사방 복사 가열 ${NR}`, `MLCC용 체임버 예: 아래 발열관 2 + 위 발열관 2, 체임버당 N₂ 흡기 3 · 배기 1 ${LR}`,
+      `롤러 구동 (일반 RHK: 스프링 드라이브, 사행 없는 고속 반송) ${NR}`, `트레이 · 새거 적재 ${HL}`],
+    params: [`MLCC 소결은 생산성 때문에 주로 RHK, 길이 약 17.5 m ${RB} ${SN}`,
+      `연구 사례: 24개 체임버(예열·소성·냉각, 칸막이 없음), 소성 구간 4개, 체임버 길이 275 mm ${LR}`,
+      `1300 °C에서 21점 실측 ±2.2 °C 이내 ${LR}`, `발열관 지름 25 mm · 간격 65 mm · 재료 이송 높이 바닥 위 200 mm ${LR}`,
+      `처리량이 크고 사이클이 짧음 ${HL}`] },
+];
+const NS = STAGES.length;
+// Process order (see flow block in UI). PO₂ control runs alongside the reducing zones.
+// Forks: 2nd burnout in a separate belt furnace or in a long pusher's front end [hengli-3dincites-2026];
+// kiln transport pusher vs roller hearth [hengli-3dincites-2026][lee-2013-rhk-kais];
+// re-oxidation in the kiln's own zone or a separate furnace [us6185087][mlcc-process-substeps-and-equipment].
+const FLOW = [0, 8, 1,
+  { fork: 'deb2', title: '2차 탈바인더', def: 'belt', opts: [
+    { key: 'belt', label: '별도 벨트로', steps: [9] },
+    { key: 'kiln', label: '푸셔 앞단 통합', steps: [], onSelect: () => { if (ROUTE.kiln !== 'pusher') { ROUTE.kiln = 'pusher'; buildSeq(); renderFlow(); setKilnType('pusher'); } },
+      note: '긴 푸셔 킬른은 앞쪽 구간에서 2차 탈바인더까지 함께 처리할 수 있어 별도 벨트로를 거치지 않습니다. 이 경로는 푸셔 킬른과 짝입니다.' }] },
+  { fork: 'kiln', title: '킬른 반송 방식', def: 'pusher', opts: [
+    { key: 'pusher', label: '푸셔', steps: [11], onSelect: () => setKilnType('pusher') },
+    { key: 'rhk', label: '롤러 하스', steps: [12], onSelect: () => { setKilnType('rhk'); if (ROUTE.deb2 !== 'belt') { ROUTE.deb2 = 'belt'; buildSeq(); renderFlow(); } } }] },
+  2, 3,
+  { i: 4, mark: 'parallel', label: 'PO₂ 제어 (피크 존 병행)' },
+  5,
+  { fork: 'reox', title: '재산화 설비', def: 'kiln', opts: [
+    { key: 'kiln', label: '킬른 내 재산화 존', steps: [6] },
+    { key: 'sep', label: '별도 어닐로', steps: [], note: '소성로에서 꺼내 식힌 뒤 별도 어닐로에서 다시 가열해 재산화합니다. 이 페이지에는 별도 어닐로를 그리지 않았습니다.' }] },
+  7, 10];
+// Stage rank along the line (for "already past this station" checks).
+const RANK = { 0: 0, 8: 1, 1: 2, 9: 3, 11: 4, 12: 4, 2: 5, 3: 6, 4: 7, 5: 8, 6: 9, 7: 10, 10: 11 };
+let kilnType = 'pusher';     // set by setKilnType() from the kiln fork
+const STAGE_DUR = 10;
+
+/* ------------------------------ renderer ------------------------------ */
+const host = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.82;
+host.appendChild(renderer.domElement);
+
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.setSize(window.innerWidth, window.innerHeight);
+labelRenderer.domElement.className = 'labels';
+host.appendChild(labelRenderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x8e9aa5);
+scene.fog = new THREE.Fog(0x8e9aa5, 60, 140);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
+
+const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 400);
+const OV_POS = new THREE.Vector3(-11, 33, 50), OV_TGT = new THREE.Vector3(-11, 1.5, 0);
+camera.position.copy(OV_POS);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.copy(OV_TGT);
+controls.enableDamping = true;
+controls.maxPolarAngle = Math.PI / 2 - 0.04;
+controls.minDistance = 2;
+controls.maxDistance = 90;
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x5b646d, 0.55));
+const sun = new THREE.DirectionalLight(0xfff6ea, 2.4);
+sun.position.set(3, 32, 22);
+sun.target.position.set(-11, 0, 0);
+sun.castShadow = true;
+sun.shadow.mapSize.set(4096, 4096);
+Object.assign(sun.shadow.camera, { left: -54, right: 54, top: 30, bottom: -30, near: 1, far: 90 });
+sun.shadow.bias = -0.0004;
+sun.shadow.normalBias = 0.03;
+scene.add(sun); scene.add(sun.target);
+
+/* ------------------------------ materials ------------------------------ */
+const std = (o) => new THREE.MeshStandardMaterial(o);
+const M = {
+  steel: std({ color: 0xd8dce0, metalness: 1.0, roughness: 0.22 }),
+  steelB: std({ color: 0xbfc5ca, metalness: 0.9, roughness: 0.38 }),
+  steelIn: std({ color: 0x8d949b, metalness: 0.85, roughness: 0.5, side: THREE.BackSide }),
+  dark: std({ color: 0x2c3137, metalness: 0.4, roughness: 0.6 }),
+  motor: std({ color: 0x2c5d8e, metalness: 0.35, roughness: 0.42 }),
+  motorG: std({ color: 0x8b949c, metalness: 0.55, roughness: 0.45 }),
+  paint: std({ color: 0xe4e7ea, metalness: 0.1, roughness: 0.55 }),
+  paintBlue: std({ color: 0x3b6f9e, metalness: 0.2, roughness: 0.5 }),
+  shell: std({ color: 0x4a5d70, metalness: 0.35, roughness: 0.5 }),
+  yellow: std({ color: 0xf0b400, metalness: 0.2, roughness: 0.5 }),
+  red: std({ color: 0xb8322a, metalness: 0.3, roughness: 0.45 }),
+  green: std({ color: 0x3f7d5a, metalness: 0.3, roughness: 0.45 }),
+  rubber: std({ color: 0x1b1b1b, metalness: 0.0, roughness: 0.85 }),
+  setter: std({ color: 0xe9e1d0, metalness: 0.0, roughness: 0.85 }),
+  chip: std({ color: 0xffffff, metalness: 0.0, roughness: 0.6 }),
+  water: std({ color: 0x9fd2ef, metalness: 0.0, roughness: 0.1, side: THREE.DoubleSide, transparent: true, opacity: 0.7 }),
+  flow: std({ color: 0xfff1cf, emissive: 0xffb547, emissiveIntensity: 0.9, roughness: 0.4 }),
+  air: std({ color: 0xdff3ff, emissive: 0x8fd0ff, emissiveIntensity: 0.9, roughness: 0.3 }),
+  smoke: std({ color: 0x8a8580, emissive: 0x4a3b2c, emissiveIntensity: 0.5, roughness: 0.9, transparent: true, opacity: 0.75 }),
+  bubble: std({ color: 0xffffff, metalness: 0.0, roughness: 0.05, transparent: true, opacity: 0.55 }),
+  glass: std({ color: 0xd8ecf5, metalness: 0.0, roughness: 0.05, transparent: true, opacity: 0.3 }),
+  screen: std({ color: 0x0b1a26, emissive: 0x2a8cd6, emissiveIntensity: 0.6, roughness: 0.3 }),
+};
+const pipeMat = std({ color: 0xd2d7dc, metalness: 0.95, roughness: 0.25, transparent: true, opacity: 0.5, depthWrite: false });
+
+function brickTexture(rx, ry) {
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const x = c.getContext('2d');
+  x.fillStyle = '#b9ab92'; x.fillRect(0, 0, 128, 128);
+  for (let j = 0; j < 8; j++) for (let i = -1; i < 4; i++) {
+    const ox = (j % 2) * 16;
+    x.fillStyle = `hsl(36, ${18 + Math.random() * 10}%, ${74 + Math.random() * 8}%)`;
+    x.fillRect(i * 32 + ox + 1, j * 16 + 1, 30, 14);
+  }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rx, ry);
+  return t;
+}
+const refr = std({ map: brickTexture(16, 1), roughness: 0.9, metalness: 0.0 });
+const refrS = std({ map: brickTexture(2, 1), roughness: 0.9, metalness: 0.0 });
+
+// Heat-glow palette: dull red (~500 °C) → orange → yellow-white (~1250 °C). Visual only.
+const heatCache = new Map();
+function heatColor(T) {
+  const c = new THREE.Color(0x000000);
+  if (T < 450) return c;
+  const k = Math.min(1, (T - 450) / 800);
+  const a = new THREE.Color(0x7a1000), b = new THREE.Color(0xff4a08), w = new THREE.Color(0xffa83a);
+  return k < 0.6 ? a.lerp(b, k / 0.6) : b.lerp(w, (k - 0.6) / 0.4);
+}
+function heatMat(T) {
+  const q = Math.round(T / 50) * 50;
+  if (!heatCache.has(q)) heatCache.set(q, std({ color: 0x4a4038, emissive: heatColor(q), emissiveIntensity: q < 450 ? 0 : 2.6, roughness: 0.6 }));
+  return heatCache.get(q);
+}
+
+/* ------------------------------ helpers ------------------------------ */
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const CUT_CYL = Math.PI / 4, CUT_TL = 1.5 * Math.PI, FULL = Math.PI * 2;
+const cutParts = [], fullParts = [];
+const rotors = [], pipes = [], updaters = [];
+const FY = 0.32;
+
+function mk(geo, mat, cast = true) { const m = new THREE.Mesh(geo, mat); m.castShadow = cast; m.receiveShadow = true; return m; }
+function put(parent, m, x = 0, y = 0, z = 0) { m.position.set(x, y, z); parent.add(m); return m; }
+const cyl = (r1, r2, h, seg = 32, open = false, ts = 0, tl = FULL) => new THREE.CylinderGeometry(r1, r2, h, seg, 1, open, ts, tl);
+const box = (x, y, z) => new THREE.BoxGeometry(x, y, z);
+const along = (geo, axis) => { if (axis === 'x') geo.rotateZ(-Math.PI / 2); if (axis === 'z') geo.rotateX(Math.PI / 2); return geo; };
+const sm = (t) => t * t * (3 - 2 * t);
+const clamp01 = (v) => Math.max(0, Math.min(1, v));
+
+function pair(parent, geoFn, cutStart, matOut, matIn, pos) {
+  const gc = geoFn(cutStart, CUT_TL);
+  const a = mk(gc, matOut), b = mk(gc, matIn, false), f = mk(geoFn(0, FULL), matOut);
+  for (const m of [a, b, f]) { m.position.copy(pos); parent.add(m); }
+  cutParts.push(a, b); fullParts.push(f);
+}
+function label(text, pos, cls = 'tag', stage = null) {
+  const d = document.createElement('div'); d.className = cls; d.innerHTML = text;
+  if (stage !== null) d.addEventListener('click', () => jumpTo(stage));
+  const o = new CSS2DObject(d); o.position.copy(pos); scene.add(o); return d;
+}
+function vMotor(scale = 1) {
+  const g = new THREE.Group();
+  put(g, mk(box(0.5, 0.32, 0.5), M.motorG), 0, 0.16, 0);
+  put(g, mk(cyl(0.2, 0.2, 0.55, 28), M.motor), 0, 0.6, 0);
+  for (let k = 0; k < 18; k++) {
+    const a = k / 18 * FULL, f = mk(box(0.02, 0.5, 0.05), M.motor);
+    f.position.set(Math.cos(a) * 0.215, 0.6, Math.sin(a) * 0.215); f.rotation.y = -a; g.add(f);
+  }
+  put(g, mk(cyl(0.21, 0.21, 0.16, 28), M.motorG), 0, 0.96, 0);
+  put(g, mk(box(0.16, 0.14, 0.14), M.motor), 0.26, 0.64, 0);
+  g.scale.setScalar(scale);
+  return g;
+}
+function hMotor(len = 0.42, r = 0.15) {
+  const g = new THREE.Group();
+  put(g, mk(along(cyl(r, r, len, 24), 'x'), M.motor), 0, 0, 0);
+  for (let k = 0; k < 14; k++) {
+    const a = k / 14 * FULL, f = mk(box(len * 0.9, 0.02, 0.045), M.motor);
+    f.position.set(0, Math.cos(a) * (r + 0.012), Math.sin(a) * (r + 0.012)); f.rotation.x = a; g.add(f);
+  }
+  put(g, mk(along(cyl(r + 0.01, r + 0.01, 0.12, 24), 'x'), M.motorG), len / 2 + 0.06, 0, 0);
+  put(g, mk(box(0.12, 0.12, 0.12), M.motor), 0, r + 0.06, 0);
+  return g;
+}
+function gauge(parent, x, y, z, ry = 0) {
+  const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = ry; parent.add(g);
+  put(g, mk(along(cyl(0.09, 0.09, 0.05, 24), 'z'), M.steelB), 0, 0, 0);
+  put(g, mk(new THREE.CircleGeometry(0.075, 24), M.paint, false), 0, 0, 0.026);
+  const n = put(g, mk(box(0.006, 0.06, 0.004), M.red, false), 0, 0.02, 0.03);
+  return n;
+}
+function fan(parent, r, x, y, z, axis, run, w) {
+  const g = new THREE.Group(); g.position.set(x, y, z); parent.add(g);
+  const hub = new THREE.Group(); g.add(hub);
+  put(hub, mk(cyl(0.06, 0.06, 0.06, 16), M.dark), 0, 0, 0);
+  for (let k = 0; k < 6; k++) {
+    const piv = new THREE.Group(); piv.rotation.y = k / 6 * FULL; hub.add(piv);
+    const b = mk(box(r, 0.012, 0.09), M.steelB); b.position.x = r / 2; b.rotation.x = 0.4; piv.add(b);
+  }
+  if (axis === 'z') g.rotation.x = Math.PI / 2;
+  rotors.push({ obj: hub, axis: 'y', run, w, cur: 0 });
+  return g;
+}
+
+/* ------------------------------ pipes ------------------------------ */
+function roundedPath(pts, rc = 0.3) {
+  const path = new THREE.CurvePath();
+  let prev = pts[0].clone();
+  for (let i = 1; i < pts.length - 1; i++) {
+    const a = pts[i - 1], p = pts[i], b = pts[i + 1];
+    const din = p.clone().sub(a).normalize(), dout = b.clone().sub(p).normalize();
+    const r = Math.min(rc, p.distanceTo(a) / 2, p.distanceTo(b) / 2);
+    const pA = p.clone().addScaledVector(din, -r), pB = p.clone().addScaledVector(dout, r);
+    if (prev.distanceTo(pA) > 1e-4) path.add(new THREE.LineCurve3(prev.clone(), pA));
+    path.add(new THREE.QuadraticBezierCurve3(pA, p.clone(), pB));
+    prev = pB;
+  }
+  path.add(new THREE.LineCurve3(prev, pts[pts.length - 1].clone()));
+  return path;
+}
+function dedupe(pts) { return pts.filter((p, i) => i === 0 || p.distanceTo(pts[i - 1]) > 1e-3); }
+function flange(pos, dir, r) {
+  const f = mk(cyl(r * 1.9, r * 1.9, 0.045, 20), M.steelB);
+  f.position.copy(pos); f.quaternion.setFromUnitVectors(V(0, 1, 0), dir.clone().normalize()); scene.add(f);
+}
+function valve(pos, r) {
+  put(scene, mk(new THREE.SphereGeometry(r * 1.7, 16, 12), M.steelB), pos.x, pos.y, pos.z);
+  put(scene, mk(cyl(0.02, 0.02, 0.25, 8), M.steelB), pos.x, pos.y + 0.14, pos.z);
+  const hw = put(scene, mk(new THREE.TorusGeometry(0.11, 0.015, 8, 24), M.yellow), pos.x, pos.y + 0.27, pos.z);
+  hw.rotation.x = Math.PI / 2;
+}
+function makePipe(pts, { stages = [], r = 0.05, speed = 1.4, mat = M.flow, valveAt = 0.12 } = {}) {
+  pts = dedupe(pts);
+  const path = roundedPath(pts);
+  const len = path.getLength();
+  scene.add(mk(new THREE.TubeGeometry(path, Math.max(40, Math.round(len * 14)), r, 12, false), pipeMat, false));
+  flange(pts[0], pts[1].clone().sub(pts[0]), r);
+  flange(pts[pts.length - 1], pts[pts.length - 1].clone().sub(pts[pts.length - 2]), r);
+  if (valveAt !== null) valve(path.getPointAt(valveAt), r);
+  const samples = path.getSpacedPoints(Math.max(60, Math.round(len * 30)));
+  const n = Math.max(6, Math.round(len * 3.2));
+  const inst = new THREE.InstancedMesh(new THREE.SphereGeometry(r * 0.75, 10, 8), mat, n);
+  inst.instanceMatrix.setUsage(THREE.DynamicDrawUsage); inst.frustumCulled = false; inst.visible = false;
+  scene.add(inst);
+  const P = { samples, len, inst, n, stages, speed };
+  pipes.push(P);
+  return P;
+}
+function hmiCanvas(w, h) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  return { c, t, mat: std({ map: t, emissive: 0xffffff, emissiveMap: t, emissiveIntensity: 0.9 }) };
+}
+
+/* ------------------------------ building ------------------------------ */
+(function building() {
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const x = c.getContext('2d');
+  x.fillStyle = '#56645e'; x.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 900; i++) { x.fillStyle = `rgba(255,255,255,${Math.random() * 0.035})`; x.fillRect(Math.random() * 256, Math.random() * 256, 2, 2); }
+  x.strokeStyle = 'rgba(40,50,46,.35)'; x.lineWidth = 2; x.strokeRect(0, 0, 256, 256);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(36, 11); t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 8;
+  const floor = mk(new THREE.PlaneGeometry(144, 44), std({ map: t, roughness: 0.62, metalness: 0.0 }), false);
+  floor.rotation.x = -Math.PI / 2; scene.add(floor);
+  for (const zz of [3.4, 5.0]) put(scene, mk(box(92, 0.006, 0.1), M.yellow, false), -10, 0.004, zz);
+  put(scene, mk(box(144, 13, 0.3), std({ color: 0xa7afb6, roughness: 0.9 })), 0, 6.5, -9);
+  const cols = new THREE.InstancedMesh(box(0.5, 13, 0.5), std({ color: 0x5a6b7b, roughness: 0.6, metalness: 0.3 }), 13);
+  const wins = new THREE.InstancedMesh(box(7, 2.2, 0.05), std({ color: 0xe8f1f8, emissive: 0xcfe3f2, emissiveIntensity: 0.55 }), 13);
+  const o = new THREE.Object3D();
+  for (let i = -6; i <= 6; i++) {
+    o.position.set(i * 11, 6.5, -8.6); o.updateMatrix(); cols.setMatrixAt(i + 6, o.matrix);
+    o.position.set(i * 11 + 5.5, 9.2, -8.84); o.updateMatrix(); wins.setMatrixAt(i + 6, o.matrix);
+  }
+  cols.castShadow = true; cols.receiveShadow = true; scene.add(cols); scene.add(wins);
+  put(scene, mk(box(144, 0.4, 0.4), std({ color: 0x5a6b7b, roughness: 0.6 })), 0, 12.6, -8.6);
+})();
+
+/* ================================ STATIONS ================================ */
+const CHIP = V(0.14, 0.07, 0.09);         // drawn chip size (hugely exaggerated)
+const GREEN_C = new THREE.Color(0xeee3c6), FIRED_C = new THREE.Color(0x8c857a);
+const chipSlots = [];                      // 3 × 4 grid on one setter
+for (let i = 0; i < 3; i++) for (let j = 0; j < 4; j++) chipSlots.push(V(-0.24 + i * 0.24, 0, -0.33 + j * 0.22));
+
+/* -- shared setter-stack instancing: setters + spacer posts + chips (+ optional base plate / tray) -- */
+const GEO_SET = box(0.8, 0.04, 0.95), GEO_CHIP = box(CHIP.x, CHIP.y, CHIP.z), GEO_POST = box(0.05, 1, 0.05), GEO_PLATE = box(0.86, 0.03, 1.02);
+const M_post = std({ color: 0xe2dac8, roughness: 0.8 }), M_plate = std({ color: 0x9b958b, roughness: 0.75 });
+const DEB_C = new THREE.Color(0xd6cdb8), DEB2_C = new THREE.Color(0xcac0a9);   // colour cue after 1st / 2nd burnout (visual only)
+const sdm = new THREE.Object3D();
+function inst(geo, mat, n, parent = scene) {
+  const m = new THREE.InstancedMesh(geo, mat, n);
+  m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.frustumCulled = false; m.castShadow = true; m.receiveShadow = true;
+  parent.add(m); return m;
+}
+function setM(m, i, x, y, z, sx = 1, sy = 1, sz = 1, rz = 0) {
+  sdm.position.set(x, y, z); sdm.rotation.set(0, 0, rz); sdm.scale.set(sx, sy, sz); sdm.updateMatrix(); m.setMatrixAt(i, sdm.matrix);
+}
+// N stacks of `tiers` setters at pitch `gap`. place(i, x, yBottom, shrink, chipColour, emptied)
+function stackFlow(N, tiers, gap, plate) {
+  const S = { setters: inst(GEO_SET, M.setter, N * tiers), chips: inst(GEO_CHIP, M.chip, N * tiers * 12),
+    posts: tiers > 1 ? inst(GEO_POST, M_post, N * (tiers - 1) * 4) : null, plates: plate ? inst(GEO_PLATE, M_plate, N) : null };
+  const ph = gap - 0.04;
+  S.place = (i, x, y, sc, col, empty) => {
+    if (S.plates) { setM(S.plates, i, x, y + 0.015, 0); y += 0.03; }
+    for (let j = 0; j < tiers; j++) {
+      const ys = y + j * gap, e = empty && j > 0 ? 1e-4 : 1, k0 = (i * tiers + j) * 12, v = empty ? 1e-4 : sc;
+      setM(S.setters, i * tiers + j, x, ys + 0.02, 0, e, e, e);
+      for (let c = 0; c < 12; c++) {
+        const sl = chipSlots[c];
+        setM(S.chips, k0 + c, x + sl.x, ys + 0.04 + CHIP.y * sc / 2, sl.z, v, v, v);
+        S.chips.setColorAt(k0 + c, col);
+      }
+      if (S.posts && j < tiers - 1) for (let q = 0; q < 4; q++)
+        setM(S.posts, (i * (tiers - 1) + j) * 4 + q, x + (q & 1 ? 0.36 : -0.36), ys + 0.04 + ph / 2, q & 2 ? 0.42 : -0.42, empty ? 1e-4 : 1, empty ? 1e-4 : ph, empty ? 1e-4 : 1);
+    }
+  };
+  S.commit = () => {
+    for (const m of [S.setters, S.chips, S.posts, S.plates]) if (m) m.instanceMatrix.needsUpdate = true;
+    if (S.chips.instanceColor) S.chips.instanceColor.needsUpdate = true;
+  };
+  return S;
+}
+
+/* -- S0 / S8 / S1: chip loading table, setter-stacking gantry, cart, batch debinding furnace -- */
+const LTX = -49.6, LDX = -45.2, DBX = -38.5;
+const TBL_Y = 0.86;                                   // loading-table top
+const CART_Y0 = 0.31, CART_P = 0.26, CART_T = 5;      // 4 loaded tiers + an empty cover setter on top
+const cart = (() => {
+  const g = new THREE.Group(); g.position.set(LDX, 0, 0); scene.add(g);
+  put(g, mk(box(1.3, 0.06, 1.1), M.steelB), 0, 0.28, 0);
+  for (const sx of [-0.55, 0.55]) for (const sz of [-0.45, 0.45]) {
+    put(g, mk(box(0.06, 0.16, 0.06), M.steelB), sx, 0.18, sz);
+    put(g, mk(along(cyl(0.09, 0.09, 0.06, 16), 'z'), M.rubber), sx, 0.09, sz);
+  }
+  for (const sz of [-0.42, 0.42]) put(g, mk(box(0.05, 1.0, 0.05), M.steelB), -0.66, 0.8, sz);   // push handle
+  put(g, mk(box(0.05, 0.05, 0.9), M.steelB), -0.66, 1.3, 0);
+  const setters = inst(GEO_SET, M.setter, CART_T, g), posts = inst(GEO_POST, M_post, (CART_T - 1) * 4, g), chips = inst(GEO_CHIP, M.chip, (CART_T - 1) * 12, g);
+  for (let j = 0; j < CART_T; j++) {
+    const y = CART_Y0 + j * CART_P;
+    setM(setters, j, 0, y + 0.02, 0);
+    if (j === CART_T - 1) continue;
+    chipSlots.forEach((sl, c) => { setM(chips, j * 12 + c, sl.x, y + 0.04 + CHIP.y / 2, sl.z); chips.setColorAt(j * 12 + c, GREEN_C); });
+    for (let q = 0; q < 4; q++) setM(posts, j * 4 + q, q & 1 ? 0.36 : -0.36, y + 0.04 + (CART_P - 0.04) / 2, q & 2 ? 0.42 : -0.42, 1, CART_P - 0.04, 1);
+  }
+  const show = (n) => { setters.count = n; posts.count = Math.max(0, n - 1) * 4; chips.count = Math.min(n, CART_T - 1) * 12; };
+  return { g, chips, show, n: (CART_T - 1) * 12, tierY: (j) => CART_Y0 + j * CART_P };
+})();
+
+const loader = (() => {  // loading table + X-Y dispensing gantry spreading chips onto one setter
+  const g = new THREE.Group(); g.position.set(LTX, 0, 0); scene.add(g);
+  put(g, mk(box(1.4, 0.06, 1.3), M.steelB), 0, TBL_Y - 0.03, 0);
+  for (const sx of [-0.62, 0.62]) for (const sz of [-0.56, 0.56]) put(g, mk(box(0.06, TBL_Y - 0.06, 0.06), M.steelB), sx, (TBL_Y - 0.06) / 2, sz);
+  for (const sx of [-0.45, 0.45]) put(g, mk(box(0.03, 0.05, 1.05), M.dark), sx, TBL_Y + 0.025, 0);      // locating rails
+  const tSet = put(g, mk(GEO_SET, M.setter), 0, TBL_Y + 0.02, 0);
+  const tChips = inst(GEO_CHIP, M.chip, 12, g);
+  chipSlots.forEach((sl, c) => { setM(tChips, c, sl.x, TBL_Y + 0.04 + CHIP.y / 2, sl.z); tChips.setColorAt(c, GREEN_C); });
+  for (const sx of [-1.1, 1.1]) for (const sz of [-0.9, 0.9]) put(g, mk(box(0.12, 3.0, 0.12), M.yellow), sx, 1.5, sz);
+  for (const sz of [-0.9, 0.9]) put(g, mk(box(2.34, 0.14, 0.14), M.yellow), 0, 3.0, sz);
+  const bridge = new THREE.Group(); g.add(bridge);
+  put(bridge, mk(box(0.16, 0.12, 1.94), M.dark), 0, 2.92, 0);
+  const head = new THREE.Group(); bridge.add(head);
+  put(head, mk(box(0.3, 0.3, 0.3), M.paint), 0, 2.72, 0);
+  put(head, mk(cyl(0.18, 0.05, 0.3, 20), M.steel), 0, 2.42, 0);              // vibratory chute
+  put(head, mk(cyl(0.025, 0.025, 0.9, 10), M.steel), 0, 1.85, 0);
+  // supply hopper + vibratory bowl feeder beside the frame (g)
+  put(g, mk(box(0.9, 0.9, 0.7), M.paint), -1.9, 0.45, 1.0);
+  put(g, mk(cyl(0.38, 0.25, 0.25, 32, true), M.steel), -1.9, 1.05, 1.0);
+  put(g, mk(cyl(0.3, 0.3, 0.6, 24), M.steel), -1.9, 2.1, -0.4);
+  put(g, mk(cyl(0.3, 0.06, 0.4, 24), M.steel), -1.9, 1.6, -0.4);
+  for (const sx of [-0.22, 0.22]) for (const sz of [-0.22, 0.22]) put(g, mk(box(0.05, 1.4, 0.05), M.steelB), -1.9 + sx, 0.7, -0.4 + sz);
+  const n = 40, fall = inst(GEO_CHIP, std({ color: 0xeee3c6, roughness: 0.6 }), n, g);
+  const sd = Array.from({ length: n }, () => ({ u: Math.random(), dx: (Math.random() - 0.5) * 0.08, dz: (Math.random() - 0.5) * 0.08, r: Math.random() * 6 }));
+  const dm = new THREE.Object3D();
+  updaters.push((dt, s, p, t) => {
+    const on = s === 0;
+    fall.visible = on;
+    // during stacking the bridge parks at the -x end so the stacking gripper can reach the table
+    const hx = on ? Math.sin(t * 1.3) * 0.28 : s === 8 ? -0.95 : 0, hz = on ? Math.sin(t * 0.7) * 0.32 : 0;
+    bridge.position.x = hx; head.position.z = hz;
+    let nc = 12, vis = true;
+    if (on) nc = Math.min(12, Math.floor(p * 14));
+    else if (s === 8) { const m = Math.min(CART_T - 1, Math.floor(p * CART_T)); vis = p * CART_T - m < 0.2; nc = m >= CART_T - 1 ? 0 : 12; }
+    tSet.visible = vis; tChips.count = vis ? nc : 0;
+    if (!on) return;
+    for (let i = 0; i < n; i++) {
+      const q = sd[i]; q.u = (q.u + dt * 1.6) % 1;
+      dm.position.set(hx + q.dx, 1.38 - q.u * (1.38 - TBL_Y - 0.08), hz + q.dz);
+      dm.rotation.set(q.r + t * 3, q.r, 0); dm.scale.setScalar(0.6); dm.updateMatrix(); fall.setMatrixAt(i, dm.matrix);
+    }
+    fall.instanceMatrix.needsUpdate = true;
+  });
+  return { g };
+})();
+
+(() => {  // S8 setter-stacking gantry: picks the loaded setter off the table, places it on the cart stack
+  const g = new THREE.Group(); scene.add(g);
+  const BZ = -1.25, BYb = 3.4, xa = LTX - 0.9, xb = LDX + 0.9;
+  for (const x of [xa, xb]) put(g, mk(box(0.16, BYb, 0.16), M.yellow), x, BYb / 2, BZ);
+  put(g, mk(box(xb - xa + 0.3, 0.16, 0.2), M.yellow), (xa + xb) / 2, BYb + 0.08, BZ);
+  put(g, mk(box(xb - xa, 0.04, 0.06), M.steel), (xa + xb) / 2, BYb - 0.02, BZ + 0.12);        // linear guide
+  const car = new THREE.Group(); g.add(car);
+  put(car, mk(box(0.4, 0.34, 0.34), M.paint), 0, BYb, BZ + 0.2);
+  put(car, mk(box(0.12, 0.12, 1.3), M.dark), 0, BYb - 0.05, BZ / 2 + 0.05);                   // arm out to the line axis
+  put(car, mk(box(0.22, 0.3, 0.22), M.steelB), 0, BYb - 0.05, 0);                             // Z-axis carriage
+  const lift = new THREE.Group(); car.add(lift);
+  put(lift, mk(cyl(0.035, 0.035, 2.5, 12), M.steel), 0, 1.25, 0);                              // vertical rod
+  put(lift, mk(box(0.95, 0.05, 0.1), M.dark), 0, 0, 0);
+  for (const sx of [-0.45, 0.45]) put(lift, mk(box(0.04, 0.16, 0.9), M.steelB), sx, -0.08, 0);  // grip fingers
+  const carry = new THREE.Group(); car.add(carry);
+  put(carry, mk(GEO_SET, M.setter), 0, 0, 0);
+  const cChips = inst(GEO_CHIP, M.chip, 12, carry);
+  chipSlots.forEach((sl, c) => { setM(cChips, c, sl.x, 0.02 + CHIP.y / 2, sl.z); cChips.setColorAt(c, GREEN_C); });
+  const yTr = 2.05, yPick = TBL_Y + 0.02 + 0.12;
+  updaters.push((dt, s, p) => {
+    let x = LTX, y = yTr, hold = false, n = RANK[s] > RANK[8] ? CART_T : 0, m = 0;
+    if (s === 8) {
+      m = Math.min(CART_T - 1, Math.floor(p * CART_T));
+      const q = p * CART_T - m, yPl = cart.tierY(m) + 0.02 + 0.12;
+      if (q < 0.15) y = yTr + (yPick - yTr) * sm(q / 0.15);
+      else if (q < 0.25) { y = yPick; hold = q > 0.2; }
+      else if (q < 0.35) { y = yPick + (yTr - yPick) * sm((q - 0.25) / 0.1); hold = true; }
+      else if (q < 0.55) { x = LTX + (LDX - LTX) * sm((q - 0.35) / 0.2); hold = true; }
+      else if (q < 0.7) { x = LDX; y = yTr + (yPl - yTr) * sm((q - 0.55) / 0.15); hold = true; }
+      else if (q < 0.8) { x = LDX; y = yPl; hold = q < 0.75; }
+      else if (q < 0.88) { x = LDX; y = yPl + (yTr - yPl) * sm((q - 0.8) / 0.08); }
+      else x = LDX + (LTX - LDX) * sm((q - 0.88) / 0.12);
+      n = m + (q >= 0.75 ? 1 : 0);
+    }
+    car.position.x = x; lift.position.y = y; carry.position.y = y - 0.12; carry.visible = hold;
+    cChips.count = m >= CART_T - 1 ? 0 : 12;
+    cart.show(n);
+  });
+})();
+
+const debind = (() => {
+  const g = new THREE.Group(); g.position.set(DBX, 0, 0); scene.add(g);
+  const W = 3.0, H = 2.8, D = 2.2, y0 = 0.15, wall = 0.28;
+  put(g, mk(box(W + 0.3, y0, D + 0.3), M.dark), 0, y0 / 2, 0);
+  const sh = [M.shell, M.shell, M.shell, M.shell, M.shell, M.shell];
+  // back, roof, floor, right wall (+x) — interior faces refractory
+  put(g, mk(box(W, H, wall), [M.shell, M.shell, M.shell, M.shell, refrS, M.shell]), 0, y0 + H / 2, -D / 2 + wall / 2);
+  put(g, mk(box(W, wall, D), [M.shell, M.shell, M.shell, refrS, M.shell, M.shell]), 0, y0 + H - wall / 2, 0);
+  put(g, mk(box(W, 0.12, D), [M.shell, M.shell, refrS, M.shell, M.shell, M.shell]), 0, y0 + 0.06, 0);
+  put(g, mk(box(wall, H, D), [M.shell, refrS, M.shell, M.shell, M.shell, M.shell]), W / 2 - wall / 2, y0 + H / 2, 0);
+  // front wall (+z): full in normal mode, removed in cutaway
+  const fw = put(g, mk(box(W, H, wall), [M.shell, M.shell, M.shell, M.shell, M.shell, refrS]), 0, y0 + H / 2, D / 2 - wall / 2); fullParts.push(fw);
+  const fwc = put(g, mk(box(W, 0.35, wall), sh), 0, y0 + 0.175, D / 2 - wall / 2); cutParts.push(fwc);
+  for (const sx of [-W / 2, W / 2]) { const e = put(g, mk(box(0.06, H, 0.06), M.steelB), sx, y0 + H / 2, D / 2); cutParts.push(e); }
+  // left (-x) door frame + vertical lift door
+  for (const sz of [-D / 2 + 0.1, D / 2 - 0.1]) put(g, mk(box(0.14, H + 1.6, 0.14), M.steelB), -W / 2 - 0.1, y0 + (H + 1.6) / 2, sz);
+  put(g, mk(box(0.14, 0.14, D), M.steelB), -W / 2 - 0.1, y0 + H + 1.6, 0);
+  const door = put(g, mk(box(wall, H - 0.1, D - 0.3), [refrS, M.shell, M.shell, M.shell, M.shell, M.shell]), -W / 2 + wall / 2 - 0.02, y0 + H / 2, 0);
+  put(g, mk(cyl(0.12, 0.12, 0.3, 16), M.motorG), -W / 2 - 0.1, y0 + H + 1.8, 0);
+  // heaters along side/back walls (glow by recipe T)
+  const hMat = std({ color: 0x4a4038, emissive: 0x000000, emissiveIntensity: 1.6, roughness: 0.6 });
+  const hb = inst(along(cyl(0.035, 0.035, W - 0.7, 10), 'x'), hMat, 6, g), hs = inst(along(cyl(0.03, 0.03, D - 0.7, 10), 'z'), hMat, 6, g);
+  hb.castShadow = hs.castShadow = false;
+  for (let k = 0; k < 6; k++) { setM(hb, k, -0.05, y0 + 0.5 + k * 0.38, -D / 2 + wall + 0.08); setM(hs, k, W / 2 - wall - 0.08, y0 + 0.5 + k * 0.38, 0); }
+  // roof circulation fan + motor
+  const fm = vMotor(0.7); fm.position.set(0.5, y0 + H, 0.1); g.add(fm);
+  fan(g, 0.38, 0.5, y0 + H - wall - 0.18, 0.1, 'y', [1], 12);
+  // control panel + HMI on the +x side; furnace-pressure gauge (automatic pressure control [hengli-3dincites-2026])
+  put(g, mk(box(0.5, 1.6, 0.9), M.paint), W / 2 + 0.3, 0.95, 0.4);
+  const hm = hmiCanvas(256, 128);
+  const scr = put(g, new THREE.Mesh(new THREE.PlaneGeometry(0.75, 0.38), hm.mat), W / 2 + 0.556, 1.4, 0.4); scr.rotation.y = Math.PI / 2;
+  put(g, mk(box(0.16, 0.5, 0.16), M.steelB), W / 2 + 0.08, 2.3, -0.55);
+  const pn = gauge(g, W / 2 + 0.17, 2.4, -0.55, Math.PI / 2);
+  // inner glow light
+  const lamp = new THREE.PointLight(0xff6a20, 0, 4, 2); lamp.position.set(0, y0 + 1.4, 0); g.add(lamp);
+  updaters.push((dt, s, p, t) => {
+    // cart motion + door
+    let cx = LDX, doorUp = 0, Tc = 25;
+    if (s === 1) {
+      const m = clamp01(p / 0.22);
+      doorUp = p < 0.25 ? clamp01(p / 0.06) : 1 - clamp01((p - 0.25) / 0.06);
+      cx = LDX + (DBX - 0.2 - LDX) * sm(m);
+      // recipe: 25→200→400→600 °C over the burnout part of the stage
+      const q = clamp01((p - 0.3) / 0.65);
+      Tc = q < 0.25 ? 25 + 175 * q / 0.25 : q < 0.7 ? 200 + 200 * (q - 0.25) / 0.45 : 400 + 200 * (q - 0.7) / 0.3;
+      if (p < 0.3) Tc = 25;
+    } else if (RANK[s] > RANK[1]) { cx = DBX - 0.2; Tc = 25; }
+    cart.g.position.x = cx;
+    door.position.y = y0 + H / 2 + doorUp * (H + 0.2);
+    hMat.emissive.copy(heatColor(Tc + 150));
+    lamp.intensity = Tc > 300 ? (Tc - 300) / 300 * 3.5 : 0;
+    pn.rotation.z = s === 1 && p > 0.3 ? -0.5 + 0.06 * Math.sin(t * 3) : 0;
+    // chips darken slightly as binder leaves (visual cue only)
+    const k = s === 1 ? clamp01((p - 0.3) / 0.65) : RANK[s] > RANK[1] ? 1 : 0;
+    if (k !== cart.k) {
+      cart.k = k;
+      const c = GREEN_C.clone().lerp(DEB_C, k);
+      for (let i = 0; i < cart.n; i++) cart.chips.setColorAt(i, c);
+      cart.chips.instanceColor.needsUpdate = true;
+    }
+    if (Math.floor(t * 6) !== hm.t.userData.f) {
+      hm.t.userData.f = Math.floor(t * 6);
+      const x = hm.c.getContext('2d');
+      x.fillStyle = '#071521'; x.fillRect(0, 0, 256, 128);
+      x.fillStyle = '#7fc7ff'; x.font = 'bold 15px system-ui'; x.fillText('DEBIND · 1차', 12, 22);
+      x.fillStyle = s === 1 && p > 0.3 ? '#ffb547' : '#4b6a80'; x.font = 'bold 13px system-ui'; x.fillText(s === 1 && p > 0.3 ? 'RUN' : 'STANDBY', 180, 22);
+      x.fillStyle = '#e9eef3'; x.font = 'bold 26px system-ui'; x.fillText(`${Math.round(Tc)} °C`, 12, 62);
+      x.fillStyle = '#9db0c2'; x.font = '12px system-ui'; x.fillText('위키 프로파일 200–600 °C 구간', 12, 88);
+      x.strokeStyle = '#2b4a60'; x.lineWidth = 8; x.beginPath(); x.moveTo(12, 110); x.lineTo(244, 110); x.stroke();
+      x.strokeStyle = '#ffb547'; x.beginPath(); x.moveTo(12, 110); x.lineTo(12 + 232 * clamp01((Tc - 25) / 575), 110); x.stroke();
+      hm.t.needsUpdate = true;
+    }
+  });
+  return { g, roofIn: V(DBX - 0.6, y0 + H + 0.05, -0.5), roofOut: V(DBX + 0.9, y0 + H + 0.05, -0.55) };
+})();
+
+(() => { // atmosphere gas cylinders (g) + exhaust: water-cooled tar trap → exhaust-gas combustor [orist-debind-2021]
+  const cx = DBX + 2.6, cz = -3.6;
+  const g = new THREE.Group(); g.position.set(cx, 0, cz); scene.add(g);
+  put(g, mk(box(1.2, 0.06, 0.5), M.dark), 0, 0.03, 0);
+  [[-0.38, M.paintBlue], [0, M.paintBlue], [0.38, M.green]].forEach(([dx, mat]) => {
+    put(g, mk(cyl(0.15, 0.15, 1.45, 24), mat), dx, 0.78, 0);
+    put(g, mk(new THREE.SphereGeometry(0.15, 20, 10, 0, FULL, 0, Math.PI / 2), mat), dx, 1.5, 0);
+    put(g, mk(cyl(0.04, 0.04, 0.14, 10), M.steelB), dx, 1.7, 0);
+  });
+  put(g, mk(box(1.3, 0.05, 0.05), M.steelB), 0, 1.15, 0.2);
+  put(g, mk(box(0.25, 0.3, 0.12), M.steelB), 0.75, 1.5, 0);
+  gauge(g, 0.75, 1.75, 0.07);
+  makePipe([V(cx + 0.75, 1.35, cz), V(cx + 0.75, 3.6, cz), V(debind.roofIn.x, 3.6, cz), V(debind.roofIn.x, 3.6, debind.roofIn.z), debind.roofIn.clone()],
+    { stages: [1], r: 0.035, mat: M.air, speed: 1.4, valveAt: 0.1 });
+  const ax = DBX + 0.9, az = -4.2, tz = -2.7;
+  // tar trap: vessel with cooling-water coil, drain cock
+  const tr = new THREE.Group(); tr.position.set(ax, 0, tz); scene.add(tr);
+  put(tr, mk(cyl(0.26, 0.26, 1.0, 28), M.steelB), 0, 1.0, 0);
+  put(tr, mk(cyl(0.29, 0.29, 0.05, 28), M.steel), 0, 1.52, 0);
+  for (let k = 0; k < 4; k++) put(tr, mk(new THREE.TorusGeometry(0.272, 0.022, 6, 28), M.paintBlue), 0, 0.64 + k * 0.24, 0).rotation.x = Math.PI / 2;
+  for (let k = 0; k < 3; k++) { const a = k / 3 * FULL; put(tr, mk(box(0.05, 0.5, 0.05), M.steelB), Math.cos(a) * 0.2, 0.25, Math.sin(a) * 0.2); }
+  put(tr, mk(cyl(0.05, 0.03, 0.14, 12), M.dark), 0, 0.43, 0);
+  // exhaust-gas combustor (afterburner) + stack
+  const a = new THREE.Group(); a.position.set(ax, 0, az); scene.add(a);
+  put(a, mk(box(1.1, 0.1, 1.1), M.dark), 0, 0.05, 0);
+  put(a, mk(cyl(0.45, 0.45, 2.0, 32), M.steelB), 0, 1.1, 0);
+  put(a, mk(cyl(0.18, 0.18, 4.0, 20), M.steelB), 0, 4.1, 0);
+  put(a, mk(new THREE.TorusGeometry(0.46, 0.03, 8, 32), M.steelB), 0, 2.1, 0).rotation.x = Math.PI / 2;
+  put(a, mk(box(0.3, 0.3, 0.3), M.red), 0.5, 0.6, 0);                               // burner
+  const fl = put(a, mk(cyl(0.11, 0.11, 0.08, 20), std({ color: 0xffa040, emissive: 0xff7a20, emissiveIntensity: 0 }), false), 0, 1.4, 0.455);
+  fl.rotation.x = Math.PI / 2;
+  makePipe([debind.roofOut.clone(), V(ax, 3.4, debind.roofOut.z), V(ax, 3.4, tz), V(ax, 1.55, tz)],
+    { stages: [1], r: 0.09, mat: M.smoke, speed: 1.0, valveAt: null });
+  makePipe([V(ax, 0.75, tz - 0.26), V(ax, 0.75, az + 0.45)], { stages: [1], r: 0.07, mat: M.smoke, speed: 0.8, valveAt: null });
+  updaters.push((dt, s, p, t) => { fl.material.emissiveIntensity = s === 1 && p > 0.3 ? 1.6 + 0.4 * Math.sin(t * 17) : 0; });
+})();
+
+/* -- S9: continuous mesh-belt furnace for the 2nd binder burnout [hengli-3dincites-2026] -- */
+const BL0 = -34.6, BL1 = -20.8, BM0 = -33.4, BM1 = -22.0, BY = 1.0;   // belt ends, muffle ends, belt top
+const beltF = (() => {
+  const g = new THREE.Group(); scene.add(g);
+  const L = BM1 - BM0, xm = (BM0 + BM1) / 2, IW = 1.2, IH = 0.5, OW = 1.9, wallT = (OW - IW) / 2, roofT = 0.28;
+  const yB = 0.74, yF = BY - 0.2, yTi = BY + IH, BLEN = BL1 - BL0, DR = (BY - 0.5) / 2;
+  const muf = std({ color: 0x9aa1a7, metalness: 0.75, roughness: 0.42 }), body = M.paint;
+  // woven mesh belt: top run through the muffle, return run under the body
+  const c = document.createElement('canvas'); c.width = c.height = 32; const x2 = c.getContext('2d');
+  x2.fillStyle = '#6f777e'; x2.fillRect(0, 0, 32, 32); x2.strokeStyle = '#cfd5da'; x2.lineWidth = 2;
+  for (let i = 0; i <= 32; i += 8) { x2.beginPath(); x2.moveTo(i, 0); x2.lineTo(i, 32); x2.stroke(); }
+  for (const yy of [0, 16]) { x2.beginPath(); x2.moveTo(0, yy); x2.lineTo(32, yy); x2.stroke(); }
+  const tex = new THREE.CanvasTexture(c); tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.colorSpace = THREE.SRGBColorSpace; tex.repeat.set(BLEN * 4, 4);
+  const beltMat = std({ map: tex, metalness: 0.55, roughness: 0.5 });
+  put(g, mk(box(BLEN, 0.016, 1.0), beltMat), (BL0 + BL1) / 2, BY - 0.008, 0);
+  put(g, mk(box(BLEN, 0.016, 1.0), beltMat, false), (BL0 + BL1) / 2, 0.508, 0);
+  // drums: idler at the entry, drive drum + geared motor at the exit
+  for (const xd of [BL0, BL1]) {
+    const dg = new THREE.Group(); dg.position.set(xd, BY - DR, 0); g.add(dg);
+    put(dg, mk(along(cyl(DR, DR, 1.04, 24), 'z'), M.steelB), 0, 0, 0);
+    for (let k = 0; k < 3; k++) put(dg, mk(box(DR * 1.8, 0.04, 0.03), M.dark), 0, 0, 0.53).rotation.z = k / 3 * Math.PI;
+    rotors.push({ obj: dg, axis: 'z', run: [9], w: -1.6, cur: 0 });
+    for (const sz of [-0.62, 0.62]) {
+      put(g, mk(box(0.22, 0.2, 0.12), M.dark), xd, BY - DR, sz);
+      put(g, mk(box(0.1, BY - DR - 0.1, 0.1), M.steelB), xd, (BY - DR - 0.1) / 2, sz);
+    }
+  }
+  put(g, mk(box(0.3, 0.3, 0.26), M.motorG), BL1, BY - DR, 0.82);
+  const dmo = hMotor(0.42, 0.13); dmo.rotation.y = Math.PI / 2; dmo.position.set(BL1, BY - DR, 1.18); g.add(dmo);
+  // automatic take-up (tension) roller with hanging weight, and a tracking (steering) roller + edge sensor
+  const tu = new THREE.Group(); tu.position.set(BL0 + 0.8, 0, 0); g.add(tu);
+  put(tu, mk(along(cyl(0.06, 0.06, 1.06, 16), 'z'), M.steel), 0, 0.44, 0);
+  for (const sz of [-0.56, 0.56]) put(tu, mk(box(0.04, 0.3, 0.04), M.steelB), 0, 0.3, sz);
+  const wt = put(tu, mk(box(0.24, 0.22, 1.2), M.dark), 0, 0.12, 0);
+  const st = new THREE.Group(); st.position.set(BL1 - 1.2, 0.44, 0); g.add(st);
+  put(st, mk(along(cyl(0.06, 0.06, 1.06, 16), 'z'), M.steel), 0, 0, 0);
+  put(st, mk(box(0.08, 0.08, 1.2), M.paintBlue), 0, -0.1, 0);
+  put(g, mk(box(0.14, 0.1, 0.1), M.paintBlue), BL1 - 1.7, 0.5, 0.6);
+  const eLed = put(g, mk(new THREE.SphereGeometry(0.02, 8, 6), std({ color: 0xffb0a0, emissive: 0xff3a20, emissiveIntensity: 0.2 }), false), BL1 - 1.7, 0.5, 0.66);
+  // load / unload sections: side guides + legs; body legs (instanced)
+  for (const [a, b] of [[BL0 + 0.1, BM0], [BM1, BL1 - 0.1]]) for (const sz of [-0.53, 0.53])
+    put(g, mk(box(b - a, 0.06, 0.04), M.steelB), (a + b) / 2, BY + 0.02, sz);
+  const lp = [];
+  for (let x = BM0 + 0.3; x < BM1; x += 1.6) for (const sz of [-0.85, 0.85]) lp.push([x, yB, sz]);
+  for (const x of [BL0 + 0.45, BM0 - 0.25, BM1 + 0.25, BL1 - 0.45]) for (const sz of [-0.58, 0.58]) lp.push([x, BY - 0.04, sz]);
+  const legs = inst(box(0.1, 1, 0.1), M.steelB, lp.length, g);
+  lp.forEach(([x, h, sz], i) => setM(legs, i, x, h / 2, sz, 1, h, 1));
+  // furnace body around the metal muffle; front wall / roof half removed in cutaway
+  put(g, mk(box(L, yF - yB, OW), body), xm, (yB + yF) / 2, 0);
+  const wallH = yTi - yF;
+  put(g, mk(box(L, wallH, wallT), [body, body, body, body, muf, body]), xm, yF + wallH / 2, -IW / 2 - wallT / 2);
+  put(g, mk(box(L, roofT, OW / 2), [body, body, body, muf, body, body]), xm, yTi + roofT / 2, -OW / 4);
+  fullParts.push(put(g, mk(box(L, roofT, OW / 2), [body, body, body, muf, body, body]), xm, yTi + roofT / 2, OW / 4));
+  fullParts.push(put(g, mk(box(L, wallH, wallT), [body, body, body, body, body, muf]), xm, yF + wallH / 2, IW / 2 + wallT / 2));
+  cutParts.push(put(g, mk(box(L, 0.1, wallT), body), xm, yF + 0.05, IW / 2 + wallT / 2));
+  put(g, mk(box(L, 0.02, IW), muf, false), xm, yF + 0.01, 0);
+  // end walls above the belt opening + N2 curtain hoods (g)
+  for (const [xe, dx] of [[BM0, -1], [BM1, 1]]) {
+    const top = yTi + roofT, oh = BY + 0.34;
+    put(g, mk(box(0.08, top - oh, OW), body), xe, (top + oh) / 2, 0);
+    put(g, mk(box(0.5, 0.16, OW + 0.1), M.steelB), xe + dx * 0.25, oh + 0.08, 0);
+    put(g, mk(box(0.04, 0.05, IW), M.dark), xe + dx * 0.42, oh - 0.02, 0);
+  }
+  // heating panels above and below the belt, 3 zones; zone bands outside
+  const hpm = std({ color: 0x4a4038, emissive: heatColor(650), emissiveIntensity: 0.4, roughness: 0.6 });
+  const NZ = 3, Lz = L / NZ;
+  // (top panels drawn over the back half only, so the cutaway shows the load under them)
+  const hp = inst(box(Lz - 0.3, 0.025, IW - 0.12), hpm, NZ * 2, g); hp.castShadow = false;
+  for (let k = 0; k < NZ; k++) { const zx = BM0 + Lz * (k + 0.5); setM(hp, 2 * k, zx, yTi - 0.03, -(IW - 0.12) / 4, 1, 1, 0.5); setM(hp, 2 * k + 1, zx, yF + 0.05, 0); }
+  for (let k = 1; k < NZ; k++) put(g, mk(box(0.08, yTi + roofT - yB + 0.02, OW + 0.04), M.dark), BM0 + Lz * k, (yTi + roofT + yB) / 2, 0);
+  // exhaust duct (g) + gas inlets on the roof
+  const exX = BM0 + 1.2;
+  makePipe([V(exX, yTi + roofT, -0.45), V(exX, 3.3, -0.45), V(exX, 3.3, -3.0), V(exX, 4.8, -3.0)], { stages: [9], r: 0.08, mat: M.smoke, speed: 1.0, valveAt: null });
+  put(scene, mk(cyl(0.16, 0.16, 0.12, 20), M.steelB), exX, yTi + roofT + 0.06, -0.45);
+  // gas / analyser cabinet (O2 + H2 monitors, furnace pressure) and humidifier tank behind the furnace
+  const cabX = xm + 2.4, cabZ = -2.4, huX = xm - 0.6;
+  put(g, mk(box(1.3, 1.9, 0.55), M.paint), cabX, 0.95, cabZ);
+  const hm = hmiCanvas(256, 160);
+  put(g, mk(box(0.9, 0.58, 0.04), M.dark), cabX - 0.1, 1.45, cabZ + 0.29);
+  put(g, new THREE.Mesh(new THREE.PlaneGeometry(0.84, 0.52), hm.mat), cabX - 0.1, 1.45, cabZ + 0.315);
+  gauge(g, cabX + 0.45, 1.5, cabZ + 0.3);
+  const leds = [];
+  for (let k = 0; k < 4; k++) leds.push(put(g, mk(cyl(0.035, 0.035, 0.03, 14), std({ color: 0x9cffb0, emissive: 0x3cff6a, emissiveIntensity: 0.2 }), false), cabX - 0.45 + k * 0.2, 0.95, cabZ + 0.29));
+  leds.forEach((l) => { l.rotation.x = Math.PI / 2; });
+  const hu = new THREE.Group(); hu.position.set(huX, 0, cabZ); g.add(hu);
+  put(hu, mk(cyl(0.28, 0.28, 0.9, 32), M.steel), 0, 0.85, 0);
+  put(hu, mk(cyl(0.3, 0.3, 0.05, 32), M.steelB), 0, 1.32, 0);
+  for (let k = 0; k < 3; k++) { const a = k / 3 * FULL; put(hu, mk(box(0.05, 0.42, 0.05), M.steelB), Math.cos(a) * 0.22, 0.21, Math.sin(a) * 0.22); }
+  put(hu, mk(box(0.18, 0.16, 0.12), M.paint), 0.32, 1.0, 0.1);
+  makePipe([V(huX, 1.35, cabZ), V(huX, 2.1, cabZ), V(cabX - 0.4, 2.1, cabZ), V(cabX - 0.4, 1.9, cabZ)], { stages: [9], r: 0.025, mat: M.bubble, speed: 1.0, valveAt: null });
+  [BM0 + 1.9, xm, BM1 - 1.9].forEach((zx, k) => {
+    const ox = cabX + 0.3 - k * 0.2, yy = 2.45 + k * 0.14, zl = -0.2 - k * 0.12;
+    makePipe([V(ox, 1.9, cabZ), V(ox, yy, cabZ), V(ox, yy, zl), V(zx, yy, zl), V(zx, yTi + roofT + 0.02, zl)], { stages: [9], r: 0.03, mat: M.flow, speed: 1.6, valveAt: null });
+    put(scene, mk(cyl(0.06, 0.06, 0.1, 14), M.steelB), zx, yTi + roofT + 0.05, zl);
+  });
+  // setter stacks riding the belt (2 tiers)
+  const NB = 13, PB = BLEN / NB, stk = stackFlow(NB, 2, 0.16, false), col = new THREE.Color();
+  let off = 0, v = 0.12;
+  updaters.push((dt, s, p, t) => {
+    const on = s === 9;
+    v += ((on ? 0.32 : 0.1) - v) * Math.min(1, dt * 1.5);
+    off += v * dt; tex.offset.x = -off * 4;
+    for (let i = 0; i < NB; i++) {
+      const xx = BL0 + 0.45 + ((i * PB + off) % (BLEN - 0.9));
+      col.copy(DEB_C).lerp(DEB2_C, clamp01((xx - BM0) / L));
+      stk.place(i, xx, BY, 1, col, false);
+    }
+    stk.commit();
+    hpm.emissiveIntensity = on ? 1.1 + 0.1 * Math.sin(t * 4) : 0.35;
+    wt.position.y = 0.12 + (on ? 0.02 * Math.sin(t * 1.7) : 0);
+    st.rotation.y = on ? 0.05 * Math.sin(t * 0.9) : 0;
+    eLed.material.emissiveIntensity = on && Math.sin(t * 0.9) > 0.6 ? 1.6 : 0.2;
+    leds.forEach((l, k) => { l.material.emissiveIntensity = on ? 0.9 + 0.5 * Math.sin(t * 3 + k) : 0.2; });
+    if (Math.floor(t * 4) !== hm.t.userData.f) {
+      hm.t.userData.f = Math.floor(t * 4);
+      const x = hm.c.getContext('2d');
+      x.fillStyle = '#071521'; x.fillRect(0, 0, 256, 160);
+      x.fillStyle = '#7fc7ff'; x.font = 'bold 14px system-ui'; x.fillText('BELT FURNACE · 2차 탈바인더', 10, 20);
+      const rows = ['O₂ 모니터', 'H₂ 모니터', '자동 가습', '로압 모니터', '벨트 트래킹·장력'];
+      rows.forEach((r, k) => {
+        const y = 44 + k * 23;
+        x.fillStyle = on ? '#e9eef3' : '#6f8294'; x.font = '12px system-ui'; x.fillText(r, 12, y);
+        x.fillStyle = on ? '#3cff6a' : '#2b4a60'; x.beginPath(); x.arc(118, y - 4, 5, 0, 7); x.fill();
+        x.fillStyle = '#2b4a60'; x.fillRect(132, y - 9, 110, 8);
+        if (on) { x.fillStyle = '#ffb547'; x.fillRect(132, y - 9, 110 * (0.55 + 0.25 * Math.sin(t * 1.3 + k * 1.7)), 8); }
+      });
+      x.fillStyle = '#9db0c2'; x.font = '10px system-ui'; x.fillText('설정값은 출처에 없음 · 상태만 표시', 10, 154);
+      hm.t.needsUpdate = true;
+    }
+  });
+  return { xm, yTop: yTi + roofT, cabX, cabZ, huX };
+})();
+
+/* -- S2–S7 (+ S11/S12 feed): continuous tunnel kiln — pusher plates or roller hearth -- */
+const KX0 = -10, KX1 = 22, KL = KX1 - KX0, KC = (KX0 + KX1) / 2;
+const FLOOR_Y = 1.3, TUN_H = 0.8, TUN_W = 1.2, OUT_W = 2.5, ROOF_T = 0.6;
+// Zone temperatures along the tunnel — shape follows the wiki profile; positions are schematic.
+const TPTS = [[-14, 25], [KX0, 120], [-8, 600], [-3, 1100], [-1.5, 1250], [5, 1250], [10, 1000], [15, 1000], [KX1, 120], [26, 25]];
+function Tat(x) {
+  if (x <= TPTS[0][0]) return TPTS[0][1];
+  for (let i = 1; i < TPTS.length; i++) if (x <= TPTS[i][0]) {
+    const [x0, y0] = TPTS[i - 1], [x1, y1] = TPTS[i]; return y0 + (y1 - y0) * (x - x0) / (x1 - x0);
+  }
+  return TPTS[TPTS.length - 1][1];
+}
+const ZONES = [
+  { name: '예열 존', x0: KX0, x1: -3, stage: 2 }, { name: '피크 존', x0: -3, x1: 5, stage: 3 },
+  { name: '서랭 존', x0: 5, x1: 10, stage: 5 }, { name: '재산화 존', x0: 10, x1: 15, stage: 6 }, { name: '냉각 존', x0: 15, x1: KX1, stage: 7 }];
+
+const kiln = (() => {
+  const g = new THREE.Group(); scene.add(g);
+  const yTop = FLOOR_Y + TUN_H, wallT = (OUT_W - TUN_W) / 2;
+  // steel frame (instanced posts + cross beams), floor legs
+  const fx = []; for (let x = KX0; x <= KX1 + 0.01; x += 2) fx.push(x);
+  const ph = yTop + ROOF_T + 0.2;
+  const posts = inst(box(0.14, 1, 0.14), M.steelB, fx.length * 2, g), beams = inst(box(0.14, 0.14, OUT_W + 0.3), M.steelB, fx.length, g);
+  fx.forEach((x, i) => { setM(posts, 2 * i, x, ph / 2, -OUT_W / 2 - 0.08, 1, ph, 1); setM(posts, 2 * i + 1, x, ph / 2, OUT_W / 2 + 0.08, 1, ph, 1); setM(beams, i, x, yTop + ROOF_T + 0.15, 0); });
+  for (const sz of [-OUT_W / 2 - 0.08, OUT_W / 2 + 0.08]) put(g, mk(box(KL, 0.12, 0.12), M.steelB), KC, 0.75, sz);
+  const lx = []; for (let x = KX0 + 0.5; x < KX1; x += 1.6) lx.push(x);
+  const legs = inst(box(0.2, 0.8, 0.2), M.dark, lx.length * 2, g);
+  lx.forEach((x, i) => { setM(legs, 2 * i, x, 0.4, -0.9); setM(legs, 2 * i + 1, x, 0.4, 0.9); });
+  // floor block (hearth)
+  put(g, mk(box(KL, FLOOR_Y - 0.8, OUT_W), [M.shell, M.shell, refr, M.shell, M.shell, M.shell]), KC, (FLOOR_Y + 0.8) / 2, 0);
+  // back wall
+  put(g, mk(box(KL, TUN_H, wallT), [M.shell, M.shell, M.shell, M.shell, refr, M.shell]), KC, FLOOR_Y + TUN_H / 2, -TUN_W / 2 - wallT / 2);
+  // roof: back half always; front half only in full mode
+  put(g, mk(box(KL, ROOF_T, OUT_W / 2), [M.shell, M.shell, M.shell, refr, refr, M.shell]), KC, yTop + ROOF_T / 2, -OUT_W / 4);
+  fullParts.push(put(g, mk(box(KL, ROOF_T, OUT_W / 2), [M.shell, M.shell, M.shell, refr, M.shell, M.shell]), KC, yTop + ROOF_T / 2, OUT_W / 4));
+  // front wall: full / cutaway sill
+  fullParts.push(put(g, mk(box(KL, TUN_H, wallT), [M.shell, M.shell, M.shell, M.shell, M.shell, refr]), KC, FLOOR_Y + TUN_H / 2, TUN_W / 2 + wallT / 2));
+  cutParts.push(put(g, mk(box(KL, 0.12, wallT), [M.shell, M.shell, refr, M.shell, M.shell, M.shell]), KC, FLOOR_Y + 0.06, TUN_W / 2 + wallT / 2));
+  // zone glow panels on the back inner wall + zone bands outside + thermocouple heads
+  const glow = [], tcs = [];
+  for (const Z of ZONES) {
+    const xm = (Z.x0 + Z.x1) / 2, L = Z.x1 - Z.x0;
+    const Tm = Tat(xm);
+    const gm = std({ color: 0x3a3028, emissive: heatColor(Tm), emissiveIntensity: Tm > 450 ? 1.1 : 0, roughness: 0.9 });
+    put(g, mk(new THREE.PlaneGeometry(L - 0.1, TUN_H - 0.1), gm, false), xm, FLOOR_Y + TUN_H / 2, -TUN_W / 2 + 0.005);
+    glow.push({ Z, gm, base: Tm > 450 ? 1.1 : 0 });
+    for (const xb of [Z.x0, Z.x1]) put(g, mk(box(0.1, yTop + ROOF_T - 0.75, OUT_W + 0.04), M.dark), xb, (yTop + ROOF_T + 0.8) / 2, 0);
+    for (let x = Z.x0 + 0.8; x < Z.x1 - 0.3; x += 2.2) tcs.push(x);
+  }
+  const tcr = inst(cyl(0.02, 0.02, 0.5, 8), M.steel, tcs.length, g), tch = inst(box(0.1, 0.08, 0.08), M.paint, tcs.length, g);
+  tcs.forEach((x, i) => { setM(tcr, i, x, yTop + ROOF_T + 0.1, -0.85); setM(tch, i, x, yTop + ROOF_T + 0.38, -0.85); });
+  // heating elements across the tunnel, above and below the load (instanced per glow colour)
+  const hgrp = new Map();
+  for (let x = KX0 + 0.4; x < 15; x += 0.55) {
+    const T = Tat(x); if (T < 300) continue;
+    const key = Math.round((T + 60) / 50) * 50;
+    if (!hgrp.has(key)) hgrp.set(key, []);
+    hgrp.get(key).push(x);
+  }
+  const gUp = along(cyl(0.045, 0.045, TUN_W + 0.1, 10), 'z'), gLo = along(cyl(0.025, 0.025, TUN_W - 0.1, 10), 'z');
+  for (const [key, xs] of hgrp) {
+    const up = inst(gUp, heatMat(key), xs.length, g), lo = inst(gLo, heatMat(key), xs.length, g);
+    up.castShadow = lo.castShadow = false;
+    xs.forEach((x, i) => { setM(up, i, x, yTop - 0.12, 0); setM(lo, i, x + 0.27, FLOOR_Y + 0.07, 0); });
+  }
+  // pusher route: hearth rails the base plates slide on
+  const rails = [-0.3, 0.3].map((sz) => put(g, mk(box(KL + 8, 0.05, 0.06), std({ color: 0x9b958b, roughness: 0.7 })), KC + 0.5, FLOOR_Y + 0.14, sz));
+  // roller-hearth route: ceramic rollers through the side walls + drive housing on the back side
+  const RY = FLOOR_Y + 0.13, RZ = -0.15, rollX = [];
+  for (let x = KX0 - 0.3; x <= KX1 + 0.3; x += 0.3) if (fx.every((f) => Math.abs(f - x) > 0.12)) rollX.push(x);
+  const rollers = inst(along(cyl(0.035, 0.035, OUT_W + 0.3, 8), 'z'), std({ color: 0xece6da, roughness: 0.55 }), rollX.length, g);
+  rollers.castShadow = false;
+  const spin = (a) => { rollX.forEach((x, i) => setM(rollers, i, x, RY, RZ, 1, 1, 1, -a)); rollers.instanceMatrix.needsUpdate = true; };
+  spin(0);
+  const drive = new THREE.Group(); g.add(drive);
+  put(drive, mk(box(KL + 0.8, 0.24, 0.24), M.paintBlue), KC, RY, -OUT_W / 2 - 0.42);
+  const rdm = hMotor(0.5, 0.15); rdm.position.set(KX0 - 0.5, RY + 0.36, -OUT_W / 2 - 0.42); drive.add(rdm);
+  put(drive, mk(box(0.42, 0.3, 0.32), M.motorG), KX0 - 0.1, RY + 0.06, -OUT_W / 2 - 0.42);
+  // cooling water jacket pipes on the cooling zone (g)
+  const wj = inst(along(cyl(0.035, 0.035, 6.4, 12), 'x'), M.paintBlue, 6, g); let wk = 0;
+  for (const sz of [-OUT_W / 2 - 0.02, OUT_W / 2 + 0.02]) for (let k = 0; k < 3; k++) setM(wj, wk++, 18.5, FLOOR_Y + 0.15 + k * 0.28, sz);
+  // cooling fans on top of final zone
+  for (const x of [17, 20]) {
+    put(g, mk(cyl(0.4, 0.4, 0.3, 28, true), M.steelB), x, yTop + ROOF_T + 0.15, -0.6);
+    fan(g, 0.36, x, yTop + ROOF_T + 0.2, -0.6, 'y', [7], 14);
+    const fm = vMotor(0.5); fm.position.set(x, yTop + ROOF_T + 0.3, -0.6); g.add(fm);
+  }
+  // entrance/exit hoods (gas curtain, g) + exhaust stack at entrance
+  for (const [x, dx] of [[KX0, -0.5], [KX1, 0.5]]) {
+    put(g, mk(box(1.0, 0.25, OUT_W + 0.2), M.steelB), x + dx * 0.8, yTop + 0.2, 0);
+    put(g, mk(box(0.06, 0.5, TUN_W + 0.3), M.dark), x + dx, yTop - 0.05, 0);
+  }
+  put(g, mk(cyl(0.16, 0.16, 5.0, 20), M.steelB), KX0 + 0.6, yTop + ROOF_T + 2.5, -0.7);
+  // interior point lights (no shadows)
+  const lamps = [];
+  for (const [x, Z] of [[-6, 0], [1, 1], [7.5, 2], [12.5, 3]]) {
+    const L = new THREE.PointLight(heatColor(Tat(x)), 0, 6, 2); L.position.set(x, FLOOR_Y + 0.45, 0); g.add(L); lamps.push({ L, Z, T: Tat(x) });
+  }
+  updaters.push((dt, s, p, t) => {
+    for (const q of glow) {
+      const act = q.Z.stage === s || (s === 4 && q.Z.stage === 3);
+      q.gm.emissiveIntensity = q.base * (act ? 1.5 + 0.15 * Math.sin(t * 4) : 1);
+    }
+    for (const q of lamps) {
+      const act = ZONES[q.Z].stage === s || (s === 4 && q.Z === 1);
+      const base = q.T > 450 ? (q.T - 450) / 800 * 4 : 0;
+      q.L.intensity = cutaway ? base * (act ? 1.8 : 0.9) : 0;
+    }
+  });
+  return { yTop, rails, rollers, drive, spin };
+})();
+
+/* setter stacks moving through the kiln: pusher steps or continuous rollers */
+const conveyor = (() => {
+  const XS = -14.6, XE = 25.6, LEN = XE - XS, PITCH = 0.9, N = Math.round(LEN / PITCH), PER = 2.0, MOVE = 0.35;
+  // entrance + exit roller conveyors (instanced rollers and legs)
+  const rx = [], lxs = [];
+  for (const [a, b] of [[XS - 0.4, KX0 - 0.6], [KX1 + 0.6, XE + 0.4]]) {
+    const L = b - a, xm = (a + b) / 2;
+    for (const sz of [-0.62, 0.62]) put(scene, mk(box(L, 0.12, 0.06), M.steelB), xm, FLOOR_Y + 0.05, sz);
+    for (let x = a + 0.15; x < b; x += 0.3) rx.push(x);
+    for (let x = a + 0.2; x < b; x += 1.5) lxs.push(x);
+  }
+  const rl = inst(along(cyl(0.04, 0.04, 1.2, 12), 'z'), M.steel, rx.length); rx.forEach((x, i) => setM(rl, i, x, FLOOR_Y + 0.1, 0));
+  const lg = inst(box(0.08, FLOOR_Y, 0.08), M.steelB, lxs.length * 2);
+  lxs.forEach((x, i) => { setM(lg, 2 * i, x, FLOOR_Y / 2, -0.6); setM(lg, 2 * i + 1, x, FLOOR_Y / 2, 0.6); });
+  // hydraulic pusher at the entrance (pusher route only)
+  const pg = new THREE.Group(); pg.position.set(XS - 2.4, FLOOR_Y + 0.25, 0); scene.add(pg);
+  put(pg, mk(along(cyl(0.16, 0.16, 1.4, 24), 'x'), M.red), 0, 0, 0);
+  put(pg, mk(along(cyl(0.2, 0.2, 0.08, 24), 'x'), M.steelB), -0.7, 0, 0);
+  put(pg, mk(along(cyl(0.2, 0.2, 0.08, 24), 'x'), M.steelB), 0.7, 0, 0);
+  put(pg, mk(box(1.6, FLOOR_Y + 0.1, 0.5), M.dark), 0, -(FLOOR_Y + 0.1) / 2 - 0.1, 0);
+  const rod = put(pg, mk(along(cyl(0.05, 0.05, 1.2, 14), 'x'), M.steel), 1.2, 0, 0);
+  const plate = put(pg, mk(box(0.06, 0.25, 0.8), M.steelB), 1.8, -0.1, 0);
+  put(pg, mk(box(0.5, 0.4, 0.4), M.green), -0.2, -0.65, 0.6);                       // hydraulic power unit
+  const stk = stackFlow(N, 3, 0.16, true), col = new THREE.Color();
+  // per-x chip state: shrinkage factor (0 green → 1 fully sintered ~12 % linear) & colour
+  const fireK = (x) => clamp01((x - (-3.5)) / 6.0);
+  updaters.push((dt, s, p, t) => {
+    let off, ext = 0;
+    if (kilnType === 'pusher') {
+      const cyc = t / PER, fr = cyc - Math.floor(cyc), mv = sm(clamp01(fr / MOVE));
+      off = PITCH * (Math.floor(cyc) + mv);
+      ext = fr < MOVE ? mv : 1 - sm(clamp01((fr - MOVE) / 0.3));
+    } else {
+      off = PITCH * t / PER;
+      kiln.spin(off / 0.035);
+    }
+    rod.position.x = 1.2 + ext * 0.7; plate.position.x = 1.8 + ext * 0.7;
+    for (let i = 0; i < N; i++) {
+      const x = XS + ((i * PITCH + off) % LEN), k = fireK(x);
+      col.copy(DEB2_C).lerp(FIRED_C, k);
+      stk.place(i, x, FLOOR_Y + 0.165, 1 - 0.12 * k, col, x > 24.2);
+    }
+    stk.commit();
+  });
+  return { XS, XE, pusher: pg };
+})();
+function setKilnType(type) {
+  kilnType = type;
+  const r = type === 'rhk';
+  kiln.rails.forEach((m) => { m.visible = !r; });
+  kiln.rollers.visible = r; kiln.drive.visible = r;
+  conveyor.pusher.visible = !r;
+}
+setKilnType(FLOW.find((e) => e.fork === 'kiln').def);
+
+/* -- S4: atmosphere control skid (N2 / H2 / H2O, MFCs, ZrO2 sensor, controller) -- */
+const SKZ = -4.4;
+const dm2 = new THREE.Object3D();
+const skid = (() => {
+  const g = new THREE.Group(); scene.add(g);
+  put(g, mk(box(9.2, 0.08, 2.4), M.dark), 2.8, 0.04, SKZ - 0.6);
+  // H2 cylinder bundle (g)
+  const hb = new THREE.Group(); hb.position.set(-0.6, 0, SKZ); g.add(hb);
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) {
+    put(hb, mk(cyl(0.14, 0.14, 1.5, 22), M.red), -0.3 + i * 0.3, 0.84, -0.15 + j * 0.3);
+    put(hb, mk(new THREE.SphereGeometry(0.14, 18, 8, 0, FULL, 0, Math.PI / 2), M.red), -0.3 + i * 0.3, 1.59, -0.15 + j * 0.3);
+  }
+  for (const y of [0.4, 1.3]) put(hb, mk(box(1.0, 0.06, 0.7), M.steelB), 0, y, 0);
+  for (const sx of [-0.5, 0.5]) for (const sz of [-0.35, 0.35]) put(hb, mk(box(0.06, 1.9, 0.06), M.steelB), sx, 0.95, sz);
+  put(hb, mk(box(1.0, 0.08, 0.08), M.steelB), 0, 1.85, 0.3);
+  gauge(hb, 0.3, 1.98, 0.32);
+  // N2 storage tank with ambient vaporizer (g)
+  const nt = new THREE.Group(); nt.position.set(1.4, 0, -6.8); g.add(nt);
+  put(nt, mk(cyl(0.7, 0.7, 3.6, 40), M.paint), 0, 2.5, 0);
+  put(nt, mk(new THREE.SphereGeometry(0.7, 40, 12, 0, FULL, 0, Math.PI / 2), M.paint), 0, 4.3, 0).scale.y = 0.4;
+  for (let k = 0; k < 4; k++) { const a = k / 4 * FULL + 0.4; put(nt, mk(box(0.1, 0.9, 0.1), M.steelB), Math.cos(a) * 0.6, 0.45, Math.sin(a) * 0.6); }
+  for (let k = 0; k < 6; k++) put(nt, mk(box(0.06, 2.4, 0.4), M.steel), 1.2 + k * 0.16, 1.3, 0);
+  // humidifier (bubbler) for H2O injection — cut-away vessel with water + bubbles
+  const hx = 3.0, hz = SKZ;
+  const hu = new THREE.Group(); hu.position.set(hx, 0, hz); g.add(hu);
+  pair(hu, (s, l) => cyl(0.38, 0.38, 1.1, 48, true, s, l), CUT_CYL, M.steel, M.steelIn, V(0, 1.15, 0));
+  put(hu, mk(cyl(0.4, 0.4, 0.06, 40), M.steelB), 0, 1.73, 0);
+  put(hu, mk(cyl(0.4, 0.4, 0.06, 40), M.steelB), 0, 0.57, 0);
+  for (let k = 0; k < 3; k++) { const a = k / 3 * FULL; put(hu, mk(box(0.06, 0.6, 0.06), M.steelB), Math.cos(a) * 0.33, 0.3, Math.sin(a) * 0.33); }
+  put(hu, mk(cyl(0.36, 0.36, 0.75, 40, true, CUT_CYL, CUT_TL), M.water, false), 0, 0.98, 0);
+  const wc = put(hu, new THREE.Mesh(new THREE.CircleGeometry(0.36, 40, -Math.PI / 4, CUT_TL), M.water), 0, 1.355, 0); wc.rotation.x = -Math.PI / 2;
+  put(hu, mk(cyl(0.02, 0.02, 1.0, 8), M.steel), 0, 1.25, 0);                          // dip tube
+  put(hu, mk(box(0.2, 0.18, 0.12), M.paint), 0.42, 1.5, 0.1);                         // heater/thermostat box
+  const bn = 40, bub = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 10, 8), M.bubble, bn);
+  bub.instanceMatrix.setUsage(THREE.DynamicDrawUsage); bub.frustumCulled = false; hu.add(bub);
+  const bsd = Array.from({ length: bn }, () => ({ y: Math.random(), a: Math.random() * FULL, r: Math.random() * 0.12, s: 0.015 + Math.random() * 0.02 }));
+  // MFC panel
+  const mx = 4.7;
+  const mp = new THREE.Group(); mp.position.set(mx, 0, SKZ); g.add(mp);
+  put(mp, mk(box(1.3, 2.0, 0.08), M.paint), 0, 1.25, -0.2);
+  for (const sx of [-0.6, 0.6]) put(mp, mk(box(0.06, 2.3, 0.06), M.steelB), sx, 1.15, -0.25);
+  const mfcScreens = [];
+  const MFC_NAMES = ['N₂', 'H₂', 'N₂+H₂O', '재산화'];
+  for (let k = 0; k < 4; k++) {
+    const y = 0.7 + k * 0.42;
+    put(mp, mk(box(0.18, 0.24, 0.16), M.steelB), -0.25, y, -0.08);
+    put(mp, mk(box(0.24, 0.16, 0.06), M.dark), 0.08, y, -0.12);
+    const sc = put(mp, mk(new THREE.PlaneGeometry(0.18, 0.08), M.screen.clone(), false), 0.08, y, -0.088);
+    mfcScreens.push(sc);
+    put(mp, mk(along(cyl(0.025, 0.025, 1.1, 10), 'x'), M.steel), 0, y - 0.13, -0.08);
+  }
+  // control cabinet + HMI (kiln PO2 & zone setpoints)
+  const cx = 6.6;
+  put(g, mk(box(1.2, 2.0, 0.6), M.paint), cx, 1.0, SKZ);
+  put(g, mk(box(0.02, 1.8, 0.01), M.dark), cx, 1.0, SKZ + 0.305);
+  for (let k = 0; k < 3; k++) put(g, mk(cyl(0.035, 0.035, 0.03, 14), [M.green, M.yellow, M.red][k]), cx - 0.3 + k * 0.15, 0.5, SKZ + 0.31).rotation.x = Math.PI / 2;
+  const hm = hmiCanvas(320, 200);
+  put(g, mk(box(0.95, 0.6, 0.04), M.dark), cx, 1.45, SKZ + 0.32);
+  put(g, new THREE.Mesh(new THREE.PlaneGeometry(0.88, 0.55), hm.mat), cx, 1.45, SKZ + 0.345);
+  // ZrO2 oxygen sensor probe through the kiln roof in the peak zone + cable to cabinet
+  const sx = 1.2, yR = kiln.yTop + ROOF_T;
+  put(scene, mk(cyl(0.035, 0.035, ROOF_T + 0.45, 12), std({ color: 0xe8e0cc, roughness: 0.6 })), sx, yR - (ROOF_T + 0.45) / 2 + 0.1, -0.35);
+  const tip = put(scene, mk(new THREE.SphereGeometry(0.045, 12, 10), std({ color: 0xffd0a0, emissive: 0xff7a20, emissiveIntensity: 1.2 }), false), sx, kiln.yTop - 0.33, -0.35);
+  put(scene, mk(box(0.22, 0.18, 0.22), M.paintBlue), sx, yR + 0.2, -0.35);
+  put(scene, mk(cyl(0.05, 0.05, 0.08, 14), M.steelB), sx, yR + 0.33, -0.35);
+  const cable = new THREE.CatmullRomCurve3([V(sx, yR + 0.33, -0.35), V(sx + 0.5, yR + 0.9, -0.9), V(sx + 3.0, yR + 0.9, -2.0), V(cx - 0.2, 2.6, SKZ - 0.1), V(cx - 0.2, 2.0, SKZ - 0.1)]);
+  put(scene, mk(new THREE.TubeGeometry(cable, 80, 0.025, 8, false), M.rubber), 0, 0, 0);
+  // supply lines to the MFC panel
+  makePipe([V(-0.6, 1.95, SKZ), V(-0.6, 2.5, SKZ), V(mx - 0.25, 2.5, SKZ), V(mx - 0.25, 1.98, SKZ - 0.08)], { stages: [4], r: 0.03, mat: M.flow, speed: 1.2, valveAt: 0.3 });
+  makePipe([V(1.4, 0.5, -6.1), V(1.4, 0.5, SKZ - 0.75), V(hx, 0.5, SKZ - 0.75), V(hx, 0.5, hz - 0.6), V(hx, 2.1, hz - 0.6), V(hx, 2.1, hz), V(hx, 1.76, hz)], { stages: [4], r: 0.03, mat: M.air, speed: 1.2, valveAt: 0.15 });
+  makePipe([V(1.4, 0.5, -6.1), V(1.4, 0.25, -6.1), V(mx - 0.25, 0.25, -6.1), V(mx - 0.25, 0.25, SKZ - 0.08), V(mx - 0.25, 0.57, SKZ - 0.08)], { stages: [4], r: 0.03, mat: M.air, speed: 1.2, valveAt: 0.5 });
+  makePipe([V(hx + 0.2, 1.76, hz), V(hx + 0.2, 2.3, hz), V(mx - 0.25, 2.3, hz), V(mx - 0.25, 2.3, hz - 0.08), V(mx - 0.25, 1.4, hz - 0.08)], { stages: [4], r: 0.025, mat: M.bubble, speed: 1.2, valveAt: null });
+  // dew-point sensor on the humidified line ("automatic oxygen and dew point control" [hengli-3dincites-2026])
+  put(scene, mk(cyl(0.022, 0.022, 0.2, 10), M.steel), hx + 0.85, 2.38, hz);
+  put(scene, mk(box(0.18, 0.16, 0.12), M.paintBlue), hx + 0.85, 2.55, hz);
+  const dpl = put(scene, mk(new THREE.SphereGeometry(0.025, 10, 8), std({ color: 0x9cffb0, emissive: 0x3cff6a, emissiveIntensity: 0.2 }), false), hx + 0.85, 2.55, hz + 0.065);
+  // MFC → kiln zone inlets (preheat, peak, cooldown, re-ox)
+  const targets = [[-6.0, [2, 4]], [0.5, [3, 4]], [7.5, [5, 4]], [12.5, [6, 4]]];
+  targets.forEach(([zx, st], k) => {
+    const ox = mx + 0.6, y = 3.55 + k * 0.16, zl = -0.15 - k * 0.12, oy = 0.7 + k * 0.42 - 0.13;
+    makePipe([V(ox, oy, SKZ - 0.08), V(ox + 0.2 + k * 0.08, oy, SKZ - 0.08), V(ox + 0.2 + k * 0.08, y, SKZ - 0.08), V(ox + 0.2 + k * 0.08, y, zl), V(zx, y, zl), V(zx, yR + 0.02, zl)],
+      { stages: st, r: 0.035, mat: k === 3 ? M.air : M.flow, speed: 1.8, valveAt: null });
+    put(scene, mk(cyl(0.07, 0.07, 0.12, 14), M.steelB), zx, yR + 0.06, zl);
+  });
+  updaters.push((dt, s, p, t) => {
+    const on = s === 4 || s === 3 || s === 2;
+    bub.visible = true;
+    for (let i = 0; i < bn; i++) {
+      const q = bsd[i]; q.y = (q.y + dt * (on ? 0.8 : 0.12)) % 1;
+      dm2.position.set(q.r * Math.cos(q.a), 0.62 + q.y * 0.72, q.r * Math.sin(q.a)); dm2.scale.setScalar(q.s); dm2.updateMatrix(); bub.setMatrixAt(i, dm2.matrix);
+    }
+    bub.instanceMatrix.needsUpdate = true;
+    tip.material.emissiveIntensity = s === 4 ? 1.6 + 0.6 * Math.sin(t * 6) : 1.0;
+    dpl.material.emissiveIntensity = s === 4 && Math.sin(t * 4) > 0 ? 1.6 : 0.2;
+    mfcScreens.forEach((m, k) => { m.material.emissiveIntensity = (s === 4 || (k === 3 && s === 6) || (k < 3 && (s === 2 || s === 3))) ? 1.2 + 0.3 * Math.sin(t * 5 + k) : 0.5; });
+    if (Math.floor(t * 4) !== hm.t.userData.f) {
+      hm.t.userData.f = Math.floor(t * 4);
+      const x = hm.c.getContext('2d');
+      x.fillStyle = '#071521'; x.fillRect(0, 0, 320, 200);
+      x.fillStyle = '#7fc7ff'; x.font = 'bold 15px system-ui'; x.fillText(`${kilnType === 'rhk' ? 'ROLLER HEARTH' : 'PUSHER'} KILN · PO₂ 폐루프`, 10, 20);
+      // log PO2 window bar, 1e-6 … 1e-14
+      const X = (e) => 20 + (-6 - e) / 8 * 280;
+      x.fillStyle = 'rgba(255,90,70,.35)'; x.fillRect(X(-6), 34, X(-9) - X(-6), 22);
+      x.fillStyle = 'rgba(80,200,120,.35)'; x.fillRect(X(-9), 34, X(-12) - X(-9), 22);
+      x.fillStyle = 'rgba(90,140,255,.35)'; x.fillRect(X(-12), 34, X(-14) - X(-12), 22);
+      x.fillStyle = 'rgba(255,181,71,.9)'; x.fillRect(X(-10), 34, X(-11) - X(-10), 22);
+      x.fillStyle = '#9db0c2'; x.font = '11px system-ui';
+      for (const e of [-6, -8, -9, -10, -11, -12, -14]) x.fillText(`1e${e}`, X(e) - 12, 70);
+      x.fillText('Ni→NiO', X(-6) + 4, 49); x.fillText('BaTiO₃ 환원', X(-12) + 2, 49);
+      x.fillStyle = '#e9eef3'; x.fillText('설정 10⁻¹⁰–10⁻¹¹ atm · ±0.1 decade (1300 °C 기준 창)', 10, 90);
+      // zone setpoints from the wiki profile
+      const rows = [['예열', '600→1100 °C', 2], ['피크', '1250 °C', 3], ['서랭', '1250→1000 °C', 5], ['재산화', '900–1100 °C', 6], ['냉각', '1000→25 °C', 7]];
+      rows.forEach(([n, v, st], k) => {
+        const y = 112 + k * 17, act = st === s || (s === 4 && st === 3);
+        x.fillStyle = act ? '#ffb547' : '#9db0c2'; x.font = (act ? 'bold ' : '') + '12px system-ui';
+        x.fillText(n, 14, y); x.fillText(v, 80, y);
+        x.fillStyle = act ? '#ffb547' : '#2b4a60'; x.fillRect(200, y - 9, act ? 90 * (0.6 + 0.4 * Math.abs(Math.sin(t * 2))) : 90, 8);
+      });
+      hm.t.needsUpdate = true;
+    }
+  });
+  return {};
+})();
+
+/* -- S10: unload station — de-stacking head, vibrating sieve over the bin, empty-setter return (all (g): no source found) -- */
+(() => {
+  const ux = 24.6;
+  const g = new THREE.Group(); g.position.set(ux, 0, 0); scene.add(g);
+  for (const sx of [-0.9, 0.9]) for (const sz of [-1.0, 1.6]) put(g, mk(box(0.12, 3.0, 0.12), M.yellow), sx, 1.5, sz);
+  for (const sz of [-1.0, 1.6]) put(g, mk(box(1.92, 0.14, 0.14), M.yellow), 0, 3.0, sz);
+  const head = new THREE.Group(); g.add(head);
+  put(head, mk(box(0.12, 0.12, 2.74), M.dark), 0, 2.92, 0.3);
+  const car = put(head, mk(box(0.3, 0.3, 0.3), M.paint), 0, 2.72, 0);
+  const tube = put(head, mk(cyl(0.03, 0.03, 0.9, 10), M.steel), 0, 2.15, 0);
+  const cup = put(head, mk(cyl(0.08, 0.05, 0.08, 16), M.rubber), 0, 1.68, 0);
+  // collection bin + vibrating sieve deck on spring mounts above it
+  put(g, mk(box(0.8, 0.6, 0.6), M.paintBlue), 0, 0.3, 1.5);
+  put(g, mk(box(0.72, 0.02, 0.52), std({ color: 0x8c857a, roughness: 0.7 })), 0, 0.58, 1.5);
+  for (const sx of [-0.5, 0.5]) for (const sz of [-0.4, 0.4]) {
+    put(g, mk(box(0.05, 0.88, 0.05), M.steelB), sx, 0.44, 1.5 + sz);
+    put(g, mk(cyl(0.035, 0.035, 0.08, 10), M.yellow), sx, 0.92, 1.5 + sz);
+  }
+  const c = document.createElement('canvas'); c.width = c.height = 16; const x2 = c.getContext('2d');
+  x2.fillStyle = '#3a4046'; x2.fillRect(0, 0, 16, 16); x2.fillStyle = '#b9c1c8'; x2.fillRect(0, 0, 16, 3); x2.fillRect(0, 0, 3, 16);
+  const st = new THREE.CanvasTexture(c); st.wrapS = st.wrapT = THREE.RepeatWrapping; st.repeat.set(14, 12); st.colorSpace = THREE.SRGBColorSpace;
+  const sieve = new THREE.Group(); sieve.position.set(0, 1.0, 1.5); g.add(sieve);
+  put(sieve, mk(box(1.0, 0.012, 0.84), std({ map: st, metalness: 0.6, roughness: 0.4 })), 0, 0, 0);
+  for (const sz of [-0.42, 0.42]) put(sieve, mk(box(1.0, 0.1, 0.03), M.steelB), 0, 0.05, sz);
+  for (const sx of [-0.5, 0.5]) put(sieve, mk(box(0.03, 0.1, 0.84), M.steelB), sx, 0.05, 0);
+  put(sieve, mk(box(0.22, 0.14, 0.16), M.motorG), 0.62, -0.02, 0);                       // vibration motor
+  // empty-setter return conveyor behind the station
+  const RZ = -2.3, ra = -1.6, rb = 1.4;
+  for (const sz of [-0.55, 0.55]) put(g, mk(box(rb - ra, 0.08, 0.05), M.steelB), (ra + rb) / 2, 0.66, RZ + sz);
+  const rr = []; for (let x = ra + 0.1; x < rb; x += 0.25) rr.push(x);
+  const rri = inst(along(cyl(0.035, 0.035, 1.1, 10), 'z'), M.steel, rr.length, g); rr.forEach((x, i) => setM(rri, i, x, 0.66, RZ));
+  const rlg = inst(box(0.06, 0.64, 0.06), M.steelB, 4, g);
+  [[ra + 0.2, -0.55], [ra + 0.2, 0.55], [rb - 0.2, -0.55], [rb - 0.2, 0.55]].forEach(([x, z], i) => setM(rlg, i, x, 0.32, RZ + z));
+  const emp = inst(GEO_SET, M.setter, 3, g);
+  const n = 40, fall = inst(GEO_CHIP, std({ color: 0x8c857a, roughness: 0.6 }), n, g);
+  const sd = Array.from({ length: n }, () => ({ u: Math.random(), dx: (Math.random() - 0.5) * 0.3, dz: (Math.random() - 0.5) * 0.4 }));
+  const dm = new THREE.Object3D();
+  updaters.push((dt, s, p, t) => {
+    const on = s === 10;
+    fall.visible = on;
+    const k = on ? (Math.sin(t * 2.2) * 0.5 + 0.5) : 0;
+    car.position.z = tube.position.z = cup.position.z = k * 1.5;
+    sieve.position.x = on ? 0.012 * Math.sin(t * 45) : 0;
+    for (let i = 0; i < 3; i++) setM(emp, i, rb - 0.4 - (((on ? t * 0.35 : 0) + i / 3) % 1) * (rb - ra - 0.8), 0.72, RZ);
+    emp.instanceMatrix.needsUpdate = true;
+    if (!on) return;
+    for (let i = 0; i < n; i++) {
+      const q = sd[i]; q.u = (q.u + dt * 0.7) % 1;
+      let y, z;
+      if (q.u < 0.75) { const u = q.u / 0.75; z = u * 1.5; y = 1.55 + Math.sin(u * Math.PI) * 0.4 - u * 0.5; }
+      else { const u = (q.u - 0.75) / 0.25; z = 1.5; y = 1.05 - u * 0.45; }
+      dm.position.set(q.dx * 0.4, y, z + q.dz * 0.2); dm.rotation.set(q.u * 6, q.dx * 10, 0); dm.scale.setScalar(0.88); dm.updateMatrix(); fall.setMatrixAt(i, dm.matrix);
+    }
+    fall.instanceMatrix.needsUpdate = true;
+  });
+})();
+
+/* ------------------------------ labels ------------------------------ */
+const stageAnchor = { 0: V(LTX, 3.75, 0), 8: V(LDX - 1.1, 4.3, -0.4), 1: V(DBX, 3.95, 0), 9: V(beltF.xm, 2.7, 0), 11: V(-17.0, 2.7, 0), 12: V(-11.6, 3.5, 0.6),
+  2: V(-6.5, 3.6, 0), 3: V(1, 3.6, 0), 4: V(3.5, 3.45, SKZ), 5: V(7.5, 3.6, 0), 6: V(12.5, 3.6, 0), 7: V(18.5, 3.6, 0), 10: V(24.6, 3.7, 0) };
+const stageTags = STAGES.map((st, i) => label(`<b>${i + 1}</b>${st.name}`, stageAnchor[i], 'tag', i));
+const SUBS = [
+  [0, 'X-Y 분배 헤드 (g)', V(LTX, 2.5, 0.7)], [0, 'ZrO₂ 세터', V(LTX + 0.55, 1.15, 0.75)], [0, '칩 피더 (g)', V(LTX - 1.9, 2.6, -0.4)],
+  [8, '이송 갠트리 (g)', V((LTX + LDX) / 2, 3.85, -1.25)], [8, '승강 그리퍼 (g)', V(LTX + 0.5, 2.3, 0.6)], [8, '세터 + 기둥 스페이서', V(LDX + 0.75, 0.95, 0.6)], [8, '맨 위 빈 세터', V(LDX + 0.5, 1.62, 0.5)],
+  [1, '박스형 배치로', V(DBX, 2.3, 1.2)], [1, '측벽 히터', V(DBX + 0.5, 1.0, -0.8)], [1, '분위기 가스 (g)', V(DBX + 2.6, 2.0, -3.6)], [1, '수랭 타르 트랩', V(DBX + 0.9, 1.85, -2.7)], [1, '배기가스 연소기', V(DBX + 0.9, 2.5, -4.2)], [1, '로압 게이지', V(DBX + 1.65, 2.75, -0.55)],
+  [9, '메시 벨트', V(BL0 + 0.7, BY + 0.35, 0.6)], [9, '머플 · 상하 가열 패널', V(beltF.xm - 2, BY + 0.3, 0.5)], [9, 'O₂·H₂ 모니터 · 로압', V(beltF.cabX, 2.25, beltF.cabZ)], [9, '자동 가습', V(beltF.huX, 1.75, beltF.cabZ)],
+  [9, '구동 드럼 · 모터', V(BL1, 1.25, 0.9)], [9, '자동 장력 롤러', V(BL0 + 0.8, 0.25, 0.75)], [9, '사행 보정 롤러', V(BL1 - 1.2, 0.2, 0.75)], [9, 'N₂ 커튼 (g)', V(BM0 - 0.3, 1.75, 0.7)],
+  [11, '유압 푸셔', V(-17, 2.0, 0)], [11, '받침판 + 3단 세터', V(-13.4, 2.1, 0.6)], [11, '유압 유닛 (g)', V(-17.2, 0.45, 0.9)], [11, '입구 후드 · 커튼 (g)', V(KX0 - 0.4, 2.7, 0.9)],
+  [12, '세라믹 롤러', V(-8.6, 1.55, 0.8)], [12, '롤러 구동부', V(-8.0, 2.0, -1.7)], [12, '아래·위 발열관', V(-7.2, 1.95, 0.5)], [12, '트레이 + 3단 세터', V(-12.6, 2.1, 0.6)],
+  [2, '예열 존 발열체', V(-6.5, 2.0, 0.6)], [2, '존별 가스 인렛', V(-6.0, 3.95, -0.3)],
+  [3, '피크 존 1250 °C', V(1, 2.0, 0.6)], [3, 'ZrO₂ O₂ 센서', V(1.2, 3.4, -0.35)], [3, '칩 (~12 % 수축)', V(3.2, 1.75, 0.5)], [3, 'MoSi₂ 발열체', V(-0.6, 2.15, 0.5)],
+  [4, 'H₂ 실린더 (g)', V(-0.6, 2.3, SKZ)], [4, 'N₂ 탱크 (g)', V(1.4, 5.0, -6.8)], [4, 'H₂O 습윤기', V(3.0, 2.05, SKZ)], [4, '이슬점 센서', V(4.0, 2.3, SKZ + 0.25)], [4, 'MFC', V(4.7, 2.5, SKZ)], [4, '제어반 HMI', V(6.6, 2.2, SKZ + 0.3)], [4, 'ZrO₂ 센서', V(1.2, 3.4, -0.35)],
+  [5, '서랭 존', V(7.5, 2.0, 0.6)],
+  [6, '재산화 존 · PO₂ ↑', V(12.5, 2.0, 0.6)], [6, '재산화 가스 인렛', V(12.5, 4.2, -0.5)],
+  [7, '냉각 팬 (g)', V(17, 3.9, -0.6)], [7, '수랭 자켓 (g)', V(18.5, 1.8, 1.3)],
+  [10, '흡착 디스태커 (g)', V(24.6, 2.6, 0.6)], [10, '진동 체 (g)', V(24.6, 1.3, 2.0)], [10, '회수 통', V(24.6, 0.45, 1.95)], [10, '빈 세터 회수 (g)', V(24.6, 1.05, -2.3)],
+].map(([s, t, p]) => ({ s, el: label(t, p, 'sub') }));
+
+/* ------------------------------ UI ------------------------------ */
+/* ------------------------------ process flow (branches) ------------------------------
+   FLOW lists the steps in process order. A number is a STAGES index. An object
+   { i, label, mark } overrides the list label, or marks the step 'repeat' / 'parallel'.
+   A fork { fork, title, opts: [{ key, label, steps, note, onSelect }], def } is a point where the
+   line splits into alternative routes. Only the chosen option's steps play; an option
+   with no steps skips straight to the step after the fork.
+   STAGES indices never change: the animation code keys on them. */
+const ROUTE = {};
+FLOW.forEach((e) => { if (e.fork) ROUTE[e.fork] = e.def || e.opts[0].key; });
+const asStep = (x) => (typeof x === 'number' ? { i: x } : x);
+let SEQ = [];
+const forkStart = {};
+function buildSeq() {
+  SEQ = [];
+  for (const e of FLOW) {
+    if (!e.fork) { SEQ.push(asStep(e)); continue; }
+    forkStart[e.fork] = SEQ.length;
+    const o = e.opts.find((q) => q.key === ROUTE[e.fork]);
+    o.steps.forEach((x) => SEQ.push({ ...asStep(x), fork: e, opt: o }));
+  }
+}
+buildSeq();
+
+const ol = document.getElementById('stages');
+let seqBtns = [];
+function stepButton(step, n, onClick) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  const mk = step.mark === 'repeat' ? '<span class="mk">↻ 반복</span>' : step.mark === 'parallel' ? '<span class="mk">∥ 병행</span>' : '';
+  b.innerHTML = `<span class="n">${n}</span><span style="flex:1">${step.label || STAGES[step.i].name}${mk}<div class="bar"></div></span>`;
+  b.addEventListener('click', onClick);
+  return b;
+}
+function renderFlow() {
+  ol.innerHTML = ''; seqBtns = [];
+  let k = 0;
+  for (const e of FLOW) {
+    const li = document.createElement('li');
+    if (!e.fork) {
+      const kk = k++;
+      const b = stepButton(asStep(e), kk + 1, () => jumpK(kk));
+      seqBtns[kk] = b; li.appendChild(b); ol.appendChild(li); continue;
+    }
+    li.className = 'fork';
+    const head = document.createElement('div'); head.className = 'fork-head';
+    head.innerHTML = `<span class="fk">⑂ ${e.title}</span>`;
+    const seg = document.createElement('div'); seg.className = 'seg';
+    seg.setAttribute('role', 'radiogroup'); seg.setAttribute('aria-label', e.title);
+    for (const o of e.opts) {
+      const sb = document.createElement('button');
+      sb.type = 'button'; sb.textContent = o.label; sb.setAttribute('role', 'radio');
+      sb.setAttribute('aria-checked', String(ROUTE[e.fork] === o.key));
+      sb.addEventListener('click', () => { if (ROUTE[e.fork] !== o.key) setRoute(e.fork, o.key); });
+      seg.appendChild(sb);
+    }
+    head.appendChild(seg); li.appendChild(head);
+    for (const o of e.opts) {
+      const on = ROUTE[e.fork] === o.key;
+      const box = document.createElement('div'); box.className = `opt ${on ? 'on' : 'off'}`;
+      const lab = document.createElement('div'); lab.className = 'opt-label'; lab.textContent = o.label; box.appendChild(lab);
+      if (!o.steps.length) {
+        const sk = document.createElement('div'); sk.className = 'skip';
+        sk.textContent = o.note || '이 경로에서는 해당 단계를 거치지 않습니다.'; box.appendChild(sk);
+      }
+      for (const x of o.steps) {
+        const st = asStep(x);
+        if (on) { const kk = k++; const b = stepButton(st, kk + 1, () => jumpK(kk)); seqBtns[kk] = b; box.appendChild(b); }
+        else box.appendChild(stepButton(st, '·', () => setRoute(e.fork, o.key, st.i)));
+      }
+      li.appendChild(box);
+    }
+    ol.appendChild(li);
+  }
+  // 3D stage tags: number by the active route, fade stations the route skips.
+  const num = new Map();
+  SEQ.forEach((q, n) => { if (!num.has(q.i)) num.set(q.i, n + 1); });
+  stageTags.forEach((el, i) => {
+    el.classList.toggle('off', !num.has(i));
+    const b = el.querySelector('b'); if (b) b.textContent = num.has(i) ? num.get(i) : '·';
+  });
+}
+let curK = 0, lastK = -1;
+function jumpK(k) {
+  curK = ((k % SEQ.length) + SEQ.length) % SEQ.length;
+  simT = curK * STAGE_DUR + 0.01; lastK = -1;
+}
+function setRoute(fid, key, focus = null) {
+  ROUTE[fid] = key; buildSeq(); renderFlow();
+  const opt = FLOW.find((e) => e.fork === fid).opts.find((q) => q.key === key);
+  if (opt.onSelect) opt.onSelect();     // e.g. swap equipment shown for this route
+  let k = focus === null ? -1 : SEQ.findIndex((q) => q.i === focus);
+  if (k < 0) k = forkStart[fid];          // first step of the chosen option, or the step after the fork
+  jumpK(k);
+}
+// Jump by STAGES index (3D tag clicks). A station off the active route switches to its route.
+function jumpTo(i) {
+  const k = SEQ.findIndex((q) => q.i === i);
+  if (k >= 0) { jumpK(k); return; }
+  for (const e of FLOW) if (e.fork) for (const o of e.opts) {
+    if (o.steps.some((x) => asStep(x).i === i)) { setRoute(e.fork, o.key, i); return; }
+  }
+}
+renderFlow();
+const info = document.getElementById('info');
+if (window.innerHeight < 720 || window.innerWidth < 820) info.classList.add('collapsed');
+function renderInfo(k) {
+  const q = SEQ[k], st = STAGES[q.i];
+  info.innerHTML = `
+    <div class="head"><div><div class="kicker">STEP ${k + 1} / ${SEQ.length}${q.opt ? ` · ${q.fork.title}: ${q.opt.label}` : ''} · ${st.en}</div>
+    <h2>${q.label || st.name}</h2></div><button class="fold" id="fold">${info.classList.contains('collapsed') ? '펼치기' : '접기'}</button></div>
+    <div class="body">
+    <p>${st.desc}</p>
+    <h3>설비</h3><ul>${st.equip.map((e) => `<li>${e}</li>`).join('')}</ul>
+    <h3>공정 조건 (문헌 예)</h3><ul>${st.params.map((e) => `<li>${e}</li>`).join('')}</ul>
+    ${st.warn ? `<div class="warn">⚠ ${st.warn}</div>` : ''}
+    <h3>칩 단면 변화 (모식도)</h3>
+    <div class="canvas-wrap"><canvas id="micro" width="600" height="250"></canvas>
+      <div class="cap" id="microCap"></div></div>
+    <h3>소성 온도·PO₂ 프로파일 (문헌값)</h3>
+    <div class="canvas-wrap"><canvas id="chart" width="600" height="320"></canvas>
+      <div class="cap">온도·속도 ${SP} ${BB}, PO₂ ${AT} ${RO}. 가로축은 구간 순서만 나타내며 시간 비례가 아님. 1차·2차 탈바인더를 400 °C에서 나눈 것은 모식 (g). 빨간 점선은 1300 °C 기준 PO₂ 창. 서랭 구간 PO₂는 위키에 수치가 없어 비움.</div></div>
+    <div class="foot">출처 키는 두 종류입니다. 위키 페이지 이름(<code>wiki/concepts/binder-burnout-debinding.md</code>, <code>sintering-profile-mlcc.md</code>, <code>bme-sintering-atmosphere.md</code>, <code>re-oxidation-anneal.md</code>, <code>mlcc-manufacturing-process.md</code>, <code>wiki/queries/mlcc-process-substeps-and-equipment.md</code> §8–10)과, 원자료 노트 <code>resources/manufacturing/eq-07-firing.md</code>의 키(특허·설비 업체 페이지·논문)입니다.
+      <span class="g">(g)</span>는 근거를 찾지 못한 일반 관행, <span class="g">(snippet, 미검증)</span>은 검색 요약에서만 본 내용입니다.
+      설비 형상은 특정 제조사 모델이 아닌 대표 구조로 그렸고, 크기 비율은 실제와 다릅니다 (칩은 보이도록 크게 과장, 로 길이·존 길이는 임의, 발열체 색은 시각 효과).</div></div>`;
+  document.getElementById('fold').addEventListener('click', () => {
+    info.classList.toggle('collapsed');
+    document.getElementById('fold').textContent = info.classList.contains('collapsed') ? '펼치기' : '접기';
+  });
+}
+
+let simT = 0.01, playing = true, speed = 1, autoTour = true, cutaway = true, lastStage = -1;
+const playBtn = document.getElementById('play');
+playBtn.addEventListener('click', () => { playing = !playing; playBtn.textContent = playing ? '❚❚ 일시정지' : '▶ 재생'; });
+document.getElementById('speed').addEventListener('change', (e) => { speed = parseFloat(e.target.value); });
+const tourBox = document.getElementById('tour');
+tourBox.addEventListener('change', (e) => { autoTour = e.target.checked; if (autoTour) flyTo(lastStage); });
+document.getElementById('cut').addEventListener('change', (e) => setCut(e.target.checked));
+document.getElementById('overview').addEventListener('click', () => { autoTour = false; tourBox.checked = false; flyToView(OV_POS.clone(), OV_TGT.clone()); });
+function setCut(on) {
+  cutaway = on;
+  cutParts.forEach((m) => { m.visible = on; });
+  fullParts.forEach((m) => { m.visible = !on; });
+  pipeMat.opacity = on ? 0.5 : 1; pipeMat.depthWrite = !on; pipeMat.transparent = on; pipeMat.needsUpdate = true;
+}
+setCut(true);
+
+/* ------------------------------ camera tour ------------------------------ */
+const VIEWS = {
+  0: [V(LTX + 3.4, 4.3, 7.4), V(LTX - 0.2, 1.4, 0)],
+  8: [V(LDX - 2.4, 6.6, 13.8), V(LDX - 1.8, 1.2, 0)],
+  1: [V(DBX + 4.6, 6.2, 10.4), V(DBX + 0.4, 1.4, -1.6)],
+  9: [V(-25.6, 7.6, 15.0), V(-28.2, 0.9, -0.6)],
+  11: [V(-14.0, 5.0, 10.2), V(-14.6, 1.4, 0)],
+  12: [V(-5.8, 3.8, 6.0), V(-9.4, 1.5, 0)],
+  2: [V(-4.2, 4.6, 8.0), V(-7.6, 1.6, 0)],
+  3: [V(4.2, 4.4, 7.4), V(1.0, 1.6, 0)],
+  4: [V(4.8, 9.6, 6.4), V(3.0, 1.2, -4.0)],
+  5: [V(10.4, 4.4, 7.4), V(7.5, 1.6, 0)],
+  6: [V(15.4, 4.4, 7.4), V(12.5, 1.6, 0)],
+  7: [V(21.6, 4.4, 7.4), V(18.5, 1.6, 0)],
+  10: [V(27.8, 4.6, 8.4), V(24.2, 1.3, 0.2)],
+};
+let tween = null;
+const REDUCED = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)').matches : false;
+// Narrow (portrait) screens see less width, so pull the camera back along its view line.
+function viewScale() { const a = camera.aspect; return a < 0.8 ? 1.5 : a < 1.2 ? 1.25 : 1; }
+function flyToView(pos, tgt) {
+  const p1 = tgt.clone().add(pos.clone().sub(tgt).multiplyScalar(viewScale()));
+  tween = { p0: camera.position.clone(), t0: controls.target.clone(), p1, t1: tgt, k: REDUCED ? 1 : 0 };
+}
+function flyTo(i) { if (i < 0) return; flyToView(VIEWS[i][0].clone(), VIEWS[i][1].clone()); }
+controls.addEventListener('start', () => { if (tween) tween = null; if (autoTour) { autoTour = false; tourBox.checked = false; } });
+
+/* ------------------------------ microview (schematic cross-section) ------------------------------ */
+const rng = (() => { let s = 11; return () => (s = (s * 16807) % 2147483647) / 2147483647; })();
+const GR = [];          // dielectric grains: 3 bands × 2 rows
+for (const band of [0.13, 0.5, 0.87]) for (const row of [-0.075, 0.075]) for (let i = 0; i < 17; i++)
+  GR.push({ x: (i + 0.5 + (row > 0 ? 0.5 : 0)) / 17.5, y: band + row, j: (rng() - 0.5) * 0.012, ph: rng() * 6.28 });
+const VAC = Array.from({ length: 34 }, (_, i) => {
+  const gb = i % 2 === 0;   // half sit at grain boundaries / near electrodes, half in grain interiors
+  const g = GR[Math.floor(rng() * GR.length)];
+  return { x: g.x + (gb ? 0.028 : 0.0), y: g.y + (gb ? 0.04 : 0.0), gb, ph: rng() * 6 };
+});
+const GAS = Array.from({ length: 18 }, () => ({ x: rng(), y: rng(), v: 0.3 + rng() * 0.5 }));
+// Micro-view phase per stage: the drawing below keys on 0–7 (green … fired); new stages map onto them.
+const MPH = { 0: 0, 8: 0, 1: 1, 9: 1, 11: 2, 12: 2, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 10: 7 };
+const MSG = {
+  0: '그린 칩: 입자 사이를 바인더가 채움', 8: '그린 칩: 바인더가 그대로 남아 있음',
+  1: '바인더 대부분이 분해되어 가스로 빠져나감', 9: '남은 유기물(잔류 탄소)이 마저 빠져나감 · 입자 골격만 남음',
+  11: '탈바인더가 끝난 칩 · 크기는 그대로', 12: '탈바인더가 끝난 칩 · 크기는 그대로',
+  2: 'Ni 입자가 먼저 치밀화 · 칩 크기는 거의 그대로', 3: '유전체 치밀화(~12 % 수축) · 환원 분위기에서 산소 공공 생성 · 전극 끊김 위험',
+  4: 'PO₂ 창: Ni 금속 유지 ↔ BaTiO₃ 과환원 방지 (1300 °C 기준)', 5: '천천히 냉각 · 공공은 그대로 남음',
+  6: '입계 근처 공공이 먼저 채워짐 · 입내 공공은 일부 잔존', 7: '치밀한 소성 칩 · 냉각 중',
+};
+function drawMicro(s0, p, t) {
+  const cv = document.getElementById('micro'); if (!cv) return;
+  const s = MPH[s0], integ = ROUTE.deb2 === 'kiln';
+  if (s0 === 11 || s0 === 12) p = 0;
+  const x = cv.getContext('2d'), W = cv.width, H = cv.height;
+  x.clearRect(0, 0, W, H);
+  x.fillStyle = '#24282c'; x.fillRect(0, 0, W, H);
+  // densification d: 0 (green) → 1 (≈12 % linear shrink) during peak firing
+  const d = s < 3 ? (s === 2 ? 0.05 * p : 0) : s === 3 ? sm(clamp01(p * 1.3)) : 1;
+  const sc = 1 - 0.12 * d, cx = W / 2, cy = H / 2;
+  const P = (u, v) => [cx + (u * W - cx) * sc, cy + (v * H - cy) * sc];
+  // binder haze
+  const binder = s === 0 ? 1 : s0 === 1 ? 1 - 0.7 * clamp01((p - 0.2) / 0.75) : s0 === 9 ? 0.3 * (1 - clamp01(p / 0.8)) : (s0 === 11 && integ) ? 0.3 : 0;
+  if (binder > 0) {
+    x.fillStyle = `rgba(143,208,255,${0.18 * binder})`; x.fillRect(0, 0, W, H);
+  }
+  // electrodes (Ni)
+  for (const ev of [0.315, 0.685]) {
+    const [, ey] = P(0.5, ev);
+    if (d < 0.3 && s < 3) {
+      const merge = s === 2 ? p : 0;
+      for (let i = 0; i < 46; i++) {
+        const [ex] = P((i + 0.5) / 46, ev);
+        x.fillStyle = '#8f969c'; x.beginPath(); x.arc(ex, ey, 5 + merge * 2, 0, 7); x.fill();
+      }
+    } else {
+      x.fillStyle = '#9aa1a8';
+      const [a] = P(0.02, ev), [b] = P(0.98, ev);
+      x.beginPath(); x.roundRect ? x.roundRect(a, ey - 6, b - a, 12, 6) : x.rect(a, ey - 6, b - a, 12); x.fill();
+      if (s >= 3) { x.fillStyle = '#24282c'; const [g0] = P(0.62, ev); x.fillRect(g0, ey - 7, 9, 14); }
+      x.fillStyle = 'rgba(255,255,255,.75)'; x.font = '15px system-ui'; x.fillText('Ni', a + 4, ey - 9);
+    }
+  }
+  // grains
+  const rr = 13 + 5 * d;
+  for (const g of GR) {
+    const [px, py] = P(g.x, g.y + g.j);
+    x.fillStyle = d > 0.6 ? '#d9cfbb' : '#efe8d8';
+    x.beginPath(); x.arc(px, py, rr, 0, 7); x.fill();
+    x.strokeStyle = 'rgba(0,0,0,.25)'; x.lineWidth = 1; x.stroke();
+  }
+  // binder gas leaving (debinding)
+  if ((s0 === 1 && p > 0.15) || s0 === 9 || (s0 === 11 && integ)) {
+    for (const q of GAS) {
+      const yy = ((q.y - (t * q.v * 0.25)) % 1 + 1) % 1;
+      x.fillStyle = `rgba(200,200,200,${0.5 * (1 - binder * 0.3)})`; x.beginPath(); x.arc(q.x * W, yy * H, 4, 0, 7); x.fill();
+    }
+    x.fillStyle = 'rgba(10,14,18,.85)'; x.fillRect(W - 158, 4, 154, 24); x.fillStyle = '#e9eef3'; x.font = '15px system-ui'; x.fillText('CO · CO₂ · H₂O ↑', W - 150, 22);
+  }
+  // oxygen vacancies (created under reducing firing, partly refilled in re-ox)
+  const vAmt = s < 3 ? 0 : s === 3 ? clamp01(p * 1.4) : 1;
+  if (vAmt > 0) {
+    for (let i = 0; i < VAC.length; i++) {
+      const v = VAC[i];
+      if (i / VAC.length > vAmt) continue;
+      let a = 1;
+      if (v.gb && s === 6) a = 1 - clamp01((p - 0.15) / 0.6);
+      if (v.gb && s === 7 && ROUTE.reox === 'kiln') a = 0;
+      if (a <= 0) continue;
+      const [px, py] = P(v.x, v.y);
+      x.strokeStyle = `rgba(143,208,255,${a})`; x.lineWidth = 2; x.strokeRect(px - 4, py - 4, 8, 8);
+    }
+    x.fillStyle = 'rgba(10,14,18,.85)'; x.fillRect(4, 4, 132, 22);
+    x.fillStyle = '#8fd0ff'; x.font = '14px system-ui'; x.fillText('□ 산소 공공 V_O', 10, 20);
+  }
+  // re-ox: oxygen diffusing in along boundaries
+  if (s === 6) {
+    for (let i = 0; i < VAC.length; i += 2) {
+      const v = VAC[i]; const k = clamp01((p - 0.05 + v.ph * 0.02) / 0.6);
+      if (k >= 1) continue;
+      const [tx, ty] = P(v.x, v.y);
+      const sx = tx + (v.ph > 3 ? 1 : -1) * 60 * (1 - k), sy = ty - 50 * (1 - k);
+      x.fillStyle = '#ff7a6b'; x.beginPath(); x.arc(sx, sy, 4, 0, 7); x.fill();
+    }
+    x.fillStyle = 'rgba(10,14,18,.85)'; x.fillRect(W - 182, 4, 178, 22);
+    x.fillStyle = '#ff9c90'; x.font = '14px system-ui'; x.fillText('● O (입계를 따라 확산)', W - 176, 20);
+  }
+  // PO2 window gauge (atmosphere stage)
+  if (s === 4) {
+    const gx = W - 130, gy = 12, gh = H - 34;
+    x.fillStyle = 'rgba(10,14,18,.88)'; x.fillRect(gx - 8, gy - 6, 134, gh + 14);
+    const Y = (e) => gy + (-6 - e) / 8 * gh;
+    x.fillStyle = 'rgba(255,90,70,.55)'; x.fillRect(gx, Y(-6), 26, Y(-9) - Y(-6));
+    x.fillStyle = 'rgba(80,200,120,.55)'; x.fillRect(gx, Y(-9), 26, Y(-12) - Y(-9));
+    x.fillStyle = 'rgba(90,140,255,.55)'; x.fillRect(gx, Y(-12), 26, Y(-14) - Y(-12));
+    x.fillStyle = '#ffb547'; x.fillRect(gx - 4, Y(-10), 34, Y(-11) - Y(-10));
+    x.fillStyle = '#e9eef3'; x.font = '12px system-ui';
+    x.fillText('Ni → NiO', gx + 32, Y(-7.3)); x.fillText('10⁻⁹', gx + 32, Y(-9) + 4);
+    x.fillText('설정 10⁻¹⁰–¹¹', gx + 32, Y(-10.5) + 4); x.fillText('10⁻¹²', gx + 32, Y(-12) + 4);
+    x.fillText('BaTiO₃ 환원', gx + 32, Y(-13) + 4);
+  }
+  const msg = s0 === 10 ? (ROUTE.reox === 'kiln' ? '치밀한 소성 칩 · 입계 공공 감소 상태로 회수' : '치밀한 소성 칩 · 공공이 남은 채 회수 → 별도 어닐로에서 재산화')
+    : (s0 === 11 && integ) ? '푸셔 앞단에서 남은 유기물 제거 중' : MSG[s0];
+  const cap = document.getElementById('microCap'); if (cap) cap.textContent = `${msg} · 모식도, 축척 없음`;
+}
+
+/* ------------------------------ literature profile chart ------------------------------ */
+// T, rate and PO2 values are only those written in the wiki pages; widths are schematic.
+const SEG = [
+  { T0: 25, T1: 200, w: 0.8, r: '1–3', po: [-4, -4] },
+  { T0: 200, T1: 400, w: 1.3, r: '0.5–1', po: [-4, -4] },
+  { T0: 400, T1: 600, w: 0.8, r: '1–3', po: [-4, -4] },
+  { T0: 600, T1: 1100, w: 0.9, r: '10–30', po: [-8, -10] },
+  { T0: 1100, T1: 1250, w: 0.5, r: '30–60', po: [-10, -12] },
+  { T0: 1250, T1: 1250, w: 1.2, r: '1–2 h', po: [-10, -12] },
+  { T0: 1250, T1: 1000, w: 0.9, r: '5–10', po: null },
+  { T0: 1000, T1: 1000, w: 1.2, r: '1–2 h', po: [-8, -9], band: [900, 1100] },
+  { T0: 1000, T1: 25, w: 1.5, r: '5', po: null, nc: true },
+];
+// 1st burnout → 25–400 °C segments, 2nd → 400–600 °C: the split point is schematic (g); temperatures are the wiki's.
+const STAGE_SEG = { 0: [-1, -1], 8: [-1, -1], 1: [0, 1], 9: [2, 2], 11: [-1, -1], 12: [-1, -1], 2: [3, 3], 3: [4, 5], 4: [5, 5], 5: [6, 6], 6: [7, 7], 7: [8, 8], 10: [8, 8] };
+const segX = []; { let a = 0; for (const s of SEG) { segX.push([a, a + s.w]); a += s.w; } }
+const TOTW = segX[segX.length - 1][1];
+function drawChart(s, p) {
+  const cv = document.getElementById('chart'); if (!cv) return;
+  const x = cv.getContext('2d'), W = cv.width, H = cv.height;
+  x.clearRect(0, 0, W, H);
+  const L = 62, R = W - 14, T0 = 16, T1 = 168, P0 = 200, P1 = 292;
+  const X = (u) => L + u / TOTW * (R - L);
+  const YT = (T) => T1 - T / 1300 * (T1 - T0);
+  const YP = (e) => P0 + (-2 - e) / 11 * (P1 - P0);   // 1e-2 … 1e-13
+  // current stage shading
+  if (s === 10) p = 1;
+  const [a, b] = STAGE_SEG[s];
+  if (a >= 0) { x.fillStyle = 'rgba(255,181,71,.13)'; x.fillRect(X(segX[a][0]), T0, X(segX[b][1]) - X(segX[a][0]), P1 - T0); }
+  // axes / grid
+  x.strokeStyle = 'rgba(255,255,255,.12)'; x.lineWidth = 1; x.fillStyle = '#9db0c2'; x.font = '14px system-ui'; x.textAlign = 'right';
+  for (const T of [0, 400, 800, 1250]) { x.beginPath(); x.moveTo(L, YT(T)); x.lineTo(R, YT(T)); x.stroke(); x.fillText(String(T), L - 6, YT(T) + 5); }
+  for (const e of [-4, -8, -12]) { x.beginPath(); x.moveTo(L, YP(e)); x.lineTo(R, YP(e)); x.stroke(); x.fillText(`1e${e}`, L - 6, YP(e) + 5); }
+  x.save(); x.translate(14, (T0 + T1) / 2); x.rotate(-Math.PI / 2); x.textAlign = 'center'; x.fillText('T (°C)', 0, 0); x.restore();
+  x.save(); x.translate(14, (P0 + P1) / 2); x.rotate(-Math.PI / 2); x.textAlign = 'center'; x.fillText('PO₂ (atm)', 0, 0); x.restore();
+  // re-ox band 900–1100
+  const ro = segX[7];
+  x.fillStyle = 'rgba(143,208,255,.18)'; x.fillRect(X(ro[0]), YT(1100), X(ro[1]) - X(ro[0]), YT(900) - YT(1100));
+  // debind window 200–600 marker
+  x.fillStyle = 'rgba(255,255,255,.05)'; x.fillRect(X(segX[0][1]), T0, X(segX[2][1]) - X(segX[0][1]), T1 - T0);
+  // T profile
+  x.strokeStyle = '#ffb547'; x.lineWidth = 3; x.beginPath();
+  SEG.forEach((g, i) => { if (i === 0) x.moveTo(X(segX[i][0]), YT(g.T0)); x.lineTo(X(segX[i][1]), YT(g.T1)); });
+  x.stroke();
+  // rate labels
+  x.textAlign = 'center'; x.font = '12px system-ui'; x.fillStyle = '#d5dde5';
+  SEG.forEach((g, i) => {
+    const xm = X((segX[i][0] + segX[i][1]) / 2), ym = YT((g.T0 + g.T1) / 2);
+    x.fillText(g.r, xm, ym - 9);
+  });
+  x.font = '11px system-ui'; x.fillStyle = '#9db0c2'; x.fillText('°C/min · 유지 시간', X(1.2), T0 + 12);
+  // PO2 window guides (1300 °C basis) over the peak segments
+  x.setLineDash([5, 4]); x.strokeStyle = 'rgba(255,110,90,.8)'; x.lineWidth = 1.5;
+  for (const e of [-9, -12]) { x.beginPath(); x.moveTo(X(segX[4][0]), YP(e)); x.lineTo(X(segX[5][1]), YP(e)); x.stroke(); }
+  x.setLineDash([]);
+  // PO2 bands
+  SEG.forEach((g, i) => {
+    const [u0, u1] = segX[i];
+    if (g.po) {
+      const [hi, lo] = g.po;
+      if (hi === lo) { x.strokeStyle = '#8fd0ff'; x.lineWidth = 3; x.beginPath(); x.moveTo(X(u0), YP(hi)); x.lineTo(X(u1), YP(hi)); x.stroke(); }
+      else { x.fillStyle = 'rgba(143,208,255,.45)'; x.fillRect(X(u0), YP(hi), X(u1) - X(u0), YP(lo) - YP(hi)); }
+    } else {
+      x.fillStyle = '#6f8294'; x.font = '11px system-ui'; x.textAlign = 'center';
+      x.fillText(g.nc ? '비임계' : '구배', X((u0 + u1) / 2), YP(-7.5));
+    }
+  });
+  x.fillStyle = '#d5dde5'; x.font = '11px system-ui'; x.textAlign = 'center';
+  x.fillText('Ar+1% O₂', X((segX[0][0] + segX[2][1]) / 2), YP(-4) - 6);
+  x.fillText('재산화', X((ro[0] + ro[1]) / 2), YP(-9) + 14);
+  x.fillStyle = '#ff9c90'; x.textAlign = 'left'; x.fillText('Ni/NiO', X(segX[5][1]) + 2, YP(-9) + 4); x.fillText('BT 환원', X(segX[5][1]) + 2, YP(-12) + 4);
+  // moving marker for the current stage
+  let u, Tm;
+  if (a < 0) { u = 0; Tm = 25; }
+  else {
+    u = segX[a][0] + (segX[b][1] - segX[a][0]) * p;
+    let i = a; while (i < b && u > segX[i][1]) i++;
+    const f = (u - segX[i][0]) / (segX[i][1] - segX[i][0]);
+    Tm = SEG[i].T0 + (SEG[i].T1 - SEG[i].T0) * f;
+  }
+  x.strokeStyle = 'rgba(255,255,255,.5)'; x.lineWidth = 1; x.beginPath(); x.moveTo(X(u), T0); x.lineTo(X(u), P1); x.stroke();
+  x.fillStyle = '#fff'; x.beginPath(); x.arc(X(u), YT(Tm), 6, 0, 7); x.fill();
+  x.fillStyle = '#ffb547'; x.beginPath(); x.arc(X(u), YT(Tm), 3.5, 0, 7); x.fill();
+  // x labels
+  x.fillStyle = '#9db0c2'; x.font = '11px system-ui'; x.textAlign = 'center';
+  const names = [['탈바인더', 0, 2], ['예열', 3, 3], ['피크', 4, 5], ['서랭', 6, 6], ['재산화', 7, 7], ['냉각', 8, 8]];
+  for (const [n, i0, i1] of names) x.fillText(n, X((segX[i0][0] + segX[i1][1]) / 2), H - 6 - 0);
+  x.textAlign = 'left';
+}
+
+/* ------------------------------ loop ------------------------------ */
+const clock = new THREE.Clock();
+const dmy = new THREE.Object3D();
+let infoTick = 0;
+function frame() {
+  const dt = Math.min(clock.getDelta(), 0.05);
+  if (playing) simT += dt * speed;
+  const total = simT / STAGE_DUR;
+  const k = Math.floor(total) % SEQ.length, p = total - Math.floor(total), t = simT;
+  const s = SEQ[k].i;
+  if (k !== lastK) {
+    lastK = curK = k; lastStage = s;
+    seqBtns.forEach((b, n) => b.classList.toggle('active', n === k));
+    { // keep the active step visible in the list (horizontal on phones, scrolling panel on short screens)
+      const btn = seqBtns[k], list = document.getElementById('stages'), panel = document.getElementById('left');
+      if (btn) {
+        const br = btn.getBoundingClientRect();
+        if (list.scrollWidth > list.clientWidth + 2) { const lr = list.getBoundingClientRect(); list.scrollTo({ left: list.scrollLeft + br.left - lr.left - (list.clientWidth - br.width) / 2, behavior: 'smooth' }); }
+        if (panel.scrollHeight > panel.clientHeight + 2) { const pr = panel.getBoundingClientRect(); if (br.top < pr.top || br.bottom > pr.bottom) panel.scrollTo({ top: panel.scrollTop + br.top - pr.top - (panel.clientHeight - br.height) / 2, behavior: 'smooth' }); }
+      }
+    }
+    stageTags.forEach((el, i) => el.classList.toggle('active', i === s));
+    SUBS.forEach((q) => q.el.classList.toggle('show', q.s === s));
+    renderInfo(k);
+    if (autoTour) flyTo(s);
+  }
+  seqBtns.forEach((b, n) => { b.querySelector('.bar').style.width = n === k ? `${p * 100}%` : '0'; });
+
+  for (const r of rotors) {
+    const target = r.run.includes(s) ? r.w : r.w * 0.06;
+    r.cur += (target - r.cur) * Math.min(1, dt * 1.5);
+    r.obj.rotation[r.axis] += r.cur * dt;
+  }
+  for (const P of pipes) {
+    const on = P.stages.includes(s);
+    P.inst.visible = on;
+    if (!on) continue;
+    const ns = P.samples.length - 1;
+    for (let i = 0; i < P.n; i++) {
+      const u = (i / P.n + (t * P.speed) / P.len) % 1;
+      const f = u * ns, k = Math.floor(f), a = P.samples[k], b = P.samples[Math.min(ns, k + 1)];
+      dmy.position.lerpVectors(a, b, f - k); dmy.updateMatrix(); P.inst.setMatrixAt(i, dmy.matrix);
+    }
+    P.inst.instanceMatrix.needsUpdate = true;
+  }
+  for (const u of updaters) u(dt, s, p, t);
+
+  if (tween) {
+    tween.k = Math.min(1, tween.k + dt / 2.2);
+    const e = sm(tween.k);
+    camera.position.lerpVectors(tween.p0, tween.p1, e);
+    controls.target.lerpVectors(tween.t0, tween.t1, e);
+    if (tween.k >= 1) tween = null;
+  }
+  infoTick += dt;
+  if (infoTick > 1 / 30) { infoTick = 0; drawMicro(s, p, t); drawChart(s, p); }
+
+  controls.update();
+  renderer.render(scene, camera);
+  labelRenderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight); labelRenderer.setSize(window.innerWidth, window.innerHeight);
+});
+document.getElementById('loading').remove();
+frame();
+</script>
+</body>
+</html>

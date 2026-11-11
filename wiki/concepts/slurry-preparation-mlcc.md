@@ -2,8 +2,9 @@
 title: Dielectric Slurry Preparation (Deagglomeration, Dispersion, Binder)
 type: concept
 created: 2026-11-10
-updated: 2026-11-10
+updated: 2026-11-11
 sources:
+  - resources/manufacturing/eq-02-slurry.md
   - resources/manufacturing/10-powder-and-slurry.md
 tags:
   - paper
@@ -24,6 +25,9 @@ Thin layers are made or lost here. The particle-size tail (D90) and the filter r
 3. **Binder addition**: pre-dissolved (and filtered) binder and plasticizer solution is added, then milled again to dissolve and distribute it.
 4. **High-pressure dispersion** (optional, thin-layer lines): multiple passes through a high-pressure disperser.
 5. **Filtration** through 1–2 µm cartridges, then **de-airing** (standing, or vacuum).
+
+> [!warning] Contradiction: milling order (2026-11-11)
+> The SEMCO patent actually runs **bead mill (passes) → full formulation with binder → basket mill 3–5 h → high-pressure 3–7 passes → 1–2 µm filter** [sem-us7229035]. Murata patents use a ball/bead mill first, then the filtered binder solution, then high-pressure dispersion as the secondary step [murata-us6511564], [murata-us6579394]. A TDK patent applies high pressure to a preliminary slurry holding <10 wt% of the binder, adds the rest, then ball-mills 16 h [tdk-us7744711]. The binder solution is refluxed at 40–100 °C and filtered at ≤2 µm before it is added [murata-us6511564]. Details: [[mlcc-process-equipment-research-notes]].
 
 Two published recipes follow this order: a two-step ball-mill route [yang-2026-pvb] and a SEMCO bead-mill + high-pressure route aimed at active layers of 3 µm or thinner [sem-us7229035]. TDK's patent route pre-grinds for 20 h and filters the binder solution separately before combining [tdk-us7632369].
 
@@ -85,5 +89,6 @@ The 67 vol% figure is **ceramic / (ceramic + binder + plasticizer)** in the drie
 - [[ni-electrode-paste-formulation]]: the same dispersion physics on the electrode side
 
 ## References
+- [[mlcc-process-equipment-research-notes]]
 - [[mlcc-slurry-tape-casting-research-notes]]: source summary for `resources/manufacturing/10-powder-and-slurry.md` and `20-tape-casting.md`
 - [[mistler-twiname-tape-casting-textbook]]

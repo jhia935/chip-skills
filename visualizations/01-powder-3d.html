@@ -1,0 +1,2352 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MLCC 유전체 분말 3D</title>
+<style>
+  :root {
+    --panel: rgba(15, 20, 27, 0.80);
+    --panel-line: rgba(255, 255, 255, 0.12);
+    --text: #e9eef3;
+    --muted: #9db0c2;
+    --accent: #ffb547;
+    --accent-ink: #1d1406;
+    --g: #8fd0ff;
+  }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #1b2229; color: var(--text);
+    font-family: system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; }
+  #scene { position: fixed; inset: 0; }
+  #scene canvas { display: block; }
+  .labels { position: absolute; inset: 0; pointer-events: none; }
+  .tag { pointer-events: auto; cursor: pointer; transform: translateY(-6px);
+    background: rgba(14, 18, 24, 0.84); color: var(--text); border: 1px solid rgba(255,255,255,.2);
+    border-radius: 999px; padding: 4px 10px; font-size: 12px; white-space: nowrap; transition: background .25s, color .25s; }
+  .tag b { color: var(--accent); margin-right: 4px; }
+  .tag.active { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .tag.active b { color: var(--accent-ink); }
+  .sub { pointer-events: none; font-size: 11px; padding: 2px 8px; border-radius: 6px;
+    background: rgba(255,255,255,.88); color: #1d242c; opacity: 0; transition: opacity .3s; white-space: nowrap; }
+  .sub.show { opacity: 1; }
+  .panel { position: fixed; background: var(--panel); border: 1px solid var(--panel-line); border-radius: 12px;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  #left { top: 16px; left: 16px; width: 268px; padding: 14px 14px 12px; }
+  #left h1 { font-size: 15px; margin: 0 0 2px; letter-spacing: -.01em; }
+  #left .sub-h { font-size: 11.5px; color: var(--muted); margin: 0 0 10px; }
+  #stages { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+  #stages button { width: 100%; text-align: left; background: transparent; color: var(--text); border: 0;
+    border-radius: 8px; padding: 6px 8px; font: inherit; font-size: 13px; cursor: pointer; display: flex; gap: 8px; align-items: center; }
+  #stages button:hover { background: rgba(255,255,255,.07); }
+  #stages button.active { background: rgba(255,181,71,.16); color: #fff; }
+  #stages .n { width: 20px; height: 20px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 11px;
+    background: rgba(255,255,255,.1); flex: none; }
+  #stages button.active .n { background: var(--accent); color: var(--accent-ink); }
+  #stages .bar { height: 2px; background: var(--accent); width: 0; border-radius: 2px; margin-top: 2px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; align-items: center; }
+  .controls button, .controls select { background: rgba(255,255,255,.08); color: var(--text); border: 1px solid var(--panel-line);
+    border-radius: 8px; padding: 5px 9px; font: inherit; font-size: 12px; cursor: pointer; }
+  .controls label { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 4px; cursor: pointer; }
+  #info { right: 16px; bottom: 16px; width: 390px; max-height: calc(100vh - 32px); overflow: auto; padding: 16px; box-sizing: border-box; }
+  #info .head { display: flex; justify-content: space-between; align-items: start; gap: 8px; }
+  #info .fold { background: rgba(255,255,255,.08); color: var(--text); border: 1px solid var(--panel-line); border-radius: 8px; padding: 3px 8px; font: inherit; font-size: 11.5px; cursor: pointer; flex: none; }
+  #info.collapsed .body { display: none; }
+  #info.collapsed h2 { margin-bottom: 0; }
+  #info .kicker { font-size: 11px; color: var(--accent); letter-spacing: .06em; text-transform: uppercase; }
+  #info h2 { font-size: 18px; margin: 2px 0 6px; }
+  #info p { font-size: 13px; line-height: 1.55; color: #d5dde5; margin: 0 0 10px; }
+  #info h3 { font-size: 11.5px; color: var(--muted); margin: 12px 0 5px; font-weight: 600; letter-spacing: .03em; }
+  #info ul { margin: 0; padding-left: 16px; font-size: 12.5px; line-height: 1.55; }
+  #info li { margin-bottom: 2px; }
+  #info code { font-size: 11px; color: var(--g); }
+  .g { color: #ffcf8a; font-size: 11px; }
+  .canvas-wrap { margin-top: 8px; background: rgba(0,0,0,.25); border-radius: 8px; padding: 6px; }
+  .canvas-wrap canvas { width: 100%; display: block; }
+  .cap { font-size: 10.5px; color: var(--muted); margin-top: 3px; }
+  .foot { font-size: 10.5px; color: var(--muted); margin-top: 12px; line-height: 1.5; border-top: 1px solid var(--panel-line); padding-top: 8px; }
+  /* process-flow branches */
+  #left { max-height: calc(100vh - 32px); overflow: auto; box-sizing: border-box; }
+  #stages li.fork { display: grid; gap: 3px; margin: 3px 0; padding: 6px 6px 6px 7px;
+    border: 1px dashed rgba(255,255,255,.2); border-radius: 10px; }
+  #stages .fork-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; flex-wrap: wrap; padding: 0 2px 2px; }
+  #stages .fk { font-size: 11.5px; color: var(--muted); font-weight: 600; }
+  #stages .seg { display: inline-flex; background: rgba(255,255,255,.07); border-radius: 999px; padding: 2px; gap: 2px; }
+  #stages .seg button { width: auto; display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 11.5px; color: var(--muted); }
+  #stages .seg button[aria-checked="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  #stages .opt { display: grid; gap: 2px; padding-left: 7px; border-left: 2px solid rgba(255,255,255,.14); }
+  #stages .opt.on { border-left-color: var(--accent); }
+  #stages .opt-label { font-size: 10.5px; color: var(--muted); padding: 1px 0 0 2px; }
+  #stages .opt.off > button { opacity: .45; }
+  #stages .opt.off .n { background: transparent; border: 1px dashed rgba(255,255,255,.3); }
+  #stages .skip { font-size: 11.5px; line-height: 1.45; color: var(--muted); padding: 3px 8px 4px; }
+  #stages .mk { font-size: 10.5px; color: var(--muted); margin-left: 5px; white-space: nowrap; }
+  .tag.off { opacity: .35; }
+  @media (max-width: 820px) {
+    #left { max-height: none; overflow: visible; }
+    #stages li.fork { display: flex; align-items: center; gap: 4px; padding: 3px 5px; margin: 0; }
+    #stages .fork-head { padding: 0; }
+    #stages .fk { display: none; }
+    #stages .opt { display: flex; gap: 4px; border-left: 0; padding-left: 0; }
+    #stages .opt.off, #stages .opt-label { display: none; }
+    #stages .skip { white-space: nowrap; padding: 0 4px; font-size: 11px; max-width: 46vw; overflow: hidden; text-overflow: ellipsis; }
+  }
+  #loading { position: fixed; inset: 0; display: grid; place-items: center; font-size: 14px; color: var(--muted); }
+  @media (max-width: 820px) {
+    #left { left: 8px; right: 8px; top: 8px; width: auto; padding: 10px; }
+    #left .sub-h { display: none; }
+    #stages { display: flex; overflow-x: auto; gap: 4px; }
+    #stages li { flex: none; }
+    #stages button { white-space: nowrap; padding: 5px 8px; }
+    #info { left: 8px; right: 8px; bottom: 8px; width: auto; max-height: 40vh; }
+  }
+</style>
+</head>
+<body>
+<div id="scene"></div>
+<div id="loading">3D 설비 모형을 불러오는 중…</div>
+
+<div id="left" class="panel">
+  <h1>MLCC 유전체 분말 합성·도펀트 코팅</h1>
+  <p class="sub-h">Ti 원료·Ba 투입부터 수열/고상 합성, 건조·하소·해쇄, 도펀트 코팅, 분급·QC·포장까지 설비 3D 모형</p>
+  <ol id="stages"></ol>
+  <div class="controls">
+    <button id="play">❚❚ 일시정지</button>
+    <select id="speed" aria-label="재생 속도">
+      <option value="0.5">0.5×</option>
+      <option value="1" selected>1×</option>
+      <option value="2">2×</option>
+    </select>
+    <button id="overview">전체 보기</button>
+    <label><input type="checkbox" id="tour" checked> 카메라 따라가기</label>
+    <label><input type="checkbox" id="cut" checked> 단면 보기</label>
+  </div>
+</div>
+
+<div id="info" class="panel"></div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+
+/* ------------------------------------------------------------------
+   Stage data — sources:
+   · wiki pages wiki/concepts/batio3-powder-synthesis.md, wiki/concepts/dopant-powder-coating.md,
+     wiki/queries/mlcc-process-substeps-and-equipment.md (§1) — no bibliography keys there,
+     so the page name is used as the key (KB, KD, KQ).
+   · raw notes resources/manufacturing/eq-01-powder.md — patents, equipment-maker pages and
+     papers on the powder line; keys like [us9771274] are defined in that file's Sources table.
+   (g) = general industry practice, not backed by those sources.
+   STAGES indices never change (animation keys on them); the process order lives in FLOW.
+------------------------------------------------------------------- */
+const KB = '<code>[batio3-powder-synthesis]</code>';
+const KD = '<code>[dopant-powder-coating]</code>';
+const KQ = '<code>[mlcc-process-substeps-and-equipment]</code>';
+const K = (...k) => k.map((x) => `<code>[${x}]</code>`).join(' ');
+const G = '<span class="g">(g)</span>';
+const ZB = -5.6;   // z of the back row (solid-state line)
+const STAGES = [
+  { name: '원료 계량·투입 (N₂)', en: 'Charging · N₂ purge', tx: -26.6, cam: [1.2, 5.6, 11.5],
+    desc: 'Ba(OH)₂·8H₂O 결정을 계량해 넣고, Ti 슬러리와 순수를 더합니다. Ba(OH)₂는 공기 중 CO₂와 만나면 BaCO₃가 되므로 용기를 N₂로 치환하고 밀폐합니다. Sakai 예는 별도 용기에서 Ba(OH)₂를 100 °C로 녹인 뒤 Ti 슬러리를 1 h 동안 넣고 2 h 상압 반응(전구체)시켜 오토클레이브로 옮깁니다.',
+    equip: [`Ba(OH)₂·8H₂O 고체 투입·가열 용해 (권장 방식) ${K('us6129903')}`, `빅백 배출기·로드셀 계량 호퍼·스크루 피더 형상 ${G}`, `Ti 슬러리 탱크·이송 펌프 ${G}`, `N₂ 퍼지 후 밀폐 ${K('us6129903')} — 실린더·레귤레이터 패널 형상은 ${G}`, `순수(DI) 탱크 ${G}`],
+    params: [`예: 순수 567 mL + Ba(OH)₂·8H₂O 959 g을 100 °C에서 용해 → Ti 슬러리 1 h 투입 → 100 °C 2 h 상압 전구체 반응, 투입 Ba/Ti 2.3 ${K('us9771274')}`, `Ba/Ti: 용액 투입은 ≥ 1.2, 고체 투입은 ≤ 1.1도 가능 ${K('us6129903')}`, `원료 탄산염 < 0.51 wt%. 탄산염 혼입 원인: 겔 속 CO₂, N₂ 치환 부족, 세척 중 공기 노출 ${K('us6129903')}`, `반응: Ba(OH)₂ + TiO₂·nH₂O → BaTiO₃ + (n+1)H₂O ${KB}`, `최종 분말 목표 Ba/Ti 1.000 ± 0.001 ${KB}`] },
+  { name: '수열 합성', en: 'Hydrothermal autoclave', tx: -22, cam: [3.0, 5.8, 10.5],
+    desc: '밀폐 오토클레이브를 교반하면서 승온 → 유지 → 냉각합니다. 용해–석출로 BaTiO₃가 바로 결정으로 나와 하소를 생략할 수 있습니다. 유지 시간은 문헌마다 20분에서 수일까지 크게 다릅니다.',
+    equip: [`오토클레이브 + 교반기 ${K('us6129903', 'us4643984')}`, `접액부: Ti 반응 용기 ${K('us6129903')} / Hastelloy ${K('us4643984')}`, `수열 오토클레이브 ${KQ}`, `가열 자켓·압력계·안전밸브·보호관·제어반 형상 ${G}`],
+    params: [`Sakai: 160–200 °C × 24–180 h (청구 ≤ 250 °C, ≥ 24 h) → BET 4.9–11.7 m²/g, c/a 1.008–1.010 ${K('us9771274')}`, `Cabot: 약 1.4 °C/min로 200 °C, 20 min 유지, 350 rpm (선호 120–220 °C) → 평균 약 50 nm, 입방정 ${K('us6129903')}`, `Sakai 1984: 90 min에 약 150 °C, 550–600 rpm, 5 h ${K('us4643984')}`, `위키: 100–250 °C, 100 nm 이하·최소 10–15 nm, 단점은 격자 OH⁻·배치 공정·높은 비용 ${KB}`, `유지 시간 차이(20 min vs ≥ 24 h)는 원료·목표 입경이 달라서로 보이나, 출처끼리 직접 비교하지 않음`] },
+  { name: '2차 하소 (새거)', en: 'Main calcination · saggers', tx: 2.0, tz: ZB, cam: [0.4, 8.4, 9.2],
+    desc: '1차 하소 분말을 알루미나 용기(새거)에 담아 더 높은 온도에서 반응을 끝내고 입자를 키웁니다. 온도가 높을수록 입자끼리 붙어 응집이 생기므로 뒤에서 해쇄합니다. 문헌 예는 배치로이며, 연속 롤러 하스 형상은 일반 관행으로 그렸습니다.',
+    equip: [`배치로 + 알루미나 용기 ${K('us20090264276')}`, `상자형 킬른 + 알루미나 새거 (옥살산염 분말) ${K('us5783165')}`, `볼밀 + 하소로 ${KQ}`, `롤러 하스 터널킬른·배기 스택 형상 ${G}`],
+    params: [`900–1000 °C × 2–12 h, 대기, 3.3 °C/min ${K('us20090264276')}`, `위키 범위 1100–1400 °C — 위 2단 하소의 900–1000 °C와 다름, 둘 다 표기 ${KB}`, `1000 °C × 2 h: c/a 1.0078 (교반·비드밀 혼합) vs 1.0095 (+건식 유성볼밀) ${K('kawamura-2025')}`, `BaCO₃가 몰린 곳에서 850 °C 이상이면 Ba₂TiO₄ 생성 → 고른 혼합, 850 °C 이하에서 반응 완료가 유리 ${K('kawamura-2025')}`, `응집, 넓은 분포, 0.5 µm 미만은 과분쇄로 오염·비정질화 ${KB}`] },
+  { name: '세척·여과', en: 'Washing & filtration', tx: -13.0, cam: [1.6, 4.4, 9.5],
+    desc: '슬러리를 필터 프레스로 보내 모액과 잔류 이온을 씻어 내고 케이크로 받습니다. Sakai 1984 예는 여액에서 Cl⁻가 나오지 않을 때까지 씻습니다. 고상법 분말은 물에서 만들지 않으므로 이 단계가 없습니다.',
+    equip: [`여과·수세 ${K('us4643984', 'us9771274')} — 필터 프레스(판·프레임, 유압 클로징) 형상은 ${G}`, `세척수 탱크 ${G}`, `여액 트레이·케이크 배출 슈트 ${G}`],
+    params: [`Cl⁻가 검출되지 않을 때까지 세척 ${K('us4643984')}`, `세척수 pH 10.7 암모니아수 — Ba 용출 억제 ${K('us6129903')}`, `분말 사양: 표면 OH⁻/탄산염 < 0.5 wt% ${KB}`, `옥살산염 경로: 원심 여과, 여액 pH > 6까지 세척 ${K('us7179441')}`] },
+  { name: '도펀트 습식 코팅', en: 'Wet-chemical coating', tx: 10.2, cam: [2.6, 5.0, 10],
+    desc: '분말을 물에 다시 분산하고 pH를 맞춘 뒤 희토류 질산염을 넣어 입자 표면에 흡착·석출시킵니다. 도펀트가 입자 사이가 아니라 입자 위에 놓이게 하는 현대 표준 방식입니다.',
+    equip: [`습식 화학 반응기 ${KQ}`, `가열 자켓·pH 센서·도징 펌프 ${G}`, `NH₄OH·Y(NO₃)₃ 도징 탱크 ${G}`],
+    params: [`학술 예: BaTiO₃(200 nm) 50 g / 순수 500 mL ${KD}`, `NH₄OH로 pH 8.5–9.0, 30 min 교반 ${KD}`, `Y(NO₃)₃·6H₂O 0.5–2 mol% (물 50 mL) 투입, 1 h 교반 ${KD}`, `공도핑 Y + Mg + Mn은 순차 투입, Mn을 마지막에 ${KD}`, `대안: 건식 볼밀 8–24 h(도펀트가 입자 사이에 남음), 졸겔, 유동층 ALD(연구용) ${KD}`] },
+  { name: '세척·진공 건조', en: 'Centrifuge & vacuum dry', tx: 16.4, cam: [0.6, 5.0, 10.5],
+    desc: '코팅된 분말을 원심분리로 회수해 물과 에탄올로 씻고, 진공에서 건조합니다. 표면에 붙은 도펀트 염이 그대로 남도록 저온에서 말립니다.',
+    equip: [`원심분리기 / 여과 ${KD}`, `진공 건조기 ${KQ}`, `바스켓 원심분리기·더블콘 회전 건조기·진공 펌프 형상 ${G}`],
+    params: [`물 3회 + 에탄올 1회 세척 ${KD}`, `80 °C 진공 건조 ${KD}`] },
+  { name: '코팅 열처리 (하소)', en: 'Coating calcination', tx: 24.5, cam: [2.8, 4.6, 9.5],
+    desc: '고상법의 합성 하소(1100–1400 °C)와는 다른, 코팅을 산화물로 바꾸는 저온 열처리입니다. 건조 분말을 새거에 담아 대기 중에서 하소합니다. 표면의 질산염이 산화물로 바뀌어 모든 입자에 얇은 도펀트 산화물 껍질이 생깁니다. 이 껍질이 소결 후 core-shell의 shell이 됩니다.',
+    equip: [`하소로 ${KQ}`, `박스로·리프트 도어·새거·장입 카트 ${G}`, `배기 후드 ${G}`],
+    params: [`600 °C × 2 h, 공기 → Y₂O₃ 코팅 BaTiO₃ ${KD}`, `결과: 입자마다 3–10 nm 균일 도펀트 산화물 코팅 ${KD}`, `같은 조성이라도 도펀트 위치(표면/입자 사이/고용)에 따라 소결 후 shell 균일도가 달라짐 ${KD}`] },
+  { name: '분급·QC·포장', en: 'Sieving · QC · packing', tx: 31.4, cam: [0.8, 4.6, 10],
+    desc: '진동체로 조대 응집체를 거르고 자석으로 철 이물을 잡은 뒤, 입도·비표면적·결정상·조성을 재고 드럼에 담아 슬러리 공정으로 넘깁니다. 이 분말의 입경이 유전층 두께의 하한을 정합니다.',
+    equip: [`진동체 ${G}`, `자석 분리기 (철 이물) ${G} — 분체 라인 출처 없음`, `레이저 회절 입도 분석기 ${K('us9005568', 'us20090264276')}`, `BET 비표면적 측정기 ${K('us9771274', 'us20090264276')}`, `XRD — c/a를 WPPF·리트벨트로 산출 ${K('us9771274', 'us20090264276')}`, `형광 X선(Ba/Ti)·플라스마 발광 분석(불순물)·SEM ${K('us9005568')}`, `제품 드럼·계량 포장 ${G}`],
+    params: [`D50 50–300 nm (목표 유전층 두께에 따라), D90/D50 ≤ 2 ${KB}`, `1 µm 이하 유전층용: ≤ 200 nm, 좁은 분포, 높은 정방정성, 약한 응집 ${K('kawamura-2025')}`, `Ba/Ti 1.000 ± 0.001 ${KB}`, `정방정 분율 ≥ 0.95 (조대 분말), ~70 nm 미만은 입방정 쪽 ${KB}`, `표면 OH⁻/탄산염 < 0.5 wt% ${KB}`, `잔류 Cl⁻: 수증기 증류 + 이온 크로마토그래피 ${K('us20090264276')}`] },
+  // ---- appended stages (8–15) ----
+  { name: 'Ti 원료 (TiCl₄ 중화)', en: 'Hydrous TiO₂ precipitation', tx: -35.0, cam: [1.0, 5.4, 11],
+    desc: 'TiCl₄ 수용액과 순수를 55 °C 중화조에 함께 넣고 NaOH로 pH 2.5를 유지하면 함수 산화티탄(TiO₂·nH₂O)이 가라앉습니다. 이것을 여과·수세해 Na⁺와 Cl⁻를 빼고, 순수에 다시 풀어 Ti 슬러리로 만듭니다. 이 침전의 결정 상태가 최종 정방정성에 영향을 준다고 합니다.',
+    equip: [`중화조 (가온·교반)·NaOH 도징·pH 제어 ${K('us9771274')}`, `여과·수세 ${K('us9771274')} — 진공 누체 필터 형상은 ${G}`, `TiCl₄ 탱크 내산 라이닝·도징 펌프 ${G}`],
+    params: [`TiCl₄ 3.8 mol/L(TiO₂ 환산)와 순수를 동시 투입, 30 wt% NaOH로 pH 2.5·55 °C 유지 ${K('us9771274')}`, `예시 범위 pH 2.0–3.5, 45–55 °C ${K('us9771274')}`, `세척 후 110 g/L(TiO₂)로 재분산 ${K('us9771274')}`, `아나타제 함수 산화티탄의 XRD 반가폭이 5.0°를 넘으면 정방정성이 낮아짐 ${K('us9771274')}`, `다른 Ti 원료: TiCl₄ 산성 가수분해 브루카이트 졸 15 mass% ${K('us7431911')} · TiOCl₂ + NH₄OH 겔(pH 3–4), 열수 세척 ${K('us6129903')}`] },
+  { name: '미반응 Ba 고정 (CO₂)', en: 'Ba fixing · Ba/Ti trim', tx: -17.6, cam: [1.2, 4.8, 9],
+    desc: '반응 뒤 슬러리에는 녹아 있는 미반응 Ba가 남습니다. 그대로 씻으면 Ba가 빠져 Ba/Ti가 흔들리므로, Sakai 1984 예는 CO₂를 불어 넣어 pH 6.5로 낮추고 Ba를 물에 녹지 않는 화합물로 고정해 Ba/Ti를 1.00으로 맞춥니다. Cabot 예는 대신 pH 10.7 암모니아수로 씻고, 1 µm 넘는 BaCO₃를 메시 필터로 거릅니다.',
+    equip: [`CO₂ 취입 ${K('us4643984')} — 스파저 링·CO₂ 실린더·레귤레이터 형상은 ${G}`, `BaCO₃ 제거 메시 필터 (대안) ${K('us6129903')}`, `조정 탱크·교반기·pH 센서 ${G}`],
+    params: [`CO₂로 pH 6.5 → Ba/Ti 1.00 (형광 X선 확인), Ba 전환율 98.3 % ${K('us4643984')}`, `세척수 pH 10.7 암모니아수로 Ba 용출 억제 ${K('us6129903')}`, `염기 제거 단계에서 Ba가 녹아 나오고 OH⁻가 들어가 정방정성이 떨어진다는 서술 ${K('us7431911')}`, `투입 단계의 N₂ 퍼지와 반대로 여기서는 CO₂를 일부러 씀 — 반응 전 탄산염은 불순물, 반응 후에는 Ba 고정 수단`] },
+  { name: '건조 (기류 건조기)', en: 'Flash drying', tx: -6.4, cam: [0.8, 5.8, 11.5],
+    desc: '수십 % 수분의 케이크를 1 % 미만까지 말립니다. 뜨거운 공기 흐름 속에 케이크를 흩뿌려 짧은 시간에 말리고, 사이클론과 백필터로 분말을 받습니다. 장비 업체 자료는 BaTiO₃ 습윤 케이크용으로 기류(플래시) 건조기와 매체 교반 건조기를 듭니다.',
+    equip: [`기류 건조기 / 매체 교반 건조기(세라믹 접분부) ${K('hosokawa-bt-web')}`, `케이크 투입 스크루·열풍 발생기·분산 로터·건조관 ${G}`, `사이클론·백필터·배기팬 ${G}`],
+    params: [`수분: 수십 % W.B. → 1 % W.B. 미만 ${K('hosokawa-bt-web')}`, `특허 예의 건조 온도 110–130 °C (건조기 형식 미기재) ${K('us9771274', 'us4643984')}`, `옥살산염 예: 오븐 120 °C × 12 h ${K('us7179441')}`] },
+  { name: '후열처리', en: 'Post heat treatment', tx: -1.6, cam: [2.8, 4.6, 9.5],
+    desc: '건조 분말을 새거에 담아 대기 중에서 가열합니다. 결정성과 입경을 키우고 잔류 OH⁻를 줄이려는 단계로 알려져 있지만, 하소 없이 c/a 1.008–1.010을 얻는 수열 공정도 있어 선택 단계로 표시했습니다. OH⁻와 정방정성의 관계는 문헌끼리 엇갈립니다.',
+    equip: [`가열로 ${K('us7431911', 'us9005568')} — 상자형 배치로·리프트 도어·새거·장입 카트 형상은 ${G}`],
+    params: [`예: 300 °C × 5 h 건조 → 880 °C × 2 h 대기, 20 °C/min → c/a 1.0104, BET 7.1 m²/g (상압 110 °C 합성 분말) ${K('us7431911')}`, `수열 처리 뒤 100–1400 °C 가열 (일반 범위) ${K('us9005568')}`, `하소·해쇄가 필요 없다고 주장한 공정 ${K('us9771274')}`, `합성 온도가 높을수록 격자 OH⁻가 줄고, 400 °C 시료가 가장 정방정적일 것으로 추정 ${K('hayashi-2018')}`, `격자 OH⁻ 제거(용매열 처리)로 정방정 30 → 80 % ${K('qi-2005')} — 반대로 OH⁻가 정방정을 안정화한다는 결과도 있음 ${K('hongo-2018')}`] },
+  { name: '해쇄 (제트밀)', en: 'De-agglomeration · jet mill', tx: 4.6, cam: [0.4, 4.6, 8.2],
+    desc: '하소·열처리 때 입자끼리 붙은 응집체를 압축 공기 제트 속에서 서로 부딪치게 해 풉니다. 볼·비드를 쓰지 않아 매체 마모 오염이 적습니다. 장비 업체 자료는 분급기 내장 충격식 분쇄기로 먼저 부순 뒤 습식 비드밀로 1차 입자까지 푸는 순서를 듭니다.',
+    equip: [`압축 공기 제트밀 ${K('us5783165')}`, `분급기 내장 충격식 분쇄기 — WC·세라믹 접분부로 금속 오염 억제 ${K('hosokawa-bt-web')}`, `피더·인젝터·분쇄실 노즐 링·사이클론·백필터·압축기 형상 ${G}`],
+    params: [`하소 분말: 1차 입자 ~100 nm, 소결된 2차 입자 > 1 µm ${K('hosokawa-bt-web')}`, `습식 밀링만으로는 µm급 응집체를 못 풀어 예비 분쇄가 먼저 ${K('hosokawa-bt-web')}`, `제트밀을 쓰면 아트리터·하소 후 습식 분쇄와 그 오염이 필요 없다고 기재 ${K('us5783165')}`, `하소하지 않은 수열 분말은 해쇄도 생략 ${K('us9771274')}`, `제트밀 공기압·투입량: 출처 미기재`] },
+  { name: '계량·습식 혼합', en: 'Weighing · wet ball milling', tx: -17.6, tz: ZB, cam: [0.6, 8.4, 8.6],
+    desc: 'BaCO₃와 TiO₂를 Ba/Ti 비에 맞춰 계량하고, 분산제를 넣은 물에서 볼밀로 오래 섞습니다. 두 원료가 1차 입자 수준까지 고르게 섞여야 낮은 온도에서 반응이 끝나고 Ba₂TiO₄ 같은 이상(異相)이 덜 생깁니다.',
+    equip: [`볼밀 (ZrO₂ 볼) ${K('us20090264276')}`, `습식 비드밀 (대안) ${K('kawamura-2025')}`, `원료 미분쇄용 충격식 분쇄기 ${K('hosokawa-bt-web')}`, `볼밀 구동부(거스 기어·지지 롤러)·원료 계량대 형상 ${G}`],
+    params: [`Ba/Ti 0.997로 계량, 50 L 볼밀·ZrO₂ 2 mm 볼·72 h, 고형분 40 wt%, 분산제 0.5 wt% ${K('us20090264276')}`, `원료: BaCO₃ BET 30 m²/g, TiO₂ 루틸 ≤ 30 %·BET ≥ 20 m²/g ${K('us20090264276')}`, `연구 예: BaCO₃ 500 nm 침상 + TiO₂ 50 nm, 습식 비드밀(+건식 유성볼밀)로 1차 입자 수준 혼합 ${K('kawamura-2025')}`, `볼밀 → 하소 → 재분쇄 → 체거름 ${KB}`] },
+  { name: '분무 건조', en: 'Spray drying', tx: -12.0, tz: ZB, cam: [0.8, 8.2, 10.5],
+    desc: '혼합 슬러리를 뜨거운 챔버 꼭대기에서 회전 디스크로 뿌려 작은 방울로 만들고, 떨어지는 동안 말려 혼합 분말로 받습니다.',
+    equip: [`분무 건조기 ${K('us20090264276')}`, `회전 디스크 분무기·열풍 분배기·건조 챔버·사이클론·공급 펌프 형상 ${G}`],
+    params: [`볼밀 슬러리 → 분무 건조 → BaCO₃ + TiO₂ 혼합 분말 ${K('us20090264276')}`, `건조 조건: 출처 미기재 (비교예에 최고 250 °C 언급만) ${K('us20090264276')}`] },
+  { name: '1차 하소 (로터리 킬른)', en: '1st calcination · rotary kiln', tx: -6.3, tz: ZB, cam: [0.4, 8.6, 8.8],
+    desc: '혼합 분말을 기울어진 회전 레토르트관에 연속으로 넣어 600–700 °C에서 짧게 반응시킵니다. 관이 돌며 분말이 고르게 뒤집히고, CO₂가 빠지도록 공기를 흘립니다. TiO₂ 표면에 BaTiO₃ 미립이 먼저 생기는 단계입니다.',
+    equip: [`로터리 킬른 (1차 열처리) ${K('us20090264276')}`, `기밀·분위기 제어형 로터리 킬른 — 적용 예에 BaTiO₃ ${K('takasago-rk-web')}`, `외열식 레토르트관·구동 링·공급 스크루·배출 후드·배기 형상 ${G}`],
+    params: [`600–700 °C, 평균 체류 약 0.3 h, 공기를 흘려 CO₂ ≤ 15 mol% ${K('us20090264276')}`, `로터리 킬른이 배치로보다 결정성 지표(K값)가 높아 1차 열처리에 적합 ${K('us20090264276')}`, `BaCO₃ + TiO₂ → BaTiO₃ + CO₂: TiO₂ 표면에 BaTiO₃ 미립이 먼저 생기고 Ba가 TiO₂ 안으로 확산 ${K('kawamura-2025')}`, `승온 3.3 °C/min (범위 1.5–20) ${K('us20090264276')}`] },
+];
+const NS = STAGES.length;
+// Process order with branches (see the flow block in the UI section).
+const FLOW = [
+  { fork: 'syn', title: '합성 경로', opts: [
+    { key: 'hydro', label: '수열법', steps: [8, 0, 1, { i: 9, mark: 'opt' }, 3, 10, { i: 11, mark: 'opt' }] },
+    { key: 'ss', label: '고상법', steps: [13, 14, 15, 2] },
+    { key: 'ox', label: '옥살산염', steps: [], note: 'TiCl₄·BaCl₂를 90 °C 옥살산에 분무해 침전 → 원심 여과·세척 → 습식 분쇄 → 건조 → 700–1200 °C 하소 → 건식 분쇄 [us7179441]. MLCC 원료로 시판 중 [nci-pulserum-web]. 이 페이지에는 설비를 그리지 않았습니다.' }] },
+  12,
+  { fork: 'dope', title: '도펀트 첨가', opts: [
+    { key: 'wet', label: '습식 코팅', steps: [4, 5, 6] },
+    { key: 'dry', label: '건식 혼합', steps: [], note: '도펀트 산화물 분말을 볼밀로 8–24 h 섞는 방식입니다. 도펀트가 입자 사이에 남아 shell이 고르지 않습니다. 이 페이지에는 설비를 그리지 않았습니다.' }] },
+  7,
+];
+const STAGE_DUR = 10;
+
+/* ------------------------------ renderer ------------------------------ */
+const host = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.82;
+host.appendChild(renderer.domElement);
+
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.setSize(window.innerWidth, window.innerHeight);
+labelRenderer.domElement.className = 'labels';
+host.appendChild(labelRenderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x8e9aa5);
+scene.fog = new THREE.Fog(0x8e9aa5, 70, 170);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
+
+const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 400);
+const OV_POS = new THREE.Vector3(-1, 30, 50), OV_TGT = new THREE.Vector3(-1, 1.5, -2);   // overview framing
+camera.position.copy(OV_POS);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.copy(OV_TGT);
+if (window.innerWidth / window.innerHeight < 0.8) camera.position.multiplyScalar(1.4);
+controls.enableDamping = true;
+controls.maxPolarAngle = Math.PI / 2 - 0.04;
+controls.minDistance = 2;
+controls.maxDistance = 100;
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x5b646d, 0.55));
+const sun = new THREE.DirectionalLight(0xfff6ea, 2.4);
+sun.position.set(14, 32, 22);
+sun.castShadow = true;
+sun.shadow.mapSize.set(4096, 4096);
+Object.assign(sun.shadow.camera, { left: -50, right: 50, top: 32, bottom: -32, near: 1, far: 95 });
+sun.shadow.bias = -0.0004;
+sun.shadow.normalBias = 0.03;
+scene.add(sun);
+
+/* ------------------------------ materials ------------------------------ */
+const std = (o) => new THREE.MeshStandardMaterial(o);
+const M = {
+  steel: std({ color: 0xd8dce0, metalness: 1.0, roughness: 0.22 }),
+  steelB: std({ color: 0xbfc5ca, metalness: 0.9, roughness: 0.38 }),
+  steelIn: std({ color: 0x8d949b, metalness: 0.85, roughness: 0.5, side: THREE.BackSide }),
+  dark: std({ color: 0x2c3137, metalness: 0.4, roughness: 0.6 }),
+  motor: std({ color: 0x2c5d8e, metalness: 0.35, roughness: 0.42 }),
+  motorG: std({ color: 0x8b949c, metalness: 0.55, roughness: 0.45 }),
+  paint: std({ color: 0xe4e7ea, metalness: 0.1, roughness: 0.55 }),
+  paintBlue: std({ color: 0x3b6f9e, metalness: 0.2, roughness: 0.5 }),
+  yellow: std({ color: 0xf0b400, metalness: 0.2, roughness: 0.5 }),
+  pump: std({ color: 0x3f7d5a, metalness: 0.3, roughness: 0.45 }),
+  rubber: std({ color: 0x1b1b1b, metalness: 0.0, roughness: 0.85 }),
+  bag: std({ color: 0xf1efe8, metalness: 0.0, roughness: 0.95 }),
+  drum: std({ color: 0x2f62b5, metalness: 0.3, roughness: 0.45 }),
+  fiber: std({ color: 0x9c7a52, metalness: 0.0, roughness: 0.8 }),
+  slurry: std({ color: 0xe6e0d2, metalness: 0.0, roughness: 0.3, side: THREE.DoubleSide, transparent: true, opacity: 0.86 }),
+  water: std({ color: 0xbfe0ef, metalness: 0.0, roughness: 0.1, side: THREE.DoubleSide, transparent: true, opacity: 0.6 }),
+  bead: std({ color: 0xf8f7f2, metalness: 0.0, roughness: 0.18 }),
+  flow: std({ color: 0xfff1cf, emissive: 0xffb547, emissiveIntensity: 0.9, roughness: 0.4 }),
+  wflow: std({ color: 0xdff3ff, emissive: 0x6fb8f0, emissiveIntensity: 0.8, roughness: 0.3 }),
+  air: std({ color: 0xdff3ff, emissive: 0x8fd0ff, emissiveIntensity: 0.9, roughness: 0.3 }),
+  powder: std({ color: 0xffffff, emissive: 0xffe2a8, emissiveIntensity: 0.45, roughness: 0.8 }),
+  coat: std({ color: 0x8fd0ff, emissive: 0x3a8fd0, emissiveIntensity: 0.5, roughness: 0.4, transparent: true, opacity: 0.45, depthWrite: false }),
+  glass: std({ color: 0xd8ecf5, metalness: 0.0, roughness: 0.05, transparent: true, opacity: 0.3 }),
+  screen: std({ color: 0x0b1a26, emissive: 0x2a8cd6, emissiveIntensity: 0.6, roughness: 0.3 }),
+  brick: std({ color: 0xb98a62, metalness: 0.0, roughness: 0.95 }),
+  sagger: std({ color: 0xc9a27a, metalness: 0.0, roughness: 0.85 }),
+  pp: std({ color: 0xd9d4c4, metalness: 0.0, roughness: 0.7 }),
+  green: std({ color: 0x4f8f3a, metalness: 0.2, roughness: 0.5 }),
+};
+// Glowing heat materials (intensity animated per stage)
+const heatAC = std({ color: 0x7a4a2c, metalness: 0.5, roughness: 0.45, emissive: 0xff4a10, emissiveIntensity: 0 });
+const kilnZ = [0, 1, 2].map(() => std({ color: 0x8a4a2a, roughness: 0.9, emissive: 0xff6a1a, emissiveIntensity: 0.3 }));
+const kilnWall = std({ color: 0xb98a62, roughness: 0.95, emissive: 0xff7a2a, emissiveIntensity: 0.2 });
+const pipeMat = std({ color: 0xd2d7dc, metalness: 0.95, roughness: 0.25, transparent: true, opacity: 0.5, depthWrite: false });
+
+function holeTexture(n, rx = 1, ry = 1) {
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const x = c.getContext('2d');
+  x.fillStyle = '#fff'; x.fillRect(0, 0, 128, 128); x.fillStyle = '#000';
+  const s = 128 / n;
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+    x.beginPath(); x.arc(s * (i + 0.5) + (j % 2 ? s / 2 : 0), s * (j + 0.5), s * 0.3, 0, Math.PI * 2); x.fill();
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rx, ry);
+  return t;
+}
+const perfMat = (rx, ry) => std({ color: 0xcfd4d8, metalness: 0.9, roughness: 0.35, alphaMap: holeTexture(8, rx, ry), alphaTest: 0.5, side: THREE.DoubleSide });
+
+/* ------------------------------ helpers ------------------------------ */
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const CUT_CYL = Math.PI / 4, CUT_SPH = 3 * Math.PI / 4, CUT_TL = 1.5 * Math.PI, FULL = Math.PI * 2;
+const cutParts = [], fullParts = [];
+const rotors = [], levels = [], pipes = [], updaters = [];
+const FY = 0.32;
+const sm = (t) => t * t * (3 - 2 * t);
+const clamp01 = (v) => Math.max(0, Math.min(1, v));
+
+function mk(geo, mat, cast = true) { const m = new THREE.Mesh(geo, mat); m.castShadow = cast; m.receiveShadow = true; return m; }
+function put(parent, m, x = 0, y = 0, z = 0) { m.position.set(x, y, z); parent.add(m); return m; }
+const cyl = (r1, r2, h, seg = 32, open = false, ts = 0, tl = FULL) => new THREE.CylinderGeometry(r1, r2, h, seg, 1, open, ts, tl);
+const box = (x, y, z) => new THREE.BoxGeometry(x, y, z);
+const along = (geo, axis) => { if (axis === 'x') geo.rotateZ(-Math.PI / 2); if (axis === 'z') geo.rotateX(Math.PI / 2); return geo; };
+
+function pair(parent, geoFn, cutStart, matOut, matIn, pos) {
+  const gc = geoFn(cutStart, CUT_TL);
+  const a = mk(gc, matOut), b = mk(gc, matIn, false), f = mk(geoFn(0, FULL), matOut);
+  for (const m of [a, b, f]) { m.position.copy(pos); parent.add(m); }
+  cutParts.push(a, b); fullParts.push(f);
+}
+function rim(parent, R, tube, y, mat) {
+  const gc = new THREE.TorusGeometry(R, tube, 8, 64, CUT_TL); gc.rotateX(Math.PI / 2); gc.rotateY(5 * Math.PI / 4);
+  const gf = new THREE.TorusGeometry(R, tube, 8, 64); gf.rotateX(Math.PI / 2);
+  const a = put(parent, mk(gc, mat), 0, y, 0), f = put(parent, mk(gf, mat), 0, y, 0);
+  cutParts.push(a); fullParts.push(f);
+}
+function label(text, pos, cls = 'tag', stage = null) {
+  const d = document.createElement('div'); d.className = cls; d.innerHTML = text;
+  if (stage !== null) d.addEventListener('click', () => jumpTo(stage));
+  const o = new CSS2DObject(d); o.position.copy(pos); scene.add(o); return d;
+}
+function instanced(geo, mat, n, parent = scene) {
+  const inst = new THREE.InstancedMesh(geo, mat, n);
+  inst.instanceMatrix.setUsage(THREE.DynamicDrawUsage); inst.frustumCulled = false; parent.add(inst);
+  return inst;
+}
+// Static copies of one geometry (bolts, bags, nozzles …) as a single InstancedMesh.
+function staticInst(geo, mat, xfs, parent = scene, cast = true) {
+  const inst = new THREE.InstancedMesh(geo, mat, xfs.length), o = new THREE.Object3D();
+  xfs.forEach(([p, r = [0, 0, 0], sc = 1], i) => { o.position.copy(p); o.rotation.set(...r); o.scale.setScalar(sc); o.updateMatrix(); inst.setMatrixAt(i, o.matrix); });
+  inst.castShadow = cast; inst.receiveShadow = true; parent.add(inst);
+  return inst;
+}
+// Objects that move / toggle after build are kept out of bakeStatic().
+function dyn(o) { o.userData.dyn = true; return o; }
+function setLevel(T, l) { T.L.scale.y = Math.max(0.001, l * T.h); T.L.visible = l > 0.01; T.headLiq.visible = l > 0.005; }
+// Merge every static mesh that shares a material into one mesh (big draw-call saving on phones).
+// Skips: dyn-flagged objects (and their subtrees), rotors, cutaway parts, instanced meshes.
+function bakeStatic(root) {
+  for (const r of rotors) dyn(r.obj);
+  root.updateMatrixWorld(true);
+  const skip = new Set([...cutParts, ...fullParts]);
+  const buckets = new Map(), victims = [];
+  (function walk(o) {
+    for (const c of o.children) {
+      if (c.userData.dyn || c.isInstancedMesh) continue;
+      if (c.isMesh && !skip.has(c) && !Array.isArray(c.material) && c.geometry.index) {
+        const key = `${c.material.uuid}|${c.castShadow}|${c.receiveShadow}`;
+        let b = buckets.get(key);
+        if (!b) buckets.set(key, b = { mat: c.material, cast: c.castShadow, recv: c.receiveShadow, geos: [], meshes: [] });
+        const g = c.geometry.clone(); g.applyMatrix4(c.matrixWorld);
+        for (const k of Object.keys(g.attributes)) if (!['position', 'normal', 'uv'].includes(k)) g.deleteAttribute(k);
+        b.geos.push(g); b.meshes.push(c);
+      }
+      walk(c);
+    }
+  })(root);
+  for (const b of buckets.values()) {
+    if (b.geos.length < 2) continue;
+    const merged = mergeGeometries(b.geos);
+    if (!merged) continue;
+    const m = new THREE.Mesh(merged, b.mat); m.castShadow = b.cast; m.receiveShadow = b.recv;
+    root.add(m); victims.push(...b.meshes);
+  }
+  for (const c of victims) {
+    // keep children that were not merged (e.g. dyn objects parented to a merged mesh)
+    for (const ch of [...c.children]) if (!victims.includes(ch)) { c.parent.attach(ch); }
+    c.removeFromParent();
+  }
+}
+// Small HMI / display panel with a canvas texture, redrawn at 8 fps.
+function makeScreen(parent, pos, rotY, w, h, draw) {
+  const g = new THREE.Group(); g.position.copy(pos); g.rotation.y = rotY; parent.add(g);
+  const c = document.createElement('canvas'); c.width = 256; c.height = Math.round(256 * h / w);
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+  put(g, mk(box(w + 0.06, h + 0.06, 0.05), M.dark), 0, 0, 0);
+  put(g, new THREE.Mesh(new THREE.PlaneGeometry(w, h), std({ map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.9 })), 0, 0, 0.027);
+  updaters.push((dt, s, p, t) => {
+    const f = Math.floor(t * 8);
+    if (f === tex.userData.f) return;
+    tex.userData.f = f;
+    const x = c.getContext('2d');
+    x.fillStyle = '#071521'; x.fillRect(0, 0, c.width, c.height);
+    draw(x, c.width, c.height, s, p, t);
+    tex.needsUpdate = true;
+  });
+  return g;
+}
+function cabinet(x, z, rotY, h = 1.7, draw = null) {
+  const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = rotY; scene.add(g);
+  put(g, mk(box(0.7, h, 0.45), M.paint), 0, h / 2, 0);
+  put(g, mk(box(0.66, 0.02, 0.02), M.dark), 0, h * 0.42, 0.23);
+  put(g, mk(box(0.03, 0.2, 0.03), M.dark), 0.27, h * 0.3, 0.24);
+  for (let k = 0; k < 3; k++) put(g, mk(cyl(0.025, 0.025, 0.03, 12), [M.green, M.yellow, std({ color: 0xc23b2a })][k]), -0.18 + k * 0.08, h * 0.38, 0.24).rotation.x = Math.PI / 2;
+  if (draw) makeScreen(g, V(0, h * 0.7, 0.23), 0, 0.5, 0.32, draw);
+  return g;
+}
+
+// Cooling fins are merged into one geometry per motor size (cuts draw calls).
+const finCache = new Map();
+function finGeo(key, n, make) {
+  if (!finCache.has(key)) {
+    const o = new THREE.Object3D(), parts = [];
+    for (let k = 0; k < n; k++) { const { geo } = make(k, o); o.updateMatrix(); parts.push(geo.applyMatrix4(o.matrix)); }
+    finCache.set(key, mergeGeometries(parts));
+  }
+  return finCache.get(key);
+}
+function vMotor(scale = 1) {
+  const g = new THREE.Group();
+  put(g, mk(box(0.5, 0.32, 0.5), M.motorG), 0, 0.16, 0);
+  put(g, mk(cyl(0.2, 0.2, 0.55, 28), M.motor), 0, 0.6, 0);
+  put(g, mk(finGeo('v', 18, (k, o) => {
+    const a = k / 18 * FULL; o.position.set(Math.cos(a) * 0.215, 0.6, Math.sin(a) * 0.215); o.rotation.set(0, -a, 0);
+    return { geo: box(0.02, 0.5, 0.05) };
+  }), M.motor), 0, 0, 0);
+  put(g, mk(cyl(0.21, 0.21, 0.16, 28), M.motorG), 0, 0.96, 0);
+  put(g, mk(cyl(0.06, 0.06, 0.03, 16), M.dark), 0, 1.05, 0);
+  put(g, mk(box(0.16, 0.14, 0.14), M.motor), 0.26, 0.64, 0);
+  g.scale.setScalar(scale);
+  return g;
+}
+function hMotor(len = 0.42, r = 0.15) {
+  const g = new THREE.Group();
+  put(g, mk(along(cyl(r, r, len, 24), 'x'), M.motor), 0, 0, 0);
+  put(g, mk(finGeo(`h${len}_${r}`, 14, (k, o) => {
+    const a = k / 14 * FULL; o.position.set(0, Math.cos(a) * (r + 0.012), Math.sin(a) * (r + 0.012)); o.rotation.set(a, 0, 0);
+    return { geo: box(len * 0.9, 0.02, 0.045) };
+  }), M.motor), 0, 0, 0);
+  put(g, mk(along(cyl(r + 0.01, r + 0.01, 0.12, 24), 'x'), M.motorG), len / 2 + 0.06, 0, 0);
+  put(g, mk(box(0.12, 0.12, 0.12), M.motor), 0, r + 0.06, 0);
+  put(g, mk(box(len * 0.7, 0.05, r * 1.6), M.dark), 0, -r - 0.02, 0);
+  return g;
+}
+function impeller(type, d) {
+  const g = new THREE.Group();
+  if (type === 'cowles') {
+    put(g, mk(cyl(d, d, 0.025, 48), M.steel), 0, 0, 0);
+    for (let k = 0; k < 24; k++) {
+      const a = k / 24 * FULL, t = mk(box(0.05, 0.045, 0.022), M.steel);
+      t.position.set(Math.cos(a) * d, (k % 2 ? 0.025 : -0.025), Math.sin(a) * d);
+      t.rotation.set(0, -a, k % 2 ? 0.5 : -0.5); g.add(t);
+    }
+  } else if (type === 'anchor') {
+    const armH = d * 1.25;
+    put(g, mk(box(0.05, armH, 0.12), M.steel), -d, armH / 2, 0);
+    put(g, mk(box(0.05, armH, 0.12), M.steel), d, armH / 2, 0);
+    put(g, mk(box(2 * d, 0.05, 0.12), M.steel), 0, 0.02, 0);
+  } else {
+    put(g, mk(cyl(0.07, 0.07, 0.14, 16), M.steel), 0, 0, 0);
+    for (let k = 0; k < 4; k++) {
+      const piv = new THREE.Group(); piv.rotation.y = k * Math.PI / 2;
+      const b = mk(box(d * 0.62, 0.02, 0.16), M.steel); b.position.x = d * 0.36; b.rotation.x = Math.PI / 4;
+      piv.add(b); g.add(piv);
+    }
+  }
+  return g;
+}
+
+/* ------------------------------ tank ------------------------------ */
+function makeTank(o) {
+  const { x = 0, z = 0, r = 1, h = 1.8, legH = 1.0, top = true, agit = 'pitched', run = [], w = 5,
+          liquidMat = M.slurry, motorScale = 1, lvl = null, shell = M.steel } = o;
+  const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
+  const hd = 0.32 * r, y0 = legH + hd, y1 = y0 + h;
+  pair(g, (s, l) => cyl(r, r, h, 64, true, s, l), CUT_CYL, shell, M.steelIn, V(0, y0 + h / 2, 0));
+  pair(g, (s, l) => { const q = new THREE.SphereGeometry(r, 64, 12, s, l, Math.PI / 2, Math.PI / 2); q.scale(1, 0.32, 1); return q; }, CUT_SPH, shell, M.steelIn, V(0, y0, 0));
+  if (top) pair(g, (s, l) => { const q = new THREE.SphereGeometry(r, 64, 12, s, l, 0, Math.PI / 2); q.scale(1, 0.32, 1); return q; }, CUT_SPH, shell, M.steelIn, V(0, y1, 0));
+  rim(g, r + 0.012, top ? 0.03 : 0.045, y1, M.steelB);
+  rim(g, r + 0.01, 0.022, y0, M.steelB);
+  for (const th of [CUT_CYL, -CUT_CYL]) {
+    const e = put(g, mk(box(0.03, h, 0.03), M.steelB), r * Math.sin(th), y0 + h / 2, r * Math.cos(th)); cutParts.push(e);
+  }
+  for (let k = 0; k < 4; k++) {
+    const a = Math.PI / 4 + k * Math.PI / 2, lx = Math.cos(a) * r * 1.07, lz = Math.sin(a) * r * 1.07;
+    put(g, mk(cyl(0.055, 0.055, y0 + 0.3, 12), M.steelB), lx, (y0 + 0.3) / 2, lz);
+    put(g, mk(box(0.22, 0.03, 0.22), M.steelB), lx, 0.015, lz);
+    const lug = put(g, mk(box(0.1, 0.32, 0.12), M.steelB), Math.cos(a) * (r + 0.03), y0 + 0.16, Math.sin(a) * (r + 0.03));
+    lug.rotation.y = -a;
+  }
+  const inA = [-Math.PI / 2, -3 * Math.PI / 4, Math.PI, 3 * Math.PI / 4, Math.PI / 2];
+  const rn = 0.55 * r, hy = y1 + 0.32 * r * Math.sqrt(1 - 0.55 * 0.55);
+  const inlets = inA.map((th) => {
+    const nx = rn * Math.sin(th), nz = rn * Math.cos(th);
+    if (top) {
+      put(g, mk(cyl(0.065, 0.065, 0.28, 16), M.steel), nx, hy + 0.12, nz);
+      put(g, mk(cyl(0.12, 0.12, 0.035, 20), M.steelB), nx, hy + 0.27, nz);
+      return V(x + nx, hy + 0.29, z + nz);
+    }
+    return V(x + nx * 1.05, y1 - 0.05, z + nz * 1.05);
+  });
+  put(g, mk(cyl(0.065, 0.065, 0.2, 16), M.steel), 0, legH - 0.06, 0);
+  put(g, mk(cyl(0.12, 0.12, 0.035, 20), M.steelB), 0, legH - 0.16, 0);
+  const outlet = V(x, legH - 0.18, z);
+  if (top) {
+    put(g, mk(cyl(0.22, 0.22, 0.12, 24), M.steelB), -0.3 * r, hy + 0.06, -0.35 * r);
+    put(g, mk(cyl(0.09, 0.09, 0.05, 16), M.glass), 0.3 * r, hy + 0.03, -0.42 * r);
+  }
+  let rotor = null;
+  if (agit) {
+    const shaftTop = top ? y1 + hd + 0.04 : y1 + 0.5;
+    put(g, mk(cyl(0.15, 0.2, 0.16, 20), M.steelB), 0, shaftTop + 0.08, 0);
+    const mot = vMotor(motorScale); mot.position.y = shaftTop + 0.16; g.add(mot);
+    rotor = new THREE.Group(); g.add(rotor);
+    const yImp = agit === 'anchor' ? y0 - hd * 0.4 : y0 + 0.2 * h;
+    put(rotor, mk(cyl(0.035, 0.035, shaftTop - yImp, 12), M.steel), 0, (shaftTop + yImp) / 2, 0);
+    const imp = impeller(agit, agit === 'cowles' ? r * 0.36 : agit === 'anchor' ? r * 0.85 : r * 0.45);
+    imp.position.y = yImp; rotor.add(imp);
+    if (agit === 'pitched' && h > 1.6) { const i2 = impeller('pitched', r * 0.4); i2.position.y = y0 + 0.62 * h; rotor.add(i2); }
+    rotors.push({ obj: rotor, axis: 'y', run, w, cur: 0 });
+  }
+  const L = new THREE.Group(); L.position.y = y0; g.add(L);
+  const lr = r * 0.965;
+  put(L, mk(cyl(lr, lr, 1, 64, true, CUT_CYL, CUT_TL), liquidMat, false), 0, 0.5, 0);
+  const cap = put(L, new THREE.Mesh(new THREE.CircleGeometry(lr, 64, -Math.PI / 4, CUT_TL), liquidMat), 0, 1, 0);
+  cap.rotation.x = -Math.PI / 2;
+  for (const th of [CUT_CYL, -CUT_CYL]) {
+    const pl = put(L, new THREE.Mesh(new THREE.PlaneGeometry(lr, 1), liquidMat), lr / 2 * Math.sin(th), 0.5, lr / 2 * Math.cos(th));
+    pl.rotation.y = th - Math.PI / 2;
+  }
+  const lh = new THREE.SphereGeometry(lr, 48, 10, CUT_SPH, CUT_TL, Math.PI / 2, Math.PI / 2); lh.scale(1, 0.32, 1);
+  const headLiq = put(g, new THREE.Mesh(lh, liquidMat), 0, y0, 0);
+  dyn(L); dyn(headLiq);
+  const T = { g, x, z, r, h, y0, y1, hy, legH, inlets, outlet, L, headLiq, rotor };
+  if (lvl) levels.push({ T, ...lvl });
+  return T;
+}
+
+/* ------------------------------ pipes ------------------------------ */
+function roundedPath(pts, rc = 0.3) {
+  const path = new THREE.CurvePath();
+  let prev = pts[0].clone();
+  for (let i = 1; i < pts.length - 1; i++) {
+    const a = pts[i - 1], p = pts[i], b = pts[i + 1];
+    const din = p.clone().sub(a).normalize(), dout = b.clone().sub(p).normalize();
+    const r = Math.min(rc, p.distanceTo(a) / 2, p.distanceTo(b) / 2);
+    const pA = p.clone().addScaledVector(din, -r), pB = p.clone().addScaledVector(dout, r);
+    if (prev.distanceTo(pA) > 1e-4) path.add(new THREE.LineCurve3(prev.clone(), pA));
+    path.add(new THREE.QuadraticBezierCurve3(pA, p.clone(), pB));
+    prev = pB;
+  }
+  path.add(new THREE.LineCurve3(prev, pts[pts.length - 1].clone()));
+  return path;
+}
+function dedupe(pts) { return pts.filter((p, i) => i === 0 || p.distanceTo(pts[i - 1]) > 1e-3); }
+function flange(pos, dir, r) {
+  const f = mk(cyl(r * 1.9, r * 1.9, 0.045, 20), M.steelB);
+  f.position.copy(pos); f.quaternion.setFromUnitVectors(V(0, 1, 0), dir.clone().normalize()); scene.add(f);
+}
+function valve(pos, r) {
+  put(scene, mk(new THREE.SphereGeometry(r * 1.7, 16, 12), M.steelB), pos.x, pos.y, pos.z);
+  put(scene, mk(cyl(0.02, 0.02, 0.25, 8), M.steelB), pos.x, pos.y + 0.14, pos.z);
+  const hw = put(scene, mk(new THREE.TorusGeometry(0.11, 0.015, 8, 24), M.yellow), pos.x, pos.y + 0.27, pos.z);
+  hw.rotation.x = Math.PI / 2;
+}
+// win = [p0, p1] limits the flow to part of the stage; when() = extra condition (e.g. active route).
+function makePipe(pts, { stages = [], r = 0.06, speed = 1.4, mat = M.flow, valveAt = 0.12, reverse = false, win = null, when = null, pr = r * 0.75, dens = 3.2 } = {}) {
+  pts = dedupe(pts);
+  const path = roundedPath(pts);
+  const len = path.getLength();
+  const tube = mk(new THREE.TubeGeometry(path, Math.max(40, Math.round(len * 14)), r, 12, false), pipeMat, false);
+  scene.add(tube);
+  flange(pts[0], pts[1].clone().sub(pts[0]), r);
+  flange(pts[pts.length - 1], pts[pts.length - 1].clone().sub(pts[pts.length - 2]), r);
+  if (valveAt !== null) valve(path.getPointAt(valveAt), r);
+  const samples = path.getSpacedPoints(Math.max(60, Math.round(len * 30)));
+  const n = Math.max(6, Math.round(len * dens));
+  const inst = new THREE.InstancedMesh(new THREE.SphereGeometry(pr, 10, 8), mat, n);
+  inst.instanceMatrix.setUsage(THREE.DynamicDrawUsage); inst.frustumCulled = false; inst.visible = false;
+  scene.add(inst);
+  const P = { samples, len, inst, n, stages, speed, reverse, win, when };
+  pipes.push(P);
+  return P;
+}
+function route(a, b, riseX, { lane = null, over = null } = {}) {
+  const ln = lane ?? a.z, topY = over ?? b.y + 0.55;
+  return [a.clone(), V(a.x, FY, a.z), V(a.x, FY, ln), V(riseX, FY, ln), V(riseX, FY, b.z), V(riseX, topY, b.z), V(b.x, topY, b.z), b.clone()];
+}
+
+/* ------------------------------ pumps ------------------------------ */
+function makePump(x, z, rot = Math.PI / 2) {
+  const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = rot; scene.add(g);
+  put(g, mk(box(1.15, 0.07, 0.38), M.dark), 0.42, 0.035, 0);
+  put(g, mk(along(cyl(0.17, 0.17, 0.14, 32), 'x'), M.pump), 0, FY, 0);
+  put(g, mk(box(0.12, FY - 0.1, 0.18), M.pump), 0, (FY - 0.1) / 2 + 0.07, 0);
+  put(g, mk(along(cyl(0.065, 0.065, 0.28, 16), 'x'), M.pump), 0.2, FY, 0);
+  put(g, mk(box(0.2, 0.22, 0.24), M.yellow), 0.42, FY, 0);
+  const m = hMotor(0.44, 0.15); m.position.set(0.76, FY, 0); g.add(m);
+  return g;
+}
+function makeDosingPump(x, z, rot = 0) {
+  const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = rot; scene.add(g);
+  put(g, mk(box(0.5, 0.06, 0.32), M.dark), 0, 0.03, 0);
+  put(g, mk(box(0.22, 0.26, 0.2), M.paintBlue), -0.08, 0.2, 0);
+  put(g, mk(along(cyl(0.1, 0.1, 0.06, 20), 'x'), M.paint), 0.07, 0.22, 0);
+  put(g, mk(new THREE.PlaneGeometry(0.1, 0.06), M.screen, false), -0.08, 0.26, 0.101);
+  return g;
+}
+function vacuumSkid(x, z) {
+  const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
+  put(g, mk(box(1.6, 0.1, 0.7), M.dark), 0, 0.05, 0);
+  put(g, mk(along(cyl(0.26, 0.26, 0.5, 32), 'x'), M.paintBlue), -0.35, 0.42, 0);
+  put(g, mk(cyl(0.08, 0.08, 0.3, 16), M.paintBlue), -0.35, 0.78, 0);
+  put(g, mk(box(0.2, 0.24, 0.24), M.yellow), 0.0, 0.42, 0);
+  const m = hMotor(0.5, 0.17); m.position.set(0.4, 0.42, 0); g.add(m);
+  put(g, mk(cyl(0.18, 0.18, 0.55, 24), M.steelB), -0.35, 0.75, 0.42);
+  return V(x - 0.35, 0.95, z);
+}
+
+/* ------------------------------ building ------------------------------ */
+(function building() {
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const x = c.getContext('2d');
+  x.fillStyle = '#56645e'; x.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 900; i++) { x.fillStyle = `rgba(255,255,255,${Math.random() * 0.035})`; x.fillRect(Math.random() * 256, Math.random() * 256, 2, 2); }
+  x.strokeStyle = 'rgba(40,50,46,.35)'; x.lineWidth = 2; x.strokeRect(0, 0, 256, 256);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(36, 11); t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 8;
+  const floor = mk(new THREE.PlaneGeometry(144, 44), std({ map: t, roughness: 0.62, metalness: 0.0 }), false);
+  floor.rotation.x = -Math.PI / 2; scene.add(floor);
+  for (const zz of [5.2, 6.8]) put(scene, mk(box(80, 0.006, 0.1), M.yellow, false), 1, 0.004, zz);
+  put(scene, mk(box(144, 13, 0.3), std({ color: 0xa7afb6, roughness: 0.9 })), 0, 6.5, -9);
+  for (let i = -6; i <= 6; i++) {
+    put(scene, mk(box(0.5, 13, 0.5), std({ color: 0x5a6b7b, roughness: 0.6, metalness: 0.3 })), i * 11, 6.5, -8.6);
+    put(scene, mk(box(7, 2.2, 0.05), std({ color: 0xe8f1f8, emissive: 0xcfe3f2, emissiveIntensity: 0.55 }), false), i * 11 + 5.5, 9.2, -8.84);
+  }
+  put(scene, mk(box(144, 0.4, 0.4), std({ color: 0x5a6b7b, roughness: 0.6 })), 0, 12.6, -8.6);
+})();
+
+/* ------------------------------ batch box furnace (stages 6 and 11) ------------------------------ */
+function makeBoxFurnace(x, stg, txt) {
+  const glowM = std({ color: 0x8a4a2a, roughness: 0.8, emissive: 0xff5a14, emissiveIntensity: 0 });
+  const wallM = std({ color: 0xb98a62, roughness: 0.95, emissive: 0xff7a2a, emissiveIntensity: 0 });
+  const g = new THREE.Group(); g.position.set(x, 0, 0); scene.add(g);
+  put(g, mk(box(2.3, 0.6, 1.9), M.dark), 0, 0.3, 0);
+  put(g, mk(box(2.3, 2.0, 0.1), M.paintBlue), 0, 1.6, -0.9);                       // back
+  put(g, mk(box(0.1, 2.0, 1.9), M.paintBlue), -1.1, 1.6, 0);                       // left
+  const rp = put(g, mk(box(0.1, 2.0, 1.9), M.paintBlue), 1.1, 1.6, 0); fullParts.push(rp);   // right (cutaway)
+  for (const zz of [-0.9, 0.9]) { const e = put(g, mk(box(0.12, 2.0, 0.1), M.paintBlue), 1.1, 1.6, zz); cutParts.push(e); }
+  put(g, mk(box(2.3, 0.12, 1.9), M.paintBlue), 0, 2.64, 0);                        // top
+  put(g, mk(box(2.3, 0.4, 0.14), M.paintBlue), 0, 2.4, 0.9);                       // front lintel
+  for (const sx of [-1, 1]) put(g, mk(box(0.38, 1.6, 0.14), M.paintBlue), sx * 0.96, 1.4, 0.9);
+  put(g, mk(box(2.3, 0.1, 0.14), M.paintBlue), 0, 0.65, 0.9);
+  // refractory lining
+  put(g, mk(box(1.6, 0.14, 1.6), M.brick), 0, 0.67, 0);
+  put(g, mk(box(1.6, 1.5, 0.12), wallM), 0, 1.42, -0.78);
+  put(g, mk(box(0.12, 1.5, 1.6), wallM), -0.8, 1.42, 0);
+  const rb = put(g, mk(box(0.12, 1.5, 1.6), wallM), 0.8, 1.42, 0); fullParts.push(rb);
+  put(g, mk(box(1.6, 0.14, 1.6), M.brick), 0, 2.2, 0);
+  // heating elements
+  for (const sx of [-1, 1]) for (const yy of [1.05, 1.45, 1.85]) put(g, mk(along(cyl(0.025, 0.025, 1.4, 8), 'z'), glowM, false), sx * 0.68, yy, 0);
+  for (const yy of [1.25, 1.65]) put(g, mk(along(cyl(0.025, 0.025, 1.4, 8), 'x'), glowM, false), 0, yy, -0.66);
+  // door with guide rails and lift cylinder
+  for (const sx of [-1, 1]) put(g, mk(box(0.08, 3.4, 0.08), M.steelB), sx * 0.86, 2.3, 1.05);
+  put(g, mk(box(1.8, 0.1, 0.12), M.steelB), 0, 4.0, 1.05);
+  put(g, mk(cyl(0.07, 0.07, 1.1, 12), M.steel), 0, 3.4, 1.05);
+  const door = dyn(new THREE.Group()); g.add(door);
+  put(door, mk(box(1.55, 1.5, 0.18), M.paintBlue), 0, 0, 0);
+  put(door, mk(box(1.4, 1.35, 0.06), M.brick), 0, 0, -0.11);
+  put(door, mk(box(0.5, 0.05, 0.06), M.dark), 0, -0.4, 0.11);
+  // saggers 2x2 + loading cart
+  const sag = [];
+  for (const sx of [-0.33, 0.33]) for (const sz of [-0.3, 0.3]) {
+    const sg = dyn(new THREE.Group()); g.add(sg);
+    put(sg, mk(box(0.48, 0.24, 0.48), M.sagger), 0, 0.12, 0);
+    put(sg, mk(box(0.4, 0.04, 0.4), M.powder, false), 0, 0.23, 0);
+    sag.push({ sg, sx, sz });
+  }
+  put(g, mk(box(1.6, 0.06, 1.0), M.steelB), 0, 0.7, 2.05);
+  for (const sx of [-0.7, 0.7]) for (const sz of [1.65, 2.45]) {
+    put(g, mk(box(0.05, 0.6, 0.05), M.steelB), sx, 0.37, sz);
+    put(g, mk(along(cyl(0.07, 0.07, 0.05, 16), 'x'), M.rubber), sx, 0.07, sz);
+  }
+  // exhaust hood
+  put(g, mk(cyl(0.12, 0.12, 1.5, 16), M.steelB), -0.5, 3.45, -0.5);
+  put(g, mk(cyl(0.18, 0.4, 0.3, 20), M.steelB), -0.5, 2.85, -0.5);
+  updaters.push((dt, s, p) => {
+    let open = 1, inK = 0, glow = 0.03;
+    if (s === stg) {
+      inK = p < 0.1 ? sm(p / 0.1) : p > 0.9 ? 1 - sm((p - 0.9) / 0.1) : 1;
+      open = p < 0.12 ? 1 : p < 0.16 ? 1 - (p - 0.12) / 0.04 : p > 0.86 ? (p > 0.9 ? 1 : (p - 0.86) / 0.04) : 0;
+      glow = p < 0.16 ? 0.05 : p < 0.32 ? 0.05 + 1.55 * sm((p - 0.16) / 0.16) : p < 0.72 ? 1.6 : p < 0.86 ? 1.6 - 1.4 * sm((p - 0.72) / 0.14) : 0.15;
+    }
+    door.position.set(0, 1.42 + open * 1.55, 0.99);
+    for (const q of sag) q.sg.position.set(q.sx, s === stg ? 0.74 + (1 - inK) * 0.02 : 0.73, q.sz + (1 - inK) * 2.05);
+    glowM.emissiveIntensity = glow * 1.4;
+    wallM.emissiveIntensity = glow * 0.35;
+  });
+  cabinet(x - 1.75, 0.3, 0.3, 1.8, (cx, W, H, s, p) => {
+    cx.fillStyle = '#7fc7ff'; cx.font = 'bold 15px system-ui'; cx.fillText(txt.title, 10, 22);
+    cx.fillStyle = '#9db0c2'; cx.font = '12px system-ui'; cx.fillText(txt.sub, 120, 22);
+    const L = 14, R = W - 14, T = 40, B = 128;
+    cx.strokeStyle = '#2b4a60'; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(L, B); cx.lineTo(R, B); cx.stroke();
+    cx.strokeStyle = '#ff9a5a'; cx.lineWidth = 3; cx.beginPath();
+    const X = (u) => L + (R - L) * u;
+    cx.moveTo(X(0), B); cx.lineTo(X(0.16), B - 4); cx.lineTo(X(0.32), T); cx.lineTo(X(0.72), T); cx.lineTo(X(0.86), B - 10); cx.lineTo(X(1), B - 10); cx.stroke();
+    cx.fillStyle = '#e9eef3'; cx.font = 'bold 12px system-ui'; cx.fillText(txt.hold, X(0.34), T - 6);
+    if (s === stg) { cx.fillStyle = '#ffb547'; cx.fillRect(X(p) - 1.5, T - 4, 3, B - T + 4); }
+    cx.fillStyle = '#9db0c2'; cx.font = '10px system-ui'; cx.fillText(txt.foot, 10, H - 6);
+  });
+  return { x, g };
+}
+
+/* ------------------------------ cyclone + bag filter (shape (g)) ------------------------------ */
+// Cyclone collector; swirl particles show while one of `stages` runs.
+function cyclone(x, z, yTop, { r = 0.4, stages = [] } = {}) {
+  const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
+  const hc = r * 1.6, hk = r * 2.6, yb = yTop - hc - hk;
+  pair(g, (s, l) => cyl(r, r, hc, 32, true, s, l), CUT_CYL, M.steel, M.steelIn, V(0, yTop - hc / 2, 0));
+  pair(g, (s, l) => cyl(r, 0.08, hk, 32, true, s, l), CUT_CYL, M.steel, M.steelIn, V(0, yTop - hc - hk / 2, 0));
+  rim(g, r + 0.01, 0.025, yTop, M.steelB);
+  put(g, mk(cyl(0.14, 0.14, 0.7, 16, true), M.steel), 0, yTop + 0.05, 0);           // vortex finder / gas outlet
+  put(g, mk(box(0.3, 0.26, 0.2), M.steel), -r - 0.1, yTop - 0.22, -r * 0.55);        // tangential inlet
+  put(g, mk(box(0.24, 0.22, 0.24), M.steelB), 0, yb - 0.12, 0);                      // rotary valve
+  put(g, mk(along(cyl(0.07, 0.07, 0.24, 12), 'x'), M.motor), 0.22, yb - 0.12, 0);
+  for (let k = 0; k < 3; k++) { const a = k / 3 * FULL + 0.4; put(g, mk(cyl(0.035, 0.035, yTop - hc, 8), M.steelB), Math.cos(a) * (r + 0.05), (yTop - hc) / 2, Math.sin(a) * (r + 0.05)); }
+  const n = 46, inst = instanced(new THREE.SphereGeometry(0.03, 8, 6), M.powder, n, g);
+  const sd = Array.from({ length: n }, () => ({ u: Math.random(), a: Math.random() * FULL }));
+  const dm = new THREE.Object3D();
+  updaters.push((dt, s) => {
+    const on = stages.includes(s);
+    inst.visible = on;
+    if (!on) return;
+    for (let i = 0; i < n; i++) {
+      const q = sd[i]; q.u = (q.u + dt * 0.35) % 1; q.a += dt * 7;
+      const y = yTop - 0.15 - q.u * (hc + hk - 0.2);
+      const rr = (y > yTop - hc ? r : 0.08 + (r - 0.08) * (y - yb) / hk) * 0.82;
+      dm.position.set(rr * Math.cos(q.a), y, rr * Math.sin(q.a)); dm.updateMatrix(); inst.setMatrixAt(i, dm.matrix);
+    }
+    inst.instanceMatrix.needsUpdate = true;
+  });
+  return { inlet: V(x - r - 0.25, yTop - 0.22, z - r * 0.55), top: V(x, yTop + 0.4, z), bottom: V(x, yb - 0.25, z) };
+}
+// Pulse-jet bag filter with exhaust fan; front panel hidden in cutaway to show the bags.
+function bagFilter(x, z, { h = 2.2, fanDx = 0.95, fanDz = 0 } = {}) {
+  const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
+  const y0 = 1.0, W = 0.9;
+  put(g, mk(box(W, h, 0.04), M.paint), 0, y0 + h / 2, -W / 2);
+  for (const sx of [-1, 1]) put(g, mk(box(0.04, h, W), M.paint), sx * W / 2, y0 + h / 2, 0);
+  const fr = put(g, mk(box(W, h, 0.04), M.paint), 0, y0 + h / 2, W / 2); fullParts.push(fr);
+  for (const sx of [-1, 1]) { const e = put(g, mk(box(0.06, h, 0.06), M.paint), sx * W / 2, y0 + h / 2, W / 2); cutParts.push(e); }
+  put(g, mk(box(W + 0.06, 0.35, W + 0.06), M.paint), 0, y0 + h + 0.17, 0);          // clean-air plenum
+  const hop = put(g, mk(cyl(W * 0.7, 0.1, 0.6, 4), M.paint), 0, y0 - 0.3, 0); hop.rotation.y = Math.PI / 4;
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) put(g, mk(box(0.06, y0 - 0.1, 0.06), M.steelB), sx * 0.4, (y0 - 0.1) / 2, sz * 0.4);
+  const bags = [];
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) bags.push([V(-0.27 + i * 0.27, y0 + h / 2 + 0.05, -0.27 + j * 0.27)]);
+  staticInst(cyl(0.08, 0.08, h - 0.3, 12), std({ color: 0xe9e4d8, roughness: 0.95 }), bags, g);
+  put(g, mk(along(cyl(0.04, 0.04, W + 0.3, 10), 'x'), M.steelB), 0, y0 + h + 0.42, 0.25); // pulse header
+  // exhaust fan + stack
+  put(g, mk(along(cyl(0.3, 0.3, 0.22, 24), 'z'), M.paintBlue), fanDx, 0.55, fanDz);
+  const fm = hMotor(0.34, 0.12); fm.rotation.y = Math.PI / 2; fm.position.set(fanDx, 0.35, fanDz + (fanDz < 0 ? -0.4 : 0.4)); g.add(fm);
+  put(g, mk(cyl(0.11, 0.11, 2.6, 14), M.steelB), fanDx, 2.1, fanDz - 0.1);
+  return { inlet: V(x - W / 2, y0 + h * 0.75, z), fan: V(x + fanDx, 0.55, z + fanDz) };
+}
+
+/* ================================ STATIONS ================================ */
+/* -- S1 hydrothermal autoclave (built first: S0 feeds into it) -- */
+const ac = makeTank({ x: -22, z: 0, r: 1.0, h: 2.2, legH: 1.1, agit: 'pitched', run: [1], w: 5, liquidMat: M.water,
+  lvl: { fill: 0, drain: 9, dw: [0, 0.5], lo: 0.04, hi: 0.8 } });
+let n2In = null;
+(() => {
+  const g = ac.g;
+  // titanium inner vessel (wetted part) — visible only through the cutaway [us6129903]
+  const liner = mk(cyl(0.985, 0.985, ac.h, 64, true, CUT_CYL, CUT_TL), std({ color: 0xa9b0b8, metalness: 0.75, roughness: 0.42, side: THREE.DoubleSide }), false);
+  put(g, liner, 0, ac.y0 + ac.h / 2, 0); cutParts.push(liner);
+  // heater jacket bands
+  for (const yy of [0.3, 0.82, 1.34, 1.86]) pair(g, (s, l) => cyl(1.07, 1.07, 0.36, 64, true, s, l), CUT_CYL, heatAC, M.steelIn, V(0, ac.y0 + yy, 0));
+  // N2 purge nozzle on the top head (front-left, outside the cut wedge)
+  const th = -Math.PI / 3, rn = 0.55, nx = rn * Math.sin(th), nz = rn * Math.cos(th);
+  put(g, mk(cyl(0.05, 0.05, 0.26, 12), M.steel), nx, ac.hy + 0.11, nz);
+  put(g, mk(cyl(0.1, 0.1, 0.03, 16), M.steelB), nx, ac.hy + 0.25, nz);
+  n2In = V(ac.x + nx, ac.hy + 0.27, ac.z + nz);
+  // heavy body flange + bolt ring
+  rim(g, 1.07, 0.075, ac.y1, M.steelB);
+  for (let k = 0; k < 28; k++) {
+    const a = k / 28 * FULL;
+    const b = put(g, mk(cyl(0.025, 0.025, 0.24, 8), M.dark), Math.sin(a) * 1.13, ac.y1, Math.cos(a) * 1.13);
+    if (Math.cos(a) > 0.7071) fullParts.push(b);
+  }
+  // pressure gauge, safety valve, thermowell
+  const gp = ac.inlets[3];
+  put(scene, mk(cyl(0.025, 0.025, 0.25, 8), M.steelB), gp.x, gp.y + 0.12, gp.z);
+  const dial = put(scene, mk(cyl(0.13, 0.13, 0.06, 28), M.paint), gp.x, gp.y + 0.36, gp.z);
+  dial.rotation.x = Math.PI / 2;
+  const needle = dyn(put(scene, mk(box(0.012, 0.1, 0.01), std({ color: 0xc23b2a })), gp.x, gp.y + 0.36, gp.z + 0.035));
+  const sv = ac.inlets[4];
+  put(scene, mk(cyl(0.07, 0.09, 0.22, 16), M.yellow), sv.x, sv.y + 0.11, sv.z);
+  put(scene, mk(cyl(0.03, 0.03, 0.3, 10), M.steelB), sv.x, sv.y + 0.37, sv.z);
+  put(scene, mk(along(cyl(0.045, 0.045, 0.4, 12), 'x'), M.steelB), sv.x + 0.2, sv.y + 0.18, sv.z);
+  put(g, mk(cyl(0.02, 0.02, 1.6, 8), M.steelB), -0.55, ac.y1 - 0.2, 0.0);   // thermowell
+  // platform + ladder
+  put(g, mk(box(0.06, ac.y1 + 0.4, 0.06), M.yellow), 1.25, (ac.y1 + 0.4) / 2, -0.8);
+  put(g, mk(box(0.06, ac.y1 + 0.4, 0.06), M.yellow), 1.25, (ac.y1 + 0.4) / 2, -1.3);
+  for (let k = 1; k < 12; k++) put(g, mk(box(0.04, 0.03, 0.5), M.yellow), 1.25, k * 0.32, -1.05);
+  // crystals nucleating and growing inside
+  const n = 240, inst = instanced(box(0.06, 0.06, 0.06), M.powder, n, g);
+  const sd = Array.from({ length: n }, () => ({ a: Math.random() * FULL, r: 0.1 + Math.random() * 0.78, y: Math.random(), w: 0.5 + Math.random(), sp: Math.random() * 3 }));
+  const dm = new THREE.Object3D();
+  updaters.push((dt, s, p, t) => {
+    const on = s === 1 || s === 9;
+    inst.visible = on;
+    heatAC.emissiveIntensity = s === 1 ? 0.15 + 1.3 * sm(clamp01(p / 0.3)) * (p > 0.85 ? 1 - (p - 0.85) / 0.15 * 0.7 : 1) : 0.0;
+    needle.rotation.z = s === 1 ? -0.9 + 1.8 * sm(clamp01(p / 0.4)) * (p > 0.85 ? 1 - (p - 0.85) / 0.15 : 1) : -0.9;
+    if (!on) return;
+    const grow = s === 1 ? clamp01((p - 0.1) / 0.7) : 1;
+    const H = ac.L.scale.y;
+    for (let i = 0; i < n; i++) {
+      const q = sd[i]; q.a += dt * q.w * (s === 1 ? 1.4 : 0.2);
+      dm.position.set(q.r * Math.cos(q.a), ac.y0 + 0.05 + q.y * (H - 0.1), q.r * Math.sin(q.a));
+      dm.rotation.set(q.a, q.sp + q.a * 0.5, 0);
+      dm.scale.setScalar(Math.max(0.0001, (0.15 + 0.85 * grow) * (i / n < 0.2 + 0.8 * grow ? 1 : 0.0001)));
+      dm.updateMatrix(); inst.setMatrixAt(i, dm.matrix);
+    }
+    inst.instanceMatrix.needsUpdate = true;
+  });
+  cabinet(-19.9, -1.6, -0.35, 1.8, (x, W, H, s, p) => {
+    const on = s === 1;
+    x.fillStyle = '#7fc7ff'; x.font = 'bold 15px system-ui'; x.fillText('AUTOCLAVE', 10, 22);
+    x.fillStyle = on ? '#ffb547' : '#4b6a80'; x.font = 'bold 13px system-ui'; x.fillText(on ? 'HEAT' : 'IDLE', 200, 22);
+    x.fillStyle = '#9db0c2'; x.font = '12px system-ui'; x.fillText('문헌 범위 100–250 °C · 가압', 10, 46);
+    x.strokeStyle = '#2b4a60'; x.lineWidth = 10; x.beginPath(); x.moveTo(12, 72); x.lineTo(244, 72); x.stroke();
+    if (on) {
+      const f = sm(clamp01(p / 0.3)) * (p > 0.85 ? 1 - (p - 0.85) / 0.15 * 0.7 : 1);
+      x.strokeStyle = '#ff7a3a'; x.beginPath(); x.moveTo(12, 72); x.lineTo(12 + 232 * f, 72); x.stroke();
+    }
+    x.fillStyle = '#e9eef3'; x.font = 'bold 14px system-ui';
+    x.fillText(on ? (p < 0.3 ? '승온' : p < 0.85 ? '유지 · 결정 성장' : '냉각') : '대기', 10, 106);
+    x.fillStyle = '#9db0c2'; x.font = '11px system-ui'; x.fillText('유지 20 min – 180 h (문헌별 차이 큼)', 10, 126);
+  });
+})();
+
+/* -- S0 charging: Ti slurry tank, DI water tank, Ba(OH)2·8H2O big bag + weigh hopper + screw, N2 purge -- */
+const tiTank = makeTank({ x: -28.4, z: 2.3, r: 0.62, h: 1.1, legH: 0.8, agit: 'pitched', run: [0, 8], w: 5, liquidMat: M.slurry, motorScale: 0.7,
+  lvl: { fill: 8, drain: 0, fw: [0.78, 1], lo: 0.1, hi: 0.75 } });
+const diTank = makeTank({ x: -29.6, z: -2.4, r: 0.6, h: 1.4, legH: 0.8, agit: null, liquidMat: M.water,
+  lvl: { fill: 8, drain: 0, lo: 0.15, hi: 0.78 } });
+makePump(-26.6, 2.3, 0);
+makePump(-27.6, -2.4, 0);
+makePipe(route(tiTank.outlet, ac.inlets[2], -24.2, { over: ac.inlets[2].y + 0.5 }), { stages: [0], r: 0.05, mat: M.flow, speed: 1.6 });
+makePipe(route(diTank.outlet, ac.inlets[0], -23.7, { over: ac.inlets[0].y + 0.35 }), { stages: [0], r: 0.05, mat: M.wflow, speed: 1.6 });
+(() => { // N2 cylinder rack + regulator panel → autoclave purge nozzle (shape (g))
+  const x = -24.3, z = -2.9;
+  const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
+  const gas = std({ color: 0x8d99a3, metalness: 0.4, roughness: 0.45 });
+  for (let k = 0; k < 3; k++) {
+    put(g, mk(cyl(0.12, 0.12, 1.3, 20), gas), -0.3 + k * 0.28, 0.67, 0);
+    put(g, mk(new THREE.SphereGeometry(0.12, 16, 8, 0, FULL, 0, Math.PI / 2), gas), -0.3 + k * 0.28, 1.32, 0);
+    put(g, mk(cyl(0.03, 0.03, 0.12, 8), M.steelB), -0.3 + k * 0.28, 1.48, 0);
+  }
+  put(g, mk(box(1.0, 0.05, 0.4), M.yellow), 0, 0.9, 0.1);
+  put(g, mk(box(1.0, 0.05, 0.4), M.yellow), 0, 0.03, 0.05);
+  put(g, mk(box(0.5, 0.6, 0.12), M.paint), 0.75, 1.15, 0);                          // regulator panel
+  const dial = put(g, mk(cyl(0.07, 0.07, 0.03, 20), M.paint), 0.75, 1.27, 0.08); dial.rotation.x = Math.PI / 2;
+  put(g, mk(box(0.08, 0.14, 0.08), M.steelB), 0.75, 1.05, 0.08);
+  makePipe([V(x + 0.75, 1.45, z), V(x + 0.75, n2In.y + 0.45, z), V(n2In.x, n2In.y + 0.45, z), V(n2In.x, n2In.y + 0.45, n2In.z), n2In.clone()],
+    { stages: [0], r: 0.025, mat: M.air, speed: 2.0, valveAt: 0.15, win: [0, 0.35] });
+})();
+
+/* -- S8 Ti raw material: TiCl4 neutralization tank (pH 2.5, 55 °C) + nutsche filter wash → Ti slurry tank -- */
+const neutT = makeTank({ x: -35.2, z: 0, r: 0.75, h: 1.2, legH: 0.9, agit: 'pitched', run: [8], w: 5, liquidMat: M.slurry, motorScale: 0.75 });
+const ticlT = makeTank({ x: -37.5, z: -2.3, r: 0.38, h: 0.8, legH: 0.7, agit: null, liquidMat: std({ color: 0xf1e7b0, roughness: 0.2, transparent: true, opacity: 0.7, side: THREE.DoubleSide }), shell: M.pp,
+  lvl: { fill: 7, drain: 8, dw: [0, 0.5], lo: 0.15, hi: 0.8 } });
+const naohT = makeTank({ x: -33.0, z: -2.3, r: 0.38, h: 0.8, legH: 0.7, agit: null, liquidMat: M.water,
+  lvl: { fill: 7, drain: 8, dw: [0, 0.5], lo: 0.15, hi: 0.8 } });
+makeDosingPump(-36.7, -1.35, 0); makeDosingPump(-33.8, -1.35, 0);
+makePipe(route(ticlT.outlet, neutT.inlets[1], -36.3), { stages: [8], r: 0.03, mat: M.air, speed: 1.0, valveAt: 0.25, win: [0, 0.5] });
+makePipe(route(naohT.outlet, neutT.inlets[3], -34.2), { stages: [8], r: 0.03, mat: M.wflow, speed: 1.0, valveAt: 0.25, win: [0, 0.5] });
+const nutsche = (() => {
+  const x = -34.3, z = 2.7, Y = 1.05;
+  const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
+  pair(g, (s, l) => cyl(0.62, 0.62, 0.55, 48, true, s, l), CUT_CYL, M.steel, M.steelIn, V(0, Y, 0));
+  rim(g, 0.63, 0.03, Y + 0.28, M.steelB);
+  put(g, mk(cyl(0.62, 0.3, 0.3, 48), M.steel), 0, Y - 0.42, 0);                     // conical bottom
+  const cloth = put(g, mk(new THREE.CircleGeometry(0.6, 40), perfMat(8, 8)), 0, Y - 0.24, 0); cloth.rotation.x = -Math.PI / 2;
+  const cake = dyn(put(g, mk(cyl(0.58, 0.58, 1, 40), M.powder), 0, Y - 0.2, 0)); cake.visible = false;
+  for (let k = 0; k < 4; k++) { const a = Math.PI / 4 + k * Math.PI / 2; put(g, mk(cyl(0.04, 0.04, Y - 0.3, 10), M.steelB), Math.cos(a) * 0.6, (Y - 0.3) / 2, Math.sin(a) * 0.6); }
+  const spray = put(g, mk(new THREE.TorusGeometry(0.4, 0.02, 8, 32), M.steelB), 0, Y + 0.4, 0); spray.rotation.x = Math.PI / 2;
+  put(g, mk(cyl(0.02, 0.02, 0.5, 8), M.steelB), 0.4, Y + 0.6, 0);
+  // vacuum receiver + pump (filtrate side)
+  put(g, mk(cyl(0.22, 0.22, 0.6, 20), M.steelB), 1.0, 0.45, -0.1);
+  put(g, mk(new THREE.SphereGeometry(0.22, 16, 8, 0, FULL, 0, Math.PI / 2), M.steelB), 1.0, 0.75, -0.1);
+  const vm = hMotor(0.3, 0.1); vm.position.set(1.05, 0.12, 0.45); g.add(vm);
+  put(g, mk(new THREE.TorusGeometry(0.16, 0.03, 8, 20, Math.PI), M.rubber), 0.62, 0.3, -0.1).rotation.y = Math.PI / 2;
+  // wash drops + filtrate drips
+  const nd = 50, drops = instanced(new THREE.SphereGeometry(0.02, 6, 5), M.wflow, nd, g);
+  const sd = Array.from({ length: nd }, () => ({ a: Math.random() * FULL, r: Math.random() * 0.4, u: Math.random() }));
+  const dm = new THREE.Object3D();
+  updaters.push((dt, s, p) => {
+    const fill = s === 8 ? clamp01((p - 0.5) / 0.25) : 0;
+    const keep = s === 8 && p > 0.5;
+    cake.visible = keep && fill > 0.02;
+    cake.scale.y = Math.max(0.01, 0.16 * fill * (p > 0.8 ? 1 - sm((p - 0.8) / 0.2) * 0.9 : 1));
+    cake.position.y = Y - 0.22 + cake.scale.y / 2;
+    const wash = s === 8 && p > 0.6 && p < 0.8;
+    drops.visible = wash;
+    if (!wash) return;
+    for (let i = 0; i < nd; i++) {
+      const q = sd[i]; q.u = (q.u + dt * 1.5) % 1;
+      dm.position.set(q.r * Math.cos(q.a), Y + 0.38 - q.u * 0.5, q.r * Math.sin(q.a)); dm.updateMatrix(); drops.setMatrixAt(i, dm.matrix);
+    }
+    drops.instanceMatrix.needsUpdate = true;
+  });
+  return { inlet: V(x - 0.3, Y + 0.3, z), out: V(x, Y - 0.6, z) };
+})();
+makePipe([neutT.outlet, V(neutT.x, FY, neutT.z), V(neutT.x, FY, 1.7), V(nutsche.inlet.x - 0.45, FY, 1.7), V(nutsche.inlet.x - 0.45, FY, nutsche.inlet.z), V(nutsche.inlet.x - 0.45, nutsche.inlet.y + 0.35, nutsche.inlet.z), V(nutsche.inlet.x, nutsche.inlet.y + 0.35, nutsche.inlet.z), nutsche.inlet.clone()],
+  { stages: [8], r: 0.045, speed: 1.6, valveAt: 0.08, win: [0.5, 0.75] });
+makePump(-32.6, 3.5, 0);
+makePipe(route(nutsche.out, tiTank.inlets[0], -29.2, { lane: 3.5 }), { stages: [8], r: 0.045, speed: 1.6, valveAt: 0.1, win: [0.8, 1] });
+(() => { // neutralization: heating jacket + pH probe + controller
+  const g = neutT.g;
+  pair(g, (s, l) => cyl(0.81, 0.81, 0.8, 64, true, s, l), CUT_CYL, M.paintBlue, M.steelIn, V(0, neutT.y0 + 0.45, 0));
+  const pp = neutT.inlets[2];
+  put(scene, mk(cyl(0.018, 0.018, 1.2, 8), M.steelB), pp.x, pp.y - 0.45, pp.z);
+  put(scene, mk(box(0.14, 0.16, 0.09), M.paint), pp.x, pp.y + 0.22, pp.z);
+  updaters.push((dt, s, p) => {
+    const l = s === 8 ? (p < 0.5 ? 0.06 + 0.66 * sm(p / 0.5) : p < 0.75 ? 0.72 - 0.66 * sm((p - 0.5) / 0.25) : 0.06) : 0.06;
+    setLevel(neutT, l);
+  });
+  cabinet(-37.4, 1.4, 0.45, 1.7, (x, W, H, s, p) => {
+    const on = s === 8;
+    x.fillStyle = '#7fc7ff'; x.font = 'bold 15px system-ui'; x.fillText('NEUTRALIZER', 10, 22);
+    x.fillStyle = '#9db0c2'; x.font = '12px system-ui'; x.fillText('pH 2.5 · 55 °C (예)', 140, 22);
+    const steps = ['① TiCl₄ + NaOH 동시 투입', '② 여과·수세 (Na⁺, Cl⁻ 제거)', '③ 110 g/L 재분산 → Ti 탱크'];
+    const cur = on ? (p < 0.5 ? 0 : p < 0.8 ? 1 : 2) : -1;
+    steps.forEach((t, k) => { x.fillStyle = k === cur ? '#ffb547' : k < cur ? '#7fc7ff' : '#4b6a80'; x.font = 'bold 13px system-ui'; x.fillText(t, 10, 56 + k * 24); });
+    x.fillStyle = '#9db0c2'; x.font = '10px system-ui'; x.fillText('[us9771274]', 10, H - 8);
+  });
+})();
+(() => {
+  const bx = -26.4, bz = -1.2;
+  const g = new THREE.Group(); g.position.set(bx, 0, bz); scene.add(g);
+  // discharger frame
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) put(g, mk(box(0.12, 4.3, 0.12), M.yellow), sx * 0.8, 2.15, sz * 0.8);
+  for (const sz of [-1, 1]) put(g, mk(box(1.72, 0.12, 0.12), M.yellow), 0, 4.25, sz * 0.8);
+  for (const sx of [-1, 1]) put(g, mk(box(0.12, 0.12, 1.72), M.yellow), sx * 0.8, 4.25, 0);
+  for (const sz of [-1, 1]) put(g, mk(box(1.72, 0.1, 0.1), M.yellow), 0, 2.4, sz * 0.8);
+  put(g, mk(cyl(0.62, 0.58, 1.1, 24), M.bag), 0, 3.3, 0);
+  put(g, mk(new THREE.SphereGeometry(0.62, 24, 12, 0, FULL, 0, Math.PI / 2), M.bag), 0, 3.85, 0).scale.y = 0.35;
+  put(g, mk(cyl(0.58, 0.14, 0.34, 24), M.bag), 0, 2.58, 0);
+  for (let k = 0; k < 4; k++) {
+    const a = Math.PI / 4 + k * Math.PI / 2;
+    put(g, mk(new THREE.TorusGeometry(0.1, 0.02, 8, 16), M.bag), Math.cos(a) * 0.45, 4.02, Math.sin(a) * 0.45).rotation.y = -a;
+    put(g, mk(cyl(0.012, 0.012, 0.2, 6), M.dark), Math.cos(a) * 0.45, 4.14, Math.sin(a) * 0.45);
+  }
+  // weigh hopper on load cells
+  put(g, mk(cyl(0.55, 0.14, 0.75, 32), M.steel), 0, 1.85, 0);
+  put(g, mk(cyl(0.55, 0.55, 0.25, 32), M.steel), 0, 2.33, 0);
+  put(g, mk(new THREE.TorusGeometry(0.55, 0.025, 8, 40), M.steelB), 0, 2.2, 0).rotation.x = Math.PI / 2;
+  for (const sx of [-1, 1]) {
+    put(g, mk(box(0.14, 0.1, 0.14), M.paintBlue), sx * 0.62, 2.15, 0);           // load cell
+    put(g, mk(box(0.2, 0.05, 0.3), M.steelB), sx * 0.62, 2.08, 0);
+  }
+  put(g, mk(box(0.24, 0.14, 0.24), M.steelB), 0, 1.42, 0);                         // slide gate
+  makeScreen(g, V(0.83, 1.6, 0.4), Math.PI / 2, 0.36, 0.22, (x, W, H, s, p) => {
+    x.fillStyle = '#7fc7ff'; x.font = 'bold 18px system-ui'; x.fillText('Ba(OH)₂·8H₂O', 10, 30);
+    x.fillStyle = s === 0 ? '#ffb547' : '#4b6a80'; x.font = 'bold 16px system-ui';
+    x.fillText(s === 0 ? (p < 0.5 ? '계량 중' : '투입 중') : '대기', 10, 70);
+    x.fillStyle = '#9db0c2'; x.font = '13px system-ui'; x.fillText('투입 Ba/Ti 2.3 (Sakai 예)', 10, 110);
+    x.fillStyle = '#9db0c2'; x.font = '11px system-ui'; x.fillText('N₂ 퍼지 후 밀폐', 10, 136);
+  });
+  // inclined screw feeder to autoclave
+  const A = V(bx, 1.32, bz), tgt = ac.inlets[1], Btop = V(tgt.x, tgt.y + 0.9, tgt.z);
+  const dir = Btop.clone().sub(A), L = dir.length(); dir.normalize();
+  const sg = new THREE.Group(); sg.position.copy(A); sg.quaternion.setFromUnitVectors(V(0, 1, 0), dir); scene.add(sg);
+  put(sg, mk(cyl(0.16, 0.16, L, 28, true), pipeMat, false), 0, L / 2, 0);
+  for (const yy of [0, L]) put(sg, mk(cyl(0.22, 0.22, 0.04, 24), M.steelB), 0, yy, 0);
+  const auger = new THREE.Group(); sg.add(auger);
+  class Helix extends THREE.Curve {
+    getPoint(t, tg = new THREE.Vector3()) { const a = FULL * (L / 0.3) * t; return tg.set(0.12 * Math.cos(a), L * t, 0.12 * Math.sin(a)); }
+  }
+  put(auger, mk(new THREE.TubeGeometry(new Helix(), Math.round(L / 0.3 * 18), 0.028, 6, false), M.steelB), 0, 0, 0);
+  put(auger, mk(cyl(0.033, 0.033, L, 10), M.steelB), 0, L / 2, 0);
+  rotors.push({ obj: auger, axis: 'y', run: [0], w: 7, cur: 0 });
+  const smot = vMotor(0.7); smot.position.set(0, L + 0.02, 0); sg.add(smot);
+  for (const f of [0.35, 0.75]) {
+    const pp = A.clone().addScaledVector(dir, L * f);
+    put(scene, mk(cyl(0.05, 0.05, pp.y, 10), M.steelB), pp.x, pp.y / 2, pp.z);
+    put(scene, mk(box(0.25, 0.03, 0.25), M.steelB), pp.x, 0.015, pp.z);
+  }
+  const n = 120, inst = instanced(new THREE.SphereGeometry(0.035, 8, 6), M.powder, n, sg);
+  const sd = Array.from({ length: n }, () => ({ u: Math.random(), a: Math.random() * FULL, r: 0.04 + Math.random() * 0.09 }));
+  const dm = new THREE.Object3D();
+  updaters.push((dt, s, p) => {
+    const on = s === 0 && p > 0.45;
+    inst.visible = on;
+    if (!on) return;
+    for (let i = 0; i < n; i++) {
+      const q = sd[i]; q.u = (q.u + dt * 0.12) % 1; q.a += dt * 3.5;
+      dm.position.set(q.r * Math.cos(q.a), q.u * L, q.r * Math.sin(q.a)); dm.updateMatrix(); inst.setMatrixAt(i, dm.matrix);
+    }
+    inst.instanceMatrix.needsUpdate = true;
+  });
+  makePipe([Btop.clone().add(V(0, -0.05, 0)), tgt.clone()], { stages: [0], r: 0.08, mat: M.powder, speed: 1.6, valveAt: null });
+})();
+
+/* ======== back row (z = ZB): solid-state line ======== */
+/* -- S13 weighing + wet ball mill -- */
+const ballMill = (() => {
+  const cx = -17.8, CY = 1.45, R = 0.75, LEN = 2.2;
+  const g = new THREE.Group(); g.position.set(cx, 0, ZB); scene.add(g);
+  put(g, mk(box(3.6, 0.1, 1.8), M.dark), 0.4, 0.05, -0.2);
+  // static cut shell (inner liner visible)
+  pair(g, (s, l) => along(cyl(R, R, LEN, 48, true, s, l), 'x'), 0, M.steel, M.steelIn, V(0, CY, 0));
+  // rotating parts: end caps, riding rings, girth gear
+  const rot = new THREE.Group(); rot.position.set(0, CY, 0); g.add(rot);
+  for (const sx of [-1, 1]) {
+    put(rot, mk(along(cyl(R + 0.03, R + 0.03, 0.06, 48), 'x'), M.steelB), sx * (LEN / 2 + 0.03), 0, 0);
+    put(rot, mk(along(cyl(0.12, 0.12, 0.3, 20), 'x'), M.steel), sx * (LEN / 2 + 0.2), 0, 0);       // trunnion
+    for (let k = 0; k < 12; k++) {
+      const a = k / 12 * FULL;
+      put(rot, mk(along(cyl(0.025, 0.025, 0.05, 8), 'x'), M.dark), sx * (LEN / 2 + 0.07), Math.cos(a) * (R - 0.06), Math.sin(a) * (R - 0.06));
+    }
+  }
+  for (const xx of [-0.75, 0.75]) {
+    const tr = mk(new THREE.TorusGeometry(R + 0.04, 0.05, 10, 64), M.steelB); tr.rotation.y = Math.PI / 2; put(rot, tr, xx, 0, 0);
+  }
+  put(rot, mk(along(cyl(R + 0.1, R + 0.1, 0.12, 64), 'x'), M.motorG), 0.3, 0, 0);
+  for (let k = 0; k < 48; k++) {
+    const a = k / 48 * FULL;
+    const tt = put(rot, mk(box(0.12, 0.06, 0.05), M.motorG), 0.3, Math.cos(a) * (R + 0.13), Math.sin(a) * (R + 0.13));
+    tt.rotation.x = -a;
+  }
+  rotors.push({ obj: rot, axis: 'x', run: [13], w: 2.2, cur: 0 });
+  // support rollers on pedestals
+  for (const xx of [-0.75, 0.75]) for (const sz of [-1, 1]) {
+    const yy = CY - Math.sqrt((R + 0.09 + 0.14) ** 2 - 0.55 ** 2);
+    const rr = new THREE.Group(); rr.position.set(xx, yy, sz * 0.55); g.add(rr);
+    put(rr, mk(along(cyl(0.14, 0.14, 0.22, 24), 'x'), M.steel), 0, 0, 0);
+    put(g, mk(box(0.4, yy - 0.1, 0.3), M.paintBlue), xx, (yy - 0.1) / 2 + 0.05, sz * 0.55);
+    rotors.push({ obj: rr, axis: 'x', run: [13], w: -2.2 * (R + 0.1) / 0.14, cur: 0 });
+  }
+  // drive: pinion, gearbox, motor, guard
+  const pin = new THREE.Group(); pin.position.set(0.3, CY - (R + 0.27) * Math.cos(0.75), -(R + 0.27) * Math.sin(0.75)); g.add(pin);
+  put(pin, mk(along(cyl(0.15, 0.15, 0.14, 20), 'x'), M.motorG), 0, 0, 0);
+  rotors.push({ obj: pin, axis: 'x', run: [13], w: -2.2 * 6, cur: 0 });
+  put(g, mk(box(0.5, 0.5, 0.5), M.motorG), 1.1, 0.42, pin.position.z);
+  put(g, mk(along(cyl(0.04, 0.04, 0.85, 10), 'x'), M.steel), 0.7, pin.position.y, pin.position.z);
+  const hm = hMotor(0.55, 0.17); hm.position.set(1.75, 0.42, pin.position.z); g.add(hm);
+  put(g, mk(box(0.5, 0.5, 0.5), M.yellow), 0.3, pin.position.y, pin.position.z - 0.12);
+  // grinding balls cascading
+  const n = 300, inst = instanced(new THREE.SphereGeometry(0.055, 10, 8), M.bead, n, g);
+  const sd = Array.from({ length: n }, () => ({ x: -LEN / 2 + 0.08 + Math.random() * (LEN - 0.16), rr: 0.25 + Math.random() * 0.43, u: Math.random(), v: 0.6 + Math.random() * 0.5, k: Math.random() }));
+  const dm = new THREE.Object3D();
+  updaters.push((dt, s) => {
+    const w = rotors.find((q) => q.obj === rot).cur;
+    const run = w > 0.6;
+    for (let i = 0; i < n; i++) {
+      const q = sd[i];
+      let y, z;
+      if (run) {
+        q.u = (q.u + dt * q.v * w * 0.25) % 1;
+        const thTop = 1.2 + 0.4 * (1 - q.rr / R);
+        if (q.u < 0.72) {
+          const th = -0.35 + (thTop + 0.35) * (q.u / 0.72);
+          y = -q.rr * Math.cos(th); z = -q.rr * Math.sin(th);
+        } else {
+          const k = (q.u - 0.72) / 0.28;
+          const ay = -q.rr * Math.cos(thTop), az = -q.rr * Math.sin(thTop);
+          const by = -(R - 0.08) * Math.cos(-0.45), bz = -(R - 0.08) * Math.sin(-0.45);
+          y = ay + (by - ay) * k + 0.25 * Math.sin(Math.PI * k) * 0.3; z = az + (bz - az) * k;
+        }
+      } else {
+        const th = (q.k - 0.5) * 1.5;
+        y = -q.rr * Math.cos(th) * 1.0 - (R - q.rr) * 0.3; z = -q.rr * Math.sin(th);
+        y = Math.max(y, -R + 0.06);
+      }
+      dm.position.set(q.x, CY + y, z); dm.updateMatrix(); inst.setMatrixAt(i, dm.matrix);
+    }
+    inst.instanceMatrix.needsUpdate = true;
+  });
+  return { cx, out: V(cx + 1.2, 0.35, ZB + 1.0) };
+})();
+
+(() => { // weighing: platform scale with BaCO3 / TiO2 bags (shape (g))
+  const x = ballMill.cx - 2.5, z = ZB + 0.5;
+  const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
+  put(g, mk(box(1.3, 0.1, 1.0), M.dark), 0, 0.05, 0);
+  put(g, mk(box(1.2, 0.04, 0.9), M.steelB), 0, 0.12, 0);
+  put(g, mk(box(1.1, 0.12, 0.8), M.fiber), 0, 0.2, 0);                                   // pallet
+  put(g, mk(box(0.48, 0.5, 0.48), M.bag), -0.26, 0.51, 0);
+  put(g, mk(box(0.48, 0.5, 0.48), std({ color: 0xdfe6ea, roughness: 0.95 })), 0.26, 0.51, 0);
+  put(g, mk(box(0.06, 1.2, 0.06), M.steelB), 0.75, 0.6, -0.35);
+  makeScreen(g, V(0.75, 1.3, -0.3), 0.3, 0.34, 0.22, (cx, W, H, s, p) => {
+    cx.fillStyle = '#7fc7ff'; cx.font = 'bold 18px system-ui'; cx.fillText('BaCO₃ + TiO₂', 10, 30);
+    cx.fillStyle = s === 13 ? '#ffb547' : '#4b6a80'; cx.font = 'bold 20px system-ui'; cx.fillText('Ba/Ti 0.997 (예)', 10, 80);
+    cx.fillStyle = '#9db0c2'; cx.font = '13px system-ui'; cx.fillText('[us20090264276]', 10, 120);
+  });
+})();
+makePump(ballMill.cx + 2.2, ZB + 1.0, 0);
+
+/* -- S14 spray dryer: rotary-disc atomizer, hot-air disperser, chamber + cone, fines cyclone (shape (g)) -- */
+const spray = (() => {
+  const X = -12.2, Z = ZB, YT = 3.8, R = 0.95, HC = 1.2, HK = 1.3;
+  const yb = YT - HC - HK;
+  const g = new THREE.Group(); g.position.set(X, 0, Z); scene.add(g);
+  pair(g, (s, l) => cyl(R, R, HC, 48, true, s, l), CUT_CYL, M.steel, M.steelIn, V(0, YT - HC / 2, 0));
+  pair(g, (s, l) => cyl(R, 0.14, HK, 48, true, s, l), CUT_CYL, M.steel, M.steelIn, V(0, YT - HC - HK / 2, 0));
+  pair(g, (s, l) => cyl(R + 0.02, R + 0.02, 0.06, 48, false, s, l), CUT_CYL, M.steelB, M.steelIn, V(0, YT + 0.03, 0));
+  rim(g, R + 0.02, 0.03, YT - HC, M.steelB);
+  for (let k = 0; k < 4; k++) { const a = Math.PI / 4 + k * Math.PI / 2; put(g, mk(box(0.1, YT - HC, 0.1), M.steelB), Math.cos(a) * (R + 0.06), (YT - HC) / 2, Math.sin(a) * (R + 0.06)); }
+  put(g, mk(cyl(0.42, 0.42, 0.28, 32), M.steelB), 0, YT + 0.2, 0);                      // hot-air disperser
+  put(g, mk(cyl(0.15, 0.15, 0.55, 20), M.motor), 0, YT + 0.6, 0);                        // atomizer drive
+  put(g, mk(cyl(0.05, 0.05, 0.3, 10), M.steel), 0, YT - 0.1, 0);
+  const disc = new THREE.Group(); disc.position.y = YT - 0.25; g.add(disc);
+  put(disc, mk(cyl(0.17, 0.17, 0.06, 20), M.steel), 0, 0, 0);
+  for (let k = 0; k < 2; k++) put(disc, mk(box(0.36, 0.07, 0.03), M.steelB), 0, 0, 0).rotation.y = k * Math.PI / 2;
+  rotors.push({ obj: disc, axis: 'y', run: [14], w: 30, cur: 0 });
+  put(g, mk(box(0.22, 0.2, 0.22), M.steelB), 0, yb - 0.12, 0);                           // product rotary valve
+  // hot-air generator + supply fan (back side) and duct to the disperser
+  const heatM = std({ color: 0x3a3f45, roughness: 0.6, emissive: 0xff5a14, emissiveIntensity: 0 });
+  put(g, mk(box(0.9, 0.8, 0.6), M.paintBlue), -1.75, 0.4, -0.95);
+  put(g, mk(box(0.6, 0.35, 0.02), heatM, false), -1.75, 0.45, -0.64);
+  put(g, mk(along(cyl(0.28, 0.28, 0.2, 24), 'z'), M.paintBlue), -2.55, 0.45, -0.95);
+  const fm = hMotor(0.32, 0.11); fm.rotation.y = Math.PI / 2; fm.position.set(-2.55, 0.25, -1.45); g.add(fm);
+  // droplets → drying particles
+  const n = 150, inst = instanced(new THREE.SphereGeometry(0.03, 8, 6), M.powder, n, g);
+  const sd = Array.from({ length: n }, () => ({ u: Math.random(), a: Math.random() * FULL, v: 0.8 + Math.random() * 0.4 }));
+  const dm = new THREE.Object3D();
+  updaters.push((dt, s, p) => {
+    const on = s === 14;
+    heatM.emissiveIntensity += ((on ? 1.2 : 0.05) - heatM.emissiveIntensity) * Math.min(1, dt * 2);
+    inst.visible = on;
+    if (!on) return;
+    for (let i = 0; i < n; i++) {
+      const q = sd[i]; q.u = (q.u + dt * 0.28 * q.v) % 1;
+      let r, y;
+      if (q.u < 0.15) { const k = q.u / 0.15; r = 0.18 + 0.62 * k; y = YT - 0.25 - 0.1 * k; }
+      else { const k = (q.u - 0.15) / 0.85; y = YT - 0.35 - k * (HC + HK - 0.5); r = y > YT - HC ? 0.8 - 0.25 * k : Math.max(0.05, 0.55 * (y - yb) / HK); }
+      dm.position.set(r * Math.cos(q.a), y, r * Math.sin(q.a));
+      dm.scale.setScalar(q.u < 0.15 ? 1.2 : 1.2 - 0.6 * clamp01((q.u - 0.15) / 0.4)); dm.updateMatrix(); inst.setMatrixAt(i, dm.matrix);
+    }
+    inst.instanceMatrix.needsUpdate = true;
+  });
+  return { X, YT, yb, feed: V(X + 0.3, YT + 0.36, Z), out: V(X, yb - 0.24, Z), air: V(X - 1.75, 0.8, Z - 0.95) };
+})();
+const sCyc = cyclone(spray.X + 1.75, ZB + 0.2, 3.4, { r: 0.34, stages: [14] });
+makePipe([V(spray.X + 0.96, 2.85, ZB), V(sCyc.inlet.x - 0.15, 2.85, ZB), V(sCyc.inlet.x - 0.15, sCyc.inlet.y, ZB), V(sCyc.inlet.x, sCyc.inlet.y, sCyc.inlet.z)],
+  { stages: [14], r: 0.1, mat: M.air, speed: 1.6, valveAt: null, pr: 0.04, dens: 6 });
+makePipe([spray.air, V(spray.air.x, spray.YT + 0.5, spray.air.z), V(spray.X - 0.3, spray.YT + 0.5, spray.air.z), V(spray.X - 0.3, spray.YT + 0.5, ZB), V(spray.X - 0.3, spray.YT + 0.34, ZB)],
+  { stages: [14], r: 0.11, mat: M.air, speed: 2.0, valveAt: null, pr: 0.05 });
+makePipe([ballMill.out, V(ballMill.out.x, FY, ballMill.out.z), V(-13.9, FY, ballMill.out.z), V(-13.9, spray.YT + 0.75, ballMill.out.z), V(spray.feed.x, spray.YT + 0.75, ballMill.out.z), V(spray.feed.x, spray.YT + 0.75, ZB), spray.feed.clone()],
+  { stages: [14], r: 0.04, speed: 1.6, valveAt: 0.08, win: [0, 0.85] });
+
+/* -- S15 1st calcination: externally heated rotary kiln (retort tube, riding rings, 3 heater zones) -- */
+const rkZ = [0, 1, 2].map(() => std({ color: 0x8a4a2a, roughness: 0.9, emissive: 0xff6a1a, emissiveIntensity: 0.15 }));
+const rk = (() => {
+  const XC = -6.4, Z = ZB, Y = 1.35, L = 5.6, R = 0.36, TILT = -0.03;
+  const base = new THREE.Group(); base.position.set(XC, 0, Z); scene.add(base);
+  const g = new THREE.Group(); g.position.set(XC, Y, Z); g.rotation.z = TILT; scene.add(g);
+  pair(g, (s, l) => along(cyl(R, R, L, 40, true, s, l), 'x'), 0, M.steelB, M.steelIn, V(0, 0, 0));   // retort tube
+  const rot = new THREE.Group(); g.add(rot);
+  for (const xx of [-2.35, 2.35]) { const tr = mk(new THREE.TorusGeometry(R + 0.06, 0.05, 10, 40), M.steel); tr.rotation.y = Math.PI / 2; put(rot, tr, xx, 0, 0); }
+  put(rot, mk(along(cyl(R + 0.12, R + 0.12, 0.1, 40), 'x'), M.motorG), -1.95, 0, 0);    // girth gear
+  const lug = []; for (const xx of [-2.35, -1.95, 2.35]) for (let k = 0; k < 8; k++) { const a = k / 8 * FULL; lug.push([V(xx, Math.cos(a) * (R + 0.1), Math.sin(a) * (R + 0.1)), [a, 0, 0]]); }
+  staticInst(box(0.06, 0.05, 0.08), M.dark, lug, rot);
+  rotors.push({ obj: rot, axis: 'x', run: [15], w: 1.6, cur: 0 });
+  // support rollers + pedestals, drive
+  for (const xx of [-2.35, 2.35]) for (const sz of [-1, 1]) {
+    const yy = Y + xx * TILT - (R + 0.06 + 0.1) * 0.8;
+    put(base, mk(along(cyl(0.1, 0.1, 0.16, 16), 'x'), M.steel), xx, yy, sz * 0.3);
+    put(base, mk(box(0.3, yy - 0.08, 0.22), M.paintBlue), xx, (yy - 0.08) / 2, sz * 0.3);
+  }
+  put(base, mk(box(0.45, 0.45, 0.45), M.motorG), -1.95, 0.42, -0.85);
+  const dmot = hMotor(0.4, 0.14); dmot.position.set(-1.3, 0.3, -0.85); base.add(dmot);
+  put(base, mk(box(L + 0.6, 0.08, 1.4), M.dark), 0, 0.04, 0);
+  // heater housing over the middle (3 zones); front panel hidden in cutaway
+  const HL = 3.4, HY = Y + 0.05;
+  put(base, mk(box(HL, 1.2, 0.06), M.paintBlue), 0, HY, -0.6);
+  const roof = put(base, mk(box(HL, 0.06, 1.2), M.paintBlue), 0, HY + 0.6, 0); fullParts.push(roof);   // roof also opens in cutaway
+  const roofC = put(base, mk(box(HL, 0.06, 0.45), M.paintBlue), 0, HY + 0.6, -0.375); cutParts.push(roofC);
+  put(base, mk(box(HL, 0.06, 1.2), M.paintBlue), 0, HY - 0.6, 0);
+  for (const sx of [-1, 1]) put(base, mk(box(0.06, 1.2, 1.2), M.paintBlue), sx * HL / 2, HY, 0);
+  const fr = put(base, mk(box(HL, 1.2, 0.06), M.paintBlue), 0, HY, 0.6); fullParts.push(fr);
+  for (let k = 0; k <= 3; k++) { const e = put(base, mk(box(0.07, 1.2, 0.07), M.paintBlue), -HL / 2 + k * HL / 3, HY, 0.6); cutParts.push(e); }
+  for (let k = 0; k < 3; k++) {
+    put(base, mk(box(HL / 3 - 0.12, 1.0, 0.03), rkZ[k], false), -HL / 2 + (k + 0.5) * HL / 3, HY, -0.55);
+    for (const zz of [-0.3, 0.05]) put(base, mk(along(cyl(0.03, 0.03, HL / 3 - 0.2, 8), 'x'), rkZ[k], false), -HL / 2 + (k + 0.5) * HL / 3, HY + 0.45, zz);   // heater rods above the tube
+  }
+  for (let k = 0; k < 3; k++) put(base, mk(cyl(0.03, 0.03, 0.35, 8), M.steelB), -HL / 2 + (k + 0.5) * HL / 3, HY + 0.8, 0.2);   // thermocouples
+  // feed end: hood, screw, hopper, exhaust; discharge end: hood + chute
+  const xf = -L / 2 - 0.15, xd = L / 2 + 0.15;
+  put(base, mk(box(0.4, 0.95, 0.95), M.steel), xf, Y + xf * TILT, 0);
+  put(base, mk(box(0.4, 0.95, 0.95), M.steel), xd, Y + xd * TILT, 0);
+  put(base, mk(cyl(0.3, 0.1, 0.45, 20), M.steel), xf - 0.25, 2.55, 0);
+  put(base, mk(along(cyl(0.07, 0.07, 0.6, 12), 'x'), M.steel), xf - 0.05, 2.0, 0);
+  put(base, mk(cyl(0.11, 0.11, 1.9, 14), M.steelB), xf, 2.75, -0.3);
+  put(base, mk(cyl(0.16, 0.08, 0.45, 4, true), M.steel), xd + 0.05, Y - 0.7, 0).rotation.y = Math.PI / 4;
+  for (const xx of [xf, xd]) for (const sz of [-0.35, 0.35]) put(base, mk(box(0.06, Y - 0.45, 0.06), M.steelB), xx, (Y - 0.45) / 2, sz);
+  // powder bed travelling down the tube + CO2 puffs at the exhaust
+  const n = 140, bed = instanced(new THREE.SphereGeometry(0.035, 8, 6), M.powder, n, g);
+  const sd = Array.from({ length: n }, () => ({ u: Math.random(), a: Math.random(), w: 0.6 + Math.random() * 0.8 }));
+  const nc = 30, co2 = instanced(new THREE.SphereGeometry(0.06, 8, 6), M.air, nc, base);
+  const cs = Array.from({ length: nc }, () => ({ u: Math.random(), a: Math.random() * FULL }));
+  const dm = new THREE.Object3D();
+  updaters.push((dt, s, p, t) => {
+    const on = s === 15;
+    const zt = on ? [0.9, 1.4, 1.1] : [0.15, 0.15, 0.15];
+    rkZ.forEach((m, k) => { m.emissiveIntensity += (zt[k] - m.emissiveIntensity) * Math.min(1, dt * 2); });
+    bed.visible = co2.visible = on;
+    if (!on) return;
+    for (let i = 0; i < n; i++) {
+      const q = sd[i]; q.u = (q.u + dt * 0.05 * q.w) % 1;
+      const th = -Math.PI / 2 + 0.55 + 0.55 * Math.sin(t * 2.2 * q.w + q.a * 6);   // tumbling up the rising wall
+      const rr = R - 0.05 - 0.12 * q.a;
+      dm.position.set(-L / 2 + 0.1 + q.u * (L - 0.2), rr * Math.sin(th), rr * Math.cos(th) * 0.9);
+      dm.updateMatrix(); bed.setMatrixAt(i, dm.matrix);
+    }
+    for (let i = 0; i < nc; i++) {
+      const q = cs[i]; q.u = (q.u + dt * 0.4) % 1;
+      dm.position.set(xf + 0.12 * Math.cos(q.a) + q.u * 0.3, 3.7 + q.u * 1.6, -0.3 + 0.12 * Math.sin(q.a));
+      dm.scale.setScalar(0.5 + q.u * 1.4); dm.updateMatrix(); co2.setMatrixAt(i, dm.matrix);
+    }
+    bed.instanceMatrix.needsUpdate = co2.instanceMatrix.needsUpdate = true;
+  });
+  cabinet(XC + 0.4, Z - 1.35, 0, 1.7, (x, W, H, s, p) => {
+    x.fillStyle = '#7fc7ff'; x.font = 'bold 15px system-ui'; x.fillText('ROTARY KILN', 10, 22);
+    x.fillStyle = '#9db0c2'; x.font = '12px system-ui'; x.fillText('600–700 °C · 체류 ~0.3 h (예)', 10, 44);
+    const z = ['Z1', 'Z2', 'Z3'];
+    for (let k = 0; k < 3; k++) {
+      const v = rkZ[k].emissiveIntensity / 1.4;
+      x.fillStyle = '#2b4a60'; x.fillRect(12 + k * 80, 58, 70, 44);
+      x.fillStyle = `rgba(255,122,58,${0.25 + 0.75 * v})`; x.fillRect(12 + k * 80, 102 - 44 * v, 70, 44 * v);
+      x.fillStyle = '#e9eef3'; x.font = 'bold 13px system-ui'; x.fillText(z[k], 36 + k * 80, 124);
+    }
+    x.fillStyle = '#9db0c2'; x.font = '10px system-ui'; x.fillText('공기 흐름 · CO₂ ≤ 15 mol% · [us20090264276]', 10, H - 6);
+  });
+  return { hopper: V(XC + xf - 0.25, 2.85, Z), out: V(XC + xd + 0.05, Y - 0.95, Z), blow: V(XC + xd + 0.7, 0.5, Z + 0.7) };
+})();
+makePipe([spray.out, V(spray.out.x, 0.55, ZB), V(spray.out.x, 0.55, ZB + 1.15), V(rk.hopper.x - 0.35, 0.55, ZB + 1.15), V(rk.hopper.x - 0.35, 3.15, ZB + 1.15), V(rk.hopper.x, 3.15, ZB + 1.15), V(rk.hopper.x, 3.15, ZB), rk.hopper.clone()],
+  { stages: [14], r: 0.06, mat: M.powder, speed: 1.4, valveAt: null, win: [0.3, 1] });
+(() => { // process-air blower at the discharge end (air sweeps CO2 out)
+  const b = rk.blow;
+  put(scene, mk(along(cyl(0.22, 0.22, 0.18, 20), 'z'), M.paintBlue), b.x, b.y, b.z);
+  const m = hMotor(0.28, 0.1); m.position.set(b.x + 0.35, 0.3, b.z); scene.add(m);
+  makePipe([V(b.x, b.y + 0.2, b.z), V(b.x, 1.6, b.z), V(b.x - 0.6, 1.6, b.z), V(b.x - 0.6, 1.6, ZB + 0.48)], { stages: [15], r: 0.05, mat: M.air, speed: 1.8, valveAt: null });
+})();
+
+/* -- S2 main calcination: sagger kiln (continuous roller-hearth shape (g); sources use batch furnaces) -- */
+const kiln = (() => {
+  const x0 = -0.6, x1 = 4.4, xc = (x0 + x1) / 2, KL = x1 - x0;
+  const g = new THREE.Group(); g.position.z = ZB; scene.add(g);
+  const RY = 0.95;
+  // frame legs
+  for (let k = 0; k <= 4; k++) for (const sz of [-0.75, 0.75]) put(g, mk(box(0.12, 0.85, 0.12), M.steelB), x0 + k * KL / 4, 0.425, sz);
+  // rollers through the whole line (entry table + kiln + exit table)
+  const rx0 = x0 - 1.3, rx1 = x1 + 1.3;
+  for (let xx = rx0; xx <= rx1 + 1e-3; xx += 0.3) {
+    put(g, mk(along(cyl(0.04, 0.04, 1.3, 10), 'z'), M.steelB), xx, RY - 0.05, 0);   // rollers (static: a turning plain roller looks the same)
+  }
+  for (const sz of [-0.7, 0.7]) put(g, mk(box(rx1 - rx0 + 0.2, 0.1, 0.08), M.steelB), xc, RY - 0.05, sz);
+  for (const xx of [rx0 + 0.4, rx1 - 0.4]) for (const sz of [-0.6, 0.6]) put(g, mk(box(0.08, RY - 0.1, 0.08), M.steelB), xx, (RY - 0.1) / 2, sz);
+  // refractory body
+  put(g, mk(box(KL, 0.25, 1.5), M.brick), xc, RY - 0.25, 0);                    // hearth
+  put(g, mk(box(KL, 1.0, 0.18), kilnWall), xc, RY + 0.42, -0.66);               // back wall
+  put(g, mk(box(KL, 0.22, 1.5), M.brick), xc, RY + 1.03, 0);                    // roof
+  put(g, mk(box(KL + 0.1, 0.12, 1.62), M.paintBlue), xc, RY + 1.2, 0);          // steel casing top
+  put(g, mk(box(KL + 0.1, 1.3, 0.04), M.paintBlue), xc, RY + 0.5, -0.79);
+  const front = put(g, mk(box(KL, 1.0, 0.18), M.brick), xc, RY + 0.42, 0.66); fullParts.push(front);
+  const frontC = put(g, mk(box(KL + 0.1, 1.3, 0.04), M.paintBlue), xc, RY + 0.5, 0.79); fullParts.push(frontC);
+  for (let k = 0; k <= 5; k++) { const e = put(g, mk(box(0.08, 1.3, 0.06), M.paintBlue), x0 + k * KL / 5, RY + 0.5, 0.8); cutParts.push(e); }
+  for (const xx of [x0, x1]) put(g, mk(box(0.2, 0.55, 1.5), M.brick), xx, RY + 0.66, 0);   // end walls above openings
+  // zone glow panels on the back wall: preheat / firing / cooling
+  for (let k = 0; k < 3; k++) put(g, mk(box(KL / 3 - 0.12, 0.7, 0.02), kilnZ[k], false), x0 + (k + 0.5) * KL / 3, RY + 0.42, -0.56);
+  // burners / thermocouples on roof
+  for (let k = 0; k < 6; k++) {
+    put(g, mk(cyl(0.05, 0.05, 0.35, 10), M.steelB), x0 + 0.4 + k * (KL - 0.8) / 5, RY + 1.4, 0.35);
+    put(g, mk(cyl(0.02, 0.02, 0.4, 8), M.steelB), x0 + 0.4 + k * (KL - 0.8) / 5, RY + 1.45, -0.35);
+  }
+  // exhaust stack
+  const sx = xc - 0.8;
+  put(g, mk(cyl(0.2, 0.22, 2.4, 20), M.steelB), sx, RY + 2.4, 0);
+  put(g, mk(cyl(0.28, 0.28, 0.08, 20), M.steelB), sx, RY + 3.6, 0);
+  // saggers travelling through
+  const N = 9, span = rx1 - rx0;
+  const sag = [];
+  for (let i = 0; i < N; i++) {
+    const sgp = dyn(new THREE.Group()); g.add(sgp);
+    put(sgp, mk(box(0.5, 0.2, 0.5), M.sagger), 0, 0.1, 0);
+    put(sgp, mk(box(0.42, 0.04, 0.42), M.powder, false), 0, 0.19, 0);
+    sag.push(sgp);
+  }
+  let off = 0;
+  // CO2 leaving the stack
+  const nc = 50, co2 = instanced(new THREE.SphereGeometry(0.07, 8, 6), M.air, nc, g);
+  const cs = Array.from({ length: nc }, () => ({ u: Math.random(), a: Math.random() * FULL, r: Math.random() * 0.15 }));
+  const dm = new THREE.Object3D();
+  updaters.push((dt, s, p) => {
+    const on = s === 2;
+    if (on) off += dt * 0.32;
+    for (let i = 0; i < N; i++) sag[i].position.set(rx0 + 0.25 + ((i / N) * (span - 0.5) + off) % (span - 0.5), RY, 0);
+    const z = on ? [0.7, 1.7, 0.6] : [0.25, 0.55, 0.2];
+    kilnZ.forEach((m, k) => { m.emissiveIntensity += (z[k] - m.emissiveIntensity) * Math.min(1, dt * 2); });
+    kilnWall.emissiveIntensity = kilnZ[1].emissiveIntensity * 0.25;
+    co2.visible = on;
+    if (!on) return;
+    for (let i = 0; i < nc; i++) {
+      const q = cs[i]; q.u = (q.u + dt * 0.35) % 1;
+      dm.position.set(sx + q.r * Math.cos(q.a) + q.u * 0.4, RY + 3.65 + q.u * 2.2, q.r * Math.sin(q.a));
+      dm.scale.setScalar(0.5 + q.u * 1.6); dm.updateMatrix(); co2.setMatrixAt(i, dm.matrix);
+    }
+    co2.instanceMatrix.needsUpdate = true;
+  });
+  cabinet(rx1 + 0.9, ZB + 0.2, -0.6, 1.7, (x, W, H, s, p) => {
+    x.fillStyle = '#7fc7ff'; x.font = 'bold 15px system-ui'; x.fillText('2ND CALCINATION', 10, 22);
+    x.fillStyle = '#9db0c2'; x.font = '12px system-ui'; x.fillText('예 900–1000 °C · 위키 1100–1400 °C', 10, 46);
+    const z = ['예열', '하소', '냉각'];
+    for (let k = 0; k < 3; k++) {
+      const v = kilnZ[k].emissiveIntensity / 1.7;
+      x.fillStyle = '#2b4a60'; x.fillRect(12 + k * 80, 62, 70, 40);
+      x.fillStyle = `rgba(255,122,58,${0.25 + 0.75 * v})`; x.fillRect(12 + k * 80, 102 - 40 * v, 70, 40 * v);
+      x.fillStyle = '#e9eef3'; x.font = 'bold 13px system-ui'; x.fillText(z[k], 30 + k * 80, 124);
+    }
+  });
+  return { xc, exit: V(rx1 - 0.1, RY + 0.3, ZB) };
+})();
+makePipe([rk.out, V(rk.out.x, rk.out.y, ZB + 0.9), V(-1.7, rk.out.y, ZB + 0.9), V(-1.7, 1.5, ZB + 0.9), V(-1.7, 1.5, ZB), V(-1.7, 1.22, ZB)],
+  { stages: [15], r: 0.06, mat: M.powder, speed: 1.2, valveAt: null, win: [0.4, 1] });
+
+/* -- S9 unreacted-Ba fixing: adjustment tank + CO2 sparger (Sakai 1984) -- */
+const co2T = makeTank({ x: -17.6, z: 0, r: 0.7, h: 1.15, legH: 0.85, agit: 'pitched', run: [9], w: 5, liquidMat: M.slurry, motorScale: 0.7,
+  lvl: { fill: 9, drain: 3, fw: [0, 0.5], lo: 0.05, hi: 0.78 } });
+makePipe(route(ac.outlet, co2T.inlets[2], -18.9, { lane: -2.8 }), { stages: [9], speed: 1.8, valveAt: 0.05, win: [0, 0.5] });
+(() => {
+  const g = co2T.g;
+  // sparger ring + dip pipe (inside, seen through the cut)
+  const ring = put(g, mk(new THREE.TorusGeometry(0.42, 0.025, 8, 40), M.steelB), 0, co2T.y0 + 0.08, 0); ring.rotation.x = Math.PI / 2;
+  const ip = co2T.inlets[1];
+  put(g, mk(cyl(0.022, 0.022, ip.y - co2T.y0 - 0.1, 8), M.steelB), ip.x - co2T.x, (ip.y + co2T.y0 + 0.1) / 2 - 0.05, ip.z - co2T.z);
+  // pH probe
+  const pp = co2T.inlets[3];
+  put(scene, mk(cyl(0.018, 0.018, 1.1, 8), M.steelB), pp.x, pp.y - 0.4, pp.z);
+  put(scene, mk(box(0.14, 0.16, 0.09), M.paint), pp.x, pp.y + 0.22, pp.z);
+  // CO2 bubbles
+  const nb = 70, bub = instanced(new THREE.SphereGeometry(0.03, 8, 6), M.air, nb, g);
+  const sd = Array.from({ length: nb }, () => ({ a: Math.random() * FULL, u: Math.random(), w: (Math.random() - 0.5) * 0.08 }));
+  const dm = new THREE.Object3D();
+  updaters.push((dt, s, p, t) => {
+    const on = s === 9 && p > 0.45 && p < 0.95;
+    bub.visible = on;
+    if (!on) return;
+    const H = co2T.L.scale.y;
+    for (let i = 0; i < nb; i++) {
+      const q = sd[i]; q.u = (q.u + dt * 0.8) % 1;
+      const r = 0.42 + q.w + 0.04 * Math.sin(t * 3 + q.a);
+      dm.position.set(r * Math.cos(q.a), co2T.y0 + 0.1 + q.u * Math.max(0.05, H - 0.12), r * Math.sin(q.a));
+      dm.scale.setScalar(0.6 + q.u * 0.8); dm.updateMatrix(); bub.setMatrixAt(i, dm.matrix);
+    }
+    bub.instanceMatrix.needsUpdate = true;
+  });
+  // CO2 cylinders + regulator (shape (g))
+  const cx = -16.3, cz = -2.4;
+  const gas = std({ color: 0x5f6b72, metalness: 0.4, roughness: 0.45 });
+  for (let k = 0; k < 2; k++) {
+    put(scene, mk(cyl(0.12, 0.12, 1.3, 20), gas), cx + k * 0.3, 0.67, cz);
+    put(scene, mk(new THREE.SphereGeometry(0.12, 16, 8, 0, FULL, 0, Math.PI / 2), gas), cx + k * 0.3, 1.32, cz);
+  }
+  put(scene, mk(box(0.75, 0.05, 0.3), M.yellow), cx + 0.15, 0.95, cz + 0.12);
+  put(scene, mk(box(0.32, 0.4, 0.1), M.paint), cx + 0.15, 1.6, cz + 0.05);
+  makePipe([V(cx + 0.15, 1.82, cz), V(cx + 0.15, ip.y + 0.45, cz), V(ip.x, ip.y + 0.45, cz), V(ip.x, ip.y + 0.45, ip.z), ip.clone()],
+    { stages: [9], r: 0.025, mat: M.air, speed: 2.0, valveAt: 0.2, win: [0.45, 0.95] });
+  cabinet(-19.2, 1.9, -0.3, 1.7, (x, W, H, s, p) => {
+    const on = s === 9;
+    x.fillStyle = '#7fc7ff'; x.font = 'bold 15px system-ui'; x.fillText('Ba FIXING (CO₂)', 10, 22);
+    x.fillStyle = '#9db0c2'; x.font = '12px system-ui'; x.fillText('목표 pH 6.5 → Ba/Ti 1.00 (예)', 10, 44);
+    const L = 14, R = W - 14, T = 58, B = 126;
+    x.strokeStyle = '#2b4a60'; x.lineWidth = 2; x.beginPath(); x.moveTo(L, B); x.lineTo(R, B); x.stroke();
+    const yph = (v) => B - (v - 5) / 9 * (B - T);
+    x.setLineDash([4, 4]); x.strokeStyle = '#4b6a80'; x.beginPath(); x.moveTo(L, yph(6.5)); x.lineTo(R, yph(6.5)); x.stroke(); x.setLineDash([]);
+    if (on) {
+      x.strokeStyle = '#ffb547'; x.lineWidth = 3; x.beginPath();
+      for (let i = 0; i <= 40; i++) { const u = i / 40 * p, v = u < 0.45 ? 13 : 13 - 6.5 * sm(clamp01((u - 0.45) / 0.4)); const px = L + (R - L) * (i / 40 * p); i ? x.lineTo(px, yph(v)) : x.moveTo(px, yph(v)); }
+      x.stroke();
+    }
+    x.fillStyle = '#9db0c2'; x.font = '10px system-ui'; x.fillText('pH (모식) · [us4643984]', 10, H - 8);
+  });
+})();
+
+/* -- S3 filter press (washing) -- */
+const press = (() => {
+  const hx = -15.3, ex = -11.05, Y = 1.2, NP = 16;
+  const g = new THREE.Group(); scene.add(g);
+  put(g, mk(box(0.36, 1.55, 1.45), M.paintBlue), hx, Y, 0);                       // fixed head
+  put(g, mk(box(0.36, 0.5, 1.2), M.paintBlue), hx, 0.25, 0);
+  put(g, mk(box(0.3, 1.75, 0.6), M.paintBlue), ex, 0.9 + 0.0, 0);                 // end post / cylinder support
+  for (const sz of [-0.7, 0.7]) put(g, mk(along(cyl(0.06, 0.06, ex - hx, 16), 'x'), M.steel), (hx + ex) / 2, Y + 0.68, sz);   // side bars
+  const plates = [];
+  for (let i = 0; i < NP; i++) {
+    const pl = dyn(new THREE.Group()); g.add(pl);
+    put(pl, mk(box(0.085, 1.25, 1.25), M.pp), 0, Y, 0);
+    put(pl, mk(box(0.09, 1.05, 1.05), std({ color: 0xc7c1b0, roughness: 0.8 })), 0, Y, 0);
+    for (const sz of [-0.7, 0.7]) put(pl, mk(box(0.08, 0.1, 0.12), M.dark), 0, Y + 0.68, sz);
+    const cake = put(pl, mk(box(0.06, 0.95, 0.95), M.powder), 0.07, Y, 0); cake.visible = false;
+    plates.push({ pl, cake });
+  }
+  const mh = dyn(new THREE.Group()); g.add(mh);
+  put(mh, mk(box(0.24, 1.4, 1.35), M.paintBlue), 0, Y, 0);
+  for (const sz of [-0.7, 0.7]) put(mh, mk(box(0.22, 0.14, 0.16), M.dark), 0, Y + 0.68, sz);
+  put(g, mk(along(cyl(0.16, 0.16, 0.55, 24), 'x'), M.steel), ex - 0.42, Y, 0);   // hydraulic cylinder body
+  const rod = dyn(put(g, mk(along(cyl(0.05, 0.05, 1, 12), 'x'), M.steel), 0, Y, 0));
+  // cake discharge chute in front of the plate pack (shape (g))
+  put(g, mk(cyl(0.3, 0.1, 0.3, 4, true), M.steelB), ex - 0.9, 0.6, 1.05).rotation.y = Math.PI / 4;
+  // hydraulic power pack
+  put(g, mk(box(0.8, 0.5, 0.5), M.paintBlue), ex + 0.2, 0.25, -1.2);
+  const hm = hMotor(0.4, 0.13); hm.position.set(ex + 0.2, 0.65, -1.2); g.add(hm);
+  // drip tray
+  put(g, mk(box(ex - hx - 0.5, 0.08, 1.5), M.steelB), (hx + ex) / 2, 0.36, 0);
+  for (const xx of [hx + 0.4, ex - 0.4]) for (const sz of [-0.6, 0.6]) put(g, mk(box(0.06, 0.32, 0.06), M.steelB), xx, 0.16, sz);
+  // filtrate drops
+  const nd = 60, drops = instanced(new THREE.SphereGeometry(0.025, 8, 6), M.wflow, nd);
+  const dd = Array.from({ length: nd }, () => ({ k: Math.floor(Math.random() * NP), u: Math.random(), z: (Math.random() - 0.5) * 1.0 }));
+  const dm = new THREE.Object3D();
+  updaters.push((dt, s, p) => {
+    let c = 0;
+    if (s === 3) c = p < 0.1 ? sm(p / 0.1) : p < 0.86 ? 1 : 1 - sm((p - 0.86) / 0.14);
+    const pitch = 0.19 - 0.09 * c;
+    const x0 = hx + 0.25;
+    for (let i = 0; i < NP; i++) {
+      plates[i].pl.position.x = x0 + i * pitch;
+      plates[i].cake.visible = s === 3 && p > 0.86 || s === 10 && p < 0.2;
+    }
+    const mx = x0 + NP * pitch + 0.08;
+    mh.position.x = mx;
+    const rs = mx + 0.12, re = ex - 0.68;
+    rod.position.x = (rs + re) / 2; rod.scale.x = Math.max(0.05, re - rs);
+    const on = s === 3 && p > 0.1 && p < 0.86;
+    drops.visible = on;
+    if (!on) return;
+    for (let i = 0; i < nd; i++) {
+      const q = dd[i]; q.u += dt * 1.6;
+      if (q.u > 1) { q.u = 0; q.k = Math.floor(Math.random() * NP); }
+      dm.position.set(x0 + q.k * pitch + 0.04, Y - 0.62 - q.u * (Y - 0.62 - 0.42), q.z); dm.updateMatrix(); drops.setMatrixAt(i, dm.matrix);
+    }
+    drops.instanceMatrix.needsUpdate = true;
+  });
+  return { feed: V(hx - 0.2, Y, 0), wash: V(hx - 0.2, Y + 0.5, 0.45), out: V(ex - 0.9, 0.45, 1.05), hx };
+})();
+makePump(-19.4, -2.8, 0);
+makePump(-17.3, -1.3, 0);
+makePipe([co2T.outlet, V(co2T.x, FY, 0), V(co2T.x, FY, -1.3), V(-15.95, FY, -1.3), V(-15.95, FY, 0), V(-15.95, press.feed.y, 0), press.feed.clone()], { stages: [3], speed: 1.8, valveAt: 0.05 });
+const washTank = makeTank({ x: press.hx - 0.6, z: 2.3, r: 0.5, h: 1.0, legH: 0.7, agit: null, liquidMat: M.water,
+  lvl: { fill: 9, drain: 3, lo: 0.12, hi: 0.78 } });
+makePipe([washTank.outlet, V(washTank.x, FY, washTank.z), V(washTank.x, FY, 0.45), V(washTank.x, press.wash.y, 0.45), press.wash.clone()], { stages: [3], r: 0.04, mat: M.wflow, speed: 1.4, valveAt: 0.3 });
+
+/* -- S10 flash dryer: cake hopper + feed screw, hot-air generator, disperser rotor, drying column, cyclone, bag filter -- */
+const flash = (() => {
+  const X = -7.6, Z = 0, CY = 1.45;
+  const g = new THREE.Group(); g.position.set(X, 0, Z); scene.add(g);
+  pair(g, (s, l) => cyl(0.5, 0.5, 0.9, 40, true, s, l), CUT_CYL, M.steel, M.steelIn, V(0, CY, 0));
+  pair(g, (s, l) => cyl(0.5, 0.2, 0.4, 40, true, s, l), CUT_CYL, M.steel, M.steelIn, V(0, CY - 0.65, 0));
+  rim(g, 0.51, 0.025, CY + 0.45, M.steelB);
+  put(g, mk(cyl(0.22, 0.5, 0.3, 40, true), M.steel), 0, CY + 0.6, 0);                  // top reducer
+  for (let k = 0; k < 4; k++) { const a = Math.PI / 4 + k * Math.PI / 2; put(g, mk(box(0.07, CY - 0.4, 0.07), M.steelB), Math.cos(a) * 0.55, (CY - 0.4) / 2, Math.sin(a) * 0.55); }
+  put(g, mk(cyl(0.14, 0.2, 0.32, 16), M.steelB), 0, CY - 1.0, 0);                     // bottom bearing
+  put(g, mk(box(0.95, 0.16, 0.22), M.yellow), 0.5, CY - 1.05, 0);                      // belt guard
+  const dmot = hMotor(0.36, 0.12); dmot.position.set(1.0, 0.24, 0); g.add(dmot);
+  const rot = new THREE.Group(); rot.position.y = CY - 0.36; g.add(rot);               // disperser rotor
+  put(rot, mk(cyl(0.05, 0.05, 0.3, 10), M.steel), 0, -0.05, 0);
+  for (let k = 0; k < 4; k++) { const b = put(rot, mk(box(0.38, 0.05, 0.06), M.steel), 0, 0.05, 0); b.rotation.y = k * Math.PI / 4; }
+  rotors.push({ obj: rot, axis: 'y', run: [10], w: 9, cur: 0 });
+  // cake hopper + feed screw entering from -x
+  put(g, mk(cyl(0.32, 0.12, 0.45, 20), M.steel), -1.05, 2.2, 0);
+  put(g, mk(cyl(0.32, 0.32, 0.12, 20), M.steel), -1.05, 2.48, 0);
+  for (const sz of [-0.25, 0.25]) put(g, mk(box(0.05, 1.75, 0.05), M.steelB), -1.3, 0.87, sz);
+  put(g, mk(along(cyl(0.09, 0.09, 0.75, 16), 'x'), M.steel), -0.82, 1.75, 0);
+  const sm2 = hMotor(0.26, 0.09); sm2.position.set(-1.38, 1.75, 0); g.add(sm2);
+  // hot-air generator + blower behind the chamber
+  const heatM = std({ color: 0x3a3f45, roughness: 0.6, emissive: 0xff5a14, emissiveIntensity: 0 });
+  put(g, mk(box(0.9, 0.7, 0.6), M.paintBlue), -0.2, 0.35, -1.25);
+  put(g, mk(box(0.55, 0.3, 0.02), heatM, false), -0.2, 0.38, -0.94);
+  put(g, mk(along(cyl(0.26, 0.26, 0.2, 24), 'z'), M.paintBlue), -1.05, 0.45, -1.25);
+  const bm = hMotor(0.3, 0.1); bm.rotation.y = Math.PI / 2; bm.position.set(-1.05, 0.25, -1.75); g.add(bm);
+  updaters.push((dt, s) => { heatM.emissiveIntensity += ((s === 10 ? 1.2 : 0.05) - heatM.emissiveIntensity) * Math.min(1, dt * 2); });
+  makePipe([V(X - 0.2, 0.72, -1.25), V(X - 0.2, 1.12, -1.25), V(X, 1.12, -1.25), V(X, 1.12, -0.5)], { stages: [10], r: 0.09, mat: M.air, speed: 1.8, valveAt: null, pr: 0.045 });
+  return { X, CY, hopper: V(X - 1.05, 2.56, Z), top: V(X, CY + 0.76, Z) };
+})();
+const fCyc = cyclone(-5.95, 0.25, 3.6, { r: 0.4, stages: [10] });
+const fBag = bagFilter(-4.55, 0, { h: 2.0, fanDx: 0, fanDz: -0.95 });
+makePipe([flash.top, V(flash.X, fCyc.inlet.y, 0), V(fCyc.inlet.x - 0.3, fCyc.inlet.y, 0), V(fCyc.inlet.x - 0.3, fCyc.inlet.y, fCyc.inlet.z), V(fCyc.inlet.x, fCyc.inlet.y, fCyc.inlet.z)],
+  { stages: [10], r: 0.16, mat: M.powder, speed: 1.6, valveAt: null, pr: 0.035, dens: 9 });
+makePipe([fCyc.top, V(fCyc.top.x, 4.3, fCyc.top.z), V(-5.3, 4.3, fCyc.top.z), V(-5.3, 4.3, 0), V(-5.3, fBag.inlet.y, 0), fBag.inlet.clone()],
+  { stages: [10], r: 0.1, mat: M.air, speed: 1.8, valveAt: null, pr: 0.04 });
+put(scene, mk(cyl(0.3, 0.3, 0.8, 24), M.fiber), fCyc.bottom.x, 0.4, fCyc.bottom.z);
+makePipe([fCyc.bottom, V(fCyc.bottom.x, 0.86, fCyc.bottom.z)], { stages: [10], r: 0.05, mat: M.powder, speed: 0.8, valveAt: null, pr: 0.035 });
+makePipe([press.out, V(-9.2, 2.85, 1.05), V(flash.hopper.x, 2.85, 1.05), V(flash.hopper.x, 2.85, 0), V(flash.hopper.x, flash.hopper.y, 0)],
+  { stages: [10], r: 0.09, mat: M.powder, speed: 1.0, valveAt: null, pr: 0.045, win: [0, 0.5] });
+
+/* -- S11 post heat treatment of hydrothermal powder (optional) -- */
+makeBoxFurnace(-1.6, 11, { title: 'HEAT TREAT', sub: '880 °C × 2 h (예)', hold: '880 °C 유지 2 h', foot: '[us7431911] 예 · 생략하는 공정도 있음' });
+
+/* -- S12 jet mill: feed hopper + vibratory tray + venturi injector, flat grinding chamber with nozzle ring, compressor -- */
+const jet = (() => {
+  const X = 4.2, Z = 0, CY = 1.35, R = 0.5;
+  const g = new THREE.Group(); g.position.set(X, 0, Z); scene.add(g);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) put(g, mk(box(0.07, CY - 0.2, 0.07), M.steelB), sx * 0.42, (CY - 0.2) / 2, sz * 0.42);
+  put(g, mk(box(0.95, 0.05, 0.95), M.steelB), 0, CY - 0.18, 0);
+  pair(g, (s, l) => cyl(R, R, 0.22, 48, false, s, l), CUT_CYL, M.steel, M.steelIn, V(0, CY, 0));   // grinding chamber
+  const man = put(g, mk(new THREE.TorusGeometry(R + 0.17, 0.05, 10, 48), M.steelB), 0, CY, 0); man.rotation.x = Math.PI / 2;
+  const NZ = 8, noz = [], jets = [];
+  for (let k = 0; k < NZ; k++) {
+    const a = k / NZ * FULL + 0.2;
+    noz.push([V(Math.cos(a) * (R + 0.08), CY, Math.sin(a) * (R + 0.08)), [0, Math.PI - a + 0.5, Math.PI / 2]]);
+    const dx = -Math.cos(a) * Math.cos(1.0) - Math.sin(a) * Math.sin(1.0), dz = -Math.sin(a) * Math.cos(1.0) + Math.cos(a) * Math.sin(1.0);
+    jets.push([V(Math.cos(a) * (R - 0.12), CY, Math.sin(a) * (R - 0.12)), [0, Math.atan2(-dz, dx), -Math.PI / 2]]);
+  }
+  staticInst(cyl(0.028, 0.028, 0.22, 8), M.steel, noz, g);
+  const jetM = std({ color: 0xdff3ff, emissive: 0x8fd0ff, emissiveIntensity: 0.9, transparent: true, opacity: 0.5, depthWrite: false });
+  const jetI = staticInst(new THREE.ConeGeometry(0.035, 0.26, 10, 1, true).translate(0, -0.13, 0).rotateZ(Math.PI), jetM, jets, g, false);
+  put(g, mk(cyl(0.12, 0.12, 0.4, 16), M.steel), 0, CY + 0.3, 0);                       // central outlet (fines)
+  // feed: hopper, vibratory tray, venturi injector
+  put(g, mk(cyl(0.3, 0.1, 0.42, 20), M.steel), -1.1, 2.35, 0.32);
+  put(g, mk(cyl(0.3, 0.3, 0.1, 20), M.steel), -1.1, 2.6, 0.32);
+  const tray = put(g, mk(box(0.5, 0.06, 0.16), M.steelB), -0.92, 2.02, 0.32); tray.rotation.z = -0.2;
+  put(g, mk(box(0.22, 0.16, 0.18), M.motorG), -1.0, 1.88, 0.32);
+  for (const sz of [0.12, 0.52]) put(g, mk(box(0.05, 2.1, 0.05), M.steelB), -1.32, 1.05, sz);
+  put(g, mk(along(cyl(0.05, 0.11, 0.42, 14), 'x'), M.steel), -0.62, CY, 0.32);          // venturi injector
+  put(g, mk(cyl(0.05, 0.05, 0.34, 10), M.steel), -0.7, CY + 0.33, 0.32);
+  // compressor skid + air receiver (air into the nozzle manifold)
+  const cx = -1.3, cz = -2.2;
+  put(g, mk(box(1.1, 0.08, 0.7), M.dark), cx + 0.35, 0.04, cz);
+  put(g, mk(box(0.6, 0.6, 0.6), M.paintBlue), cx + 0.55, 0.38, cz);
+  const cm = hMotor(0.4, 0.14); cm.position.set(cx + 0.55, 0.85, cz); g.add(cm);
+  put(g, mk(cyl(0.28, 0.28, 1.2, 24), M.paintBlue), cx - 0.25, 0.8, cz);
+  for (const yy of [0.2, 1.4]) put(g, mk(new THREE.SphereGeometry(0.28, 20, 8, 0, FULL, yy < 1 ? Math.PI / 2 : 0, Math.PI / 2), M.paintBlue), cx - 0.25, yy, cz);
+  makePipe([V(X + cx - 0.25, 1.68, cz), V(X + cx - 0.25, 1.9, cz), V(X, 1.9, cz), V(X, CY, cz), V(X, CY, -R - 0.22)],
+    { stages: [12], r: 0.05, mat: M.air, speed: 2.4, valveAt: 0.15, pr: 0.03 });
+  // particles: coarse lumps orbit near the wall, fines spiral to the centre outlet
+  const n = 80, pi = instanced(new THREE.SphereGeometry(0.03, 8, 6), M.powder, n, g);
+  const sd = Array.from({ length: n }, (_, i) => ({ u: Math.random(), a: Math.random() * FULL, big: i % 4 === 0 }));
+  const dm = new THREE.Object3D();
+  updaters.push((dt, s, p, t) => {
+    const on = s === 12;
+    pi.visible = jetI.visible = on;
+    if (!on) return;
+    jetM.opacity = 0.35 + 0.25 * Math.sin(t * 30);
+    for (let i = 0; i < n; i++) {
+      const q = sd[i]; q.u = (q.u + dt * (q.big ? 0.05 : 0.3)) % 1; q.a += dt * (q.big ? 5 : 3 + 6 * q.u);
+      const r = q.big ? R - 0.08 : (R - 0.08) * (1 - q.u * 0.85);
+      dm.position.set(r * Math.cos(q.a), CY + (q.big ? 0 : (q.u > 0.85 ? (q.u - 0.85) * 3 : 0)) + 0.03 * Math.sin(q.a * 3), r * Math.sin(q.a));
+      dm.scale.setScalar(q.big ? 2.0 - 1.2 * clamp01(p * 1.2) : 0.8); dm.updateMatrix(); pi.setMatrixAt(i, dm.matrix);
+    }
+    pi.instanceMatrix.needsUpdate = true;
+  });
+  cabinet(X + 2.5, 1.6, -0.4, 1.7, (x, W, H, s, p) => {
+    const on = s === 12;
+    x.fillStyle = '#7fc7ff'; x.font = 'bold 15px system-ui'; x.fillText('JET MILL', 10, 22);
+    x.fillStyle = on ? '#ffb547' : '#4b6a80'; x.font = 'bold 13px system-ui'; x.fillText(on ? 'RUN' : 'IDLE', 200, 22);
+    x.fillStyle = '#9db0c2'; x.font = '12px system-ui'; x.fillText('응집체 > 1 µm → 1차 입자 ~100 nm', 10, 46);
+    x.fillStyle = '#9db0c2'; x.font = '12px system-ui'; x.fillText('공기압·투입량: 출처 미기재', 10, 70);
+    x.fillStyle = '#9db0c2'; x.font = '10px system-ui'; x.fillText('[us5783165] [hosokawa-bt-web]', 10, H - 8);
+  });
+  return { X, CY, hopper: V(X - 1.1, 2.68, 0.32), out: V(X, CY + 0.52, 0) };
+})();
+const jCyc = cyclone(jet.X + 1.35, -1.35, 3.3, { r: 0.36, stages: [12] });
+const jBag = bagFilter(jet.X + 2.3, -2.15, { h: 1.8, fanDx: 0.9 });
+makePipe([jet.out, V(jet.X, jCyc.inlet.y, 0), V(jCyc.inlet.x - 0.3, jCyc.inlet.y, 0), V(jCyc.inlet.x - 0.3, jCyc.inlet.y, jCyc.inlet.z), V(jCyc.inlet.x, jCyc.inlet.y, jCyc.inlet.z)],
+  { stages: [12], r: 0.1, mat: M.powder, speed: 1.6, valveAt: null, pr: 0.03, dens: 8 });
+makePipe([jCyc.top, V(jCyc.top.x, 3.95, jCyc.top.z), V(jBag.inlet.x - 0.25, 3.95, jCyc.top.z), V(jBag.inlet.x - 0.25, 3.95, -2.15), V(jBag.inlet.x - 0.25, jBag.inlet.y, -2.15), jBag.inlet.clone()],
+  { stages: [12], r: 0.08, mat: M.air, speed: 1.8, valveAt: null, pr: 0.03 });
+put(scene, mk(cyl(0.3, 0.3, 0.8, 24), M.fiber), jCyc.bottom.x, 0.4, jCyc.bottom.z);
+makePipe([jCyc.bottom, V(jCyc.bottom.x, 0.86, jCyc.bottom.z)], { stages: [12], r: 0.05, mat: M.powder, speed: 0.8, valveAt: null, pr: 0.035 });
+// feed lines into the jet mill: from the sagger kiln (solid-state) or the heat-treat furnace (hydrothermal)
+makePipe([kiln.exit, V(kiln.exit.x + 0.5, kiln.exit.y, ZB), V(kiln.exit.x + 0.5, 4.4, ZB), V(jet.hopper.x, 4.4, ZB), V(jet.hopper.x, 4.4, jet.hopper.z), V(jet.hopper.x, jet.hopper.y, jet.hopper.z)],
+  { stages: [12], r: 0.07, mat: M.powder, speed: 1.4, valveAt: null, pr: 0.04, when: () => ROUTE.syn === 'ss' });
+makePipe([V(-0.75, 0.8, 2.05), V(2.55, 0.8, 2.05), V(2.55, 3.05, 2.05), V(jet.hopper.x, 3.05, 2.05), V(jet.hopper.x, 3.05, jet.hopper.z), V(jet.hopper.x, jet.hopper.y, jet.hopper.z)],
+  { stages: [12], r: 0.07, mat: M.powder, speed: 1.4, valveAt: null, pr: 0.04, when: () => ROUTE.syn === 'hydro' });
+
+/* -- S4 wet-chemical coating reactor -- */
+const reactor = makeTank({ x: 10.2, z: 0, r: 1.0, h: 1.8, legH: 1.0, agit: 'pitched', run: [4], w: 6, liquidMat: M.slurry,
+  lvl: { fill: 4, drain: 5, lo: 0.04, hi: 0.78 } });
+(() => {
+  const g = reactor.g;
+  pair(g, (s, l) => cyl(1.08, 1.08, 1.25, 64, true, s, l), CUT_CYL, M.paintBlue, M.steelIn, V(0, reactor.y0 + 0.66, 0));
+  rim(g, 1.08, 0.03, reactor.y0 + 1.29, M.steelB);
+  rim(g, 1.08, 0.03, reactor.y0 + 0.03, M.steelB);
+  for (const [yy, zz] of [[reactor.y0 + 0.15, -0.85], [reactor.y0 + 1.15, -0.85]]) {
+    const c = new THREE.QuadraticBezierCurve3(V(-0.62, yy, zz), V(-1.4, yy, zz - 0.4), V(-1.5, 0.1, zz - 0.6));
+    put(g, mk(new THREE.TubeGeometry(c, 20, 0.035, 8, false), M.rubber), 0, 0, 0);
+  }
+  // pH probe through the top head
+  const pp = reactor.inlets[2];
+  put(scene, mk(cyl(0.02, 0.02, 1.6, 8), M.steelB), pp.x, pp.y - 0.6, pp.z);
+  put(scene, mk(box(0.16, 0.18, 0.1), M.paint), pp.x, pp.y + 0.3, pp.z);
+  // particles: BaTiO3 cores + dopant coating shell
+  const n = 160;
+  const core = instanced(new THREE.SphereGeometry(0.035, 10, 8), M.powder, n, g);
+  const shell = instanced(new THREE.SphereGeometry(0.055, 10, 8), M.coat, n, g);
+  const sd = Array.from({ length: n }, () => ({ a: Math.random() * FULL, r: 0.12 + Math.random() * 0.78, y: Math.random(), w: 0.6 + Math.random() }));
+  const dm = new THREE.Object3D();
+  updaters.push((dt, s, p) => {
+    const on = s === 4 || (s === 5 && p < 0.6);
+    core.visible = on; shell.visible = on && (s === 5 || p > 0.55);
+    if (!on) return;
+    const H = reactor.L.scale.y;
+    const sc = s === 5 ? 1 : clamp01((p - 0.55) / 0.35);
+    for (let i = 0; i < n; i++) {
+      const q = sd[i]; q.a += dt * q.w * (s === 4 ? 2.4 : 0.3);
+      dm.position.set(q.r * Math.cos(q.a), reactor.y0 + 0.05 + q.y * Math.max(0.01, H - 0.1), q.r * Math.sin(q.a));
+      dm.scale.setScalar(1); dm.updateMatrix(); core.setMatrixAt(i, dm.matrix);
+      dm.scale.setScalar(Math.max(0.0001, sc)); dm.updateMatrix(); shell.setMatrixAt(i, dm.matrix);
+    }
+    core.instanceMatrix.needsUpdate = true; shell.instanceMatrix.needsUpdate = true;
+  });
+  cabinet(12.2, 1.5, -0.6, 1.7, (x, W, H, s, p) => {
+    const on = s === 4;
+    x.fillStyle = '#7fc7ff'; x.font = 'bold 15px system-ui'; x.fillText('COATING REACTOR', 10, 22);
+    x.fillStyle = '#9db0c2'; x.font = '12px system-ui'; x.fillText('목표 pH 8.5–9.0 (NH₄OH)', 10, 44);
+    const steps = ['① 분말 재분산', '② pH 조정 · 30 min', '③ Y(NO₃)₃ 투입 · 1 h'];
+    const cur = on ? (p < 0.2 ? 0 : p < 0.5 ? 1 : 2) : -1;
+    steps.forEach((t, k) => { x.fillStyle = k === cur ? '#ffb547' : k < cur ? '#7fc7ff' : '#4b6a80'; x.font = 'bold 13px system-ui'; x.fillText(t, 10, 72 + k * 22); });
+    x.fillStyle = '#2b4a60'; x.fillRect(190, 56, 50, 80);
+    x.fillStyle = 'rgba(143,208,255,.45)'; x.fillRect(190, 72, 50, 14);
+    const ph = on ? sm(clamp01((p - 0.2) / 0.25)) : 0;
+    x.fillStyle = '#ffb547'; x.fillRect(186, 132 - ph * 54, 58, 3);
+    x.fillStyle = '#9db0c2'; x.font = '10px system-ui'; x.fillText('pH 밴드', 194, 150);
+  });
+})();
+const yTank = makeTank({ x: 8.0, z: -2.4, r: 0.36, h: 0.75, legH: 0.7, agit: null, liquidMat: M.water, lvl: { fill: 12, drain: 4, lo: 0.1, hi: 0.75 } });
+const nTank = makeTank({ x: 12.4, z: -2.4, r: 0.36, h: 0.75, legH: 0.7, agit: null, liquidMat: M.water, lvl: { fill: 12, drain: 4, lo: 0.1, hi: 0.75 } });
+makeDosingPump(8.6, -1.6, 0); makeDosingPump(11.8, -1.6, 0);
+makePipe(route(yTank.outlet, reactor.inlets[1], 9.0), { stages: [4], r: 0.03, mat: M.air, speed: 1.0, valveAt: 0.25 });
+makePipe(route(nTank.outlet, reactor.inlets[3], 11.4), { stages: [4], r: 0.03, mat: M.wflow, speed: 1.0, valveAt: 0.25 });
+makePump(7.4, 0.85, 0);
+makePipe([V(jCyc.bottom.x, 0.86, jCyc.bottom.z + 0.25), V(jCyc.bottom.x, FY, jCyc.bottom.z + 0.25), V(jCyc.bottom.x, FY, 0.85), V(8.6, FY, 0.85), V(8.6, FY, 0), V(8.6, reactor.inlets[0].y + 0.55, 0), V(reactor.inlets[0].x, reactor.inlets[0].y + 0.55, 0), reactor.inlets[0].clone()], { stages: [4], win: [0, 0.25] });
+
+/* -- S5 basket centrifuge + double-cone vacuum dryer -- */
+const centri = (() => {
+  const x = 14.6, z = 0;
+  const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
+  put(g, mk(box(1.6, 0.55, 1.6), M.paint), 0, 0.275, 0);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) put(g, mk(cyl(0.09, 0.11, 0.08, 16), M.rubber), sx * 0.65, 0.04, sz * 0.65);
+  pair(g, (s, l) => cyl(0.74, 0.74, 0.75, 48, true, s, l), CUT_CYL, M.steel, M.steelIn, V(0, 0.93, 0));
+  put(g, mk(cyl(0.74, 0.74, 0.04, 48), M.steelB), 0, 0.57, 0);
+  rim(g, 0.75, 0.03, 1.3, M.steelB);
+  const lid = put(g, mk(cyl(0.76, 0.76, 0.04, 48), M.steelB), 0, 1.32, -0.76);
+  lid.geometry.translate(0, 0, 0.76); lid.rotation.x = -1.25;
+  const basket = new THREE.Group(); basket.position.y = 0.95; g.add(basket);
+  put(basket, mk(cyl(0.56, 0.56, 0.6, 40, true), perfMat(10, 3)), 0, 0, 0);
+  put(basket, mk(cyl(0.56, 0.56, 0.03, 40), M.steelB), 0, -0.3, 0);
+  put(basket, mk(new THREE.TorusGeometry(0.5, 0.025, 8, 40), M.steelB), 0, 0.3, 0).rotation.x = Math.PI / 2;
+  const cake = put(basket, mk(cyl(0.52, 0.52, 0.5, 40, true, 0, FULL), std({ color: 0xece6d8, roughness: 0.8, side: THREE.DoubleSide })), 0, -0.02, 0);
+  rotors.push({ obj: basket, axis: 'y', run: [5], w: 18, cur: 0 });
+  const hm = hMotor(0.45, 0.15); hm.position.set(1.05, 0.35, 0); hm.rotation.y = Math.PI / 2; g.add(hm);
+  put(g, mk(box(0.3, 0.3, 1.2), M.yellow), 0.95, 0.75, -0.2);
+  put(g, mk(cyl(0.03, 0.03, 0.5, 8), M.steelB), -0.4, 1.55, 0.2);                 // wash spray lance
+  updaters.push((dt, s, p) => { cake.visible = s === 5 && p < 0.7; });
+  return { inlet: V(x - 0.15, 1.55, z), out: V(x + 0.6, 0.45, z + 0.7) };
+})();
+makePump(12.0, -0.9, 0);
+makePipe([reactor.outlet, V(reactor.x, FY, 0), V(reactor.x, FY, -0.9), V(13.0, FY, -0.9), V(13.0, FY, 0), V(13.0, 2.1, 0), V(centri.inlet.x, 2.1, 0), centri.inlet.clone()], { stages: [5], valveAt: 0.08 });
+
+const dryer = (() => {
+  const x = 18.5, CY = 1.9;
+  const g = new THREE.Group(); g.position.set(x, 0, 0); scene.add(g);
+  for (const sx of [-1, 1]) {
+    put(g, mk(box(0.32, CY + 0.15, 0.6), M.paintBlue), sx * 1.15, (CY + 0.15) / 2, 0);
+    put(g, mk(box(0.6, 0.06, 0.8), M.dark), sx * 1.15, 0.03, 0);
+    put(g, mk(along(cyl(0.16, 0.16, 0.36, 20), 'x'), M.steelB), sx * 1.15, CY, 0);  // bearing
+  }
+  const gm = hMotor(0.4, 0.14); gm.position.set(1.6, CY - 0.45, 0); g.add(gm);
+  put(g, mk(box(0.4, 0.5, 0.42), M.motorG), 1.5, CY - 0.05, 0);
+  const rot = new THREE.Group(); rot.position.y = CY; g.add(rot);
+  put(rot, mk(cyl(0.72, 0.72, 0.36, 48), M.steel), 0, 0, 0);
+  put(rot, mk(cyl(0.2, 0.72, 0.72, 48), M.steel), 0, 0.54, 0);
+  put(rot, mk(cyl(0.72, 0.2, 0.72, 48), M.steel), 0, -0.54, 0);
+  for (const yy of [-0.18, 0.18]) put(rot, mk(new THREE.TorusGeometry(0.735, 0.03, 8, 48), M.steelB), 0, yy, 0).rotation.x = Math.PI / 2;
+  for (const sy of [-1, 1]) {
+    put(rot, mk(cyl(0.22, 0.22, 0.08, 24), M.steelB), 0, sy * 0.94, 0);
+    put(rot, mk(cyl(0.12, 0.12, 0.12, 20), M.steel), 0, sy * 1.02, 0);
+  }
+  put(rot, mk(along(cyl(0.08, 0.08, 2.6, 16), 'x'), M.steel), 0, 0, 0);          // trunnion shaft
+  put(rot, mk(box(0.1, 0.12, 0.1), M.yellow), 0.4, 0.4, 0.55);
+  rotors.push({ obj: rot, axis: 'x', run: [5], w: 1.1, cur: 0 });
+  // vacuum line from the shaft end to the pump skid
+  const vp = vacuumSkid(x + 0.5, -2.6);
+  makePipe([V(x - 1.45, CY, 0), V(x - 1.7, CY, 0), V(x - 1.7, CY, -2.6), V(vp.x, CY, -2.6), vp], { stages: [5], r: 0.05, mat: M.air, speed: 2.2, valveAt: 0.3 });
+  makeScreen(g, V(-1.15, CY - 0.6, 0.31), 0, 0.3, 0.2, (cx, W, H, s, p) => {
+    cx.fillStyle = '#7fc7ff'; cx.font = 'bold 20px system-ui'; cx.fillText('VAC DRY', 12, 34);
+    cx.fillStyle = s === 5 ? '#ffb547' : '#4b6a80'; cx.font = 'bold 28px system-ui'; cx.fillText('80 °C · 진공', 12, 90);
+    cx.fillStyle = '#9db0c2'; cx.font = '16px system-ui'; cx.fillText('[dopant-powder-coating]', 12, 140);
+  });
+  return { top: V(x, CY + 1.15, 0) };
+})();
+makePipe([centri.out, V(centri.out.x + 0.4, centri.out.y, centri.out.z), V(centri.out.x + 0.4, 3.35, centri.out.z), V(dryer.top.x, 3.35, centri.out.z), V(dryer.top.x, 3.35, 0), V(dryer.top.x, dryer.top.y + 0.1, 0)],
+  { stages: [5], r: 0.07, mat: M.powder, speed: 1.2, valveAt: null });
+
+/* -- S6 batch calcination furnace (box furnace, lift door) -- */
+const furnace = makeBoxFurnace(24.5, 6, {
+  title: 'CALCINER', sub: '600 °C × 2 h · 공기', hold: '600 °C 유지 2 h', foot: '승온·냉각 속도: 위키 미기재 (형상만)' });
+
+/* -- S7 vibrating sieve + QC bench (PSA, XRD) -- */
+const sieve = (() => {
+  const x = 30.2, z = 0;
+  const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
+  put(g, mk(cyl(0.6, 0.65, 0.5, 40), M.paint), 0, 0.25, 0);
+  put(g, mk(cyl(0.22, 0.22, 0.35, 24), M.motor), 0, 0.42, 0);
+  class Spring extends THREE.Curve {
+    getPoint(t, tg = new THREE.Vector3()) { const a = FULL * 5 * t; return tg.set(0.05 * Math.cos(a), 0.22 * t, 0.05 * Math.sin(a)); }
+  }
+  for (let k = 0; k < 6; k++) {
+    const a = k / 6 * FULL;
+    put(g, mk(new THREE.TubeGeometry(new Spring(), 60, 0.012, 6, false), M.steelB), Math.cos(a) * 0.55, 0.5, Math.sin(a) * 0.55);
+  }
+  const deck = dyn(new THREE.Group()); deck.position.y = 0.72; g.add(deck);
+  put(deck, mk(cyl(0.68, 0.68, 0.05, 48), M.steelB), 0, 0, 0);
+  pair(deck, (s, l) => cyl(0.66, 0.66, 0.28, 48, true, s, l), CUT_CYL, M.steel, M.steelIn, V(0, 0.16, 0));
+  pair(deck, (s, l) => cyl(0.66, 0.66, 0.28, 48, true, s, l), CUT_CYL, M.steel, M.steelIn, V(0, 0.46, 0));
+  for (const yy of [0.02, 0.31, 0.6]) rim(deck, 0.68, 0.025, yy, M.steelB);
+  const mesh = put(deck, mk(new THREE.CircleGeometry(0.64, 48), perfMat(10, 10)), 0, 0.33, 0); mesh.rotation.x = -Math.PI / 2;
+  pair(deck, (s, l) => { const q = new THREE.SphereGeometry(0.66, 48, 10, s, l, 0, Math.PI / 2); q.scale(1, 0.3, 1); return q; }, CUT_SPH, M.steel, M.steelIn, V(0, 0.6, 0));
+  put(deck, mk(cyl(0.1, 0.1, 0.35, 16), M.steel), 0, 0.92, 0);
+  put(deck, mk(box(0.18, 0.12, 0.3), M.steel), 0.62, 0.42, 0.25);                 // oversize spout
+  put(deck, mk(box(0.18, 0.12, 0.3), M.steel), -0.62, 0.12, 0.25);                 // fines spout
+  // feed hopper on a stand
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) put(g, mk(box(0.08, 3.1, 0.08), M.yellow), sx * 0.85, 1.55, sz * 0.85);
+  for (const sz of [-1, 1]) put(g, mk(box(1.78, 0.08, 0.08), M.yellow), 0, 2.4, sz * 0.85);
+  put(g, mk(cyl(0.55, 0.55, 0.6, 32), M.steel), 0, 3.0, 0);
+  put(g, mk(cyl(0.55, 0.12, 0.5, 32), M.steel), 0, 2.45, 0);
+  put(g, mk(box(0.18, 0.12, 0.18), M.steelB), 0, 2.15, 0);
+  // product drum + oversize bin with hoses
+  put(scene, mk(box(0.85, 0.08, 0.85), M.dark), x - 1.25, 0.04, 0.9);                 // drum platform scale (g)
+  put(scene, mk(box(0.05, 0.9, 0.05), M.steelB), x - 1.25, 0.45, 1.35);
+  put(scene, mk(box(0.22, 0.14, 0.06), M.paint), x - 1.25, 0.95, 1.37);
+  put(scene, mk(cyl(0.32, 0.32, 0.85, 28), M.fiber), x - 1.25, 0.505, 0.9);
+  put(scene, mk(cyl(0.33, 0.33, 0.05, 28), M.dark), x - 1.25, 0.94, 0.9);
+  // inline magnet housing on the product hose (Fe tramp removal, (g))
+  const mgDir = V(-0.54, 0.14, 0.65).normalize(), mgQ = new THREE.Quaternion().setFromUnitVectors(V(0, 1, 0), mgDir);
+  put(scene, mk(cyl(0.1, 0.1, 0.26, 20), M.paintBlue), x - 1.02, 0.93, 0.56).quaternion.copy(mgQ);
+  put(scene, mk(cyl(0.105, 0.105, 0.05, 20), std({ color: 0xc23b2a, roughness: 0.5 })), x - 1.02, 0.93, 0.56).quaternion.copy(mgQ);
+  put(scene, mk(box(0.5, 0.45, 0.5), M.paintBlue), x + 1.15, 0.225, 1.0);
+  const h1 = new THREE.QuadraticBezierCurve3(V(x - 0.71, 0.84, 0.25), V(x - 1.1, 0.95, 0.5), V(x - 1.25, 0.98, 0.9));
+  put(scene, mk(new THREE.TubeGeometry(h1, 20, 0.05, 8, false), M.glass, false), 0, 0, 0);
+  const h2 = new THREE.QuadraticBezierCurve3(V(x + 0.71, 1.14, 0.25), V(x + 1.1, 1.0, 0.6), V(x + 1.15, 0.47, 1.0));
+  put(scene, mk(new THREE.TubeGeometry(h2, 20, 0.05, 8, false), M.glass, false), 0, 0, 0);
+  // powder: falling stream + spiral on the deck screen
+  const nf = 50, nd = 140;
+  const fall = instanced(new THREE.SphereGeometry(0.035, 8, 6), M.powder, nf, g);
+  const onDeck = instanced(new THREE.SphereGeometry(0.03, 8, 6), M.powder, nd, deck);
+  const lumps = instanced(new THREE.DodecahedronGeometry(0.06), std({ color: 0xd9d2bf, roughness: 0.9 }), 10, deck);
+  const fs = Array.from({ length: nf }, () => ({ u: Math.random(), dx: (Math.random() - 0.5) * 0.08, dz: (Math.random() - 0.5) * 0.08 }));
+  const ds = Array.from({ length: nd }, () => ({ u: Math.random(), a: Math.random() * FULL }));
+  const ls = Array.from({ length: 10 }, () => ({ u: Math.random(), a: Math.random() * FULL }));
+  const dm = new THREE.Object3D();
+  updaters.push((dt, s, p, t) => {
+    const on = s === 7;
+    deck.position.x = on ? 0.012 * Math.sin(t * 45) : 0;
+    deck.position.z = on ? 0.012 * Math.cos(t * 45) : 0;
+    deck.rotation.y = on ? 0.015 * Math.sin(t * 22) : 0;
+    fall.visible = onDeck.visible = lumps.visible = on;
+    if (!on) return;
+    for (let i = 0; i < nf; i++) {
+      const q = fs[i]; q.u = (q.u + dt * 1.4) % 1;
+      dm.position.set(q.dx, 2.08 - q.u * 0.9, q.dz); dm.updateMatrix(); fall.setMatrixAt(i, dm.matrix);
+    }
+    for (let i = 0; i < nd; i++) {
+      const q = ds[i]; q.u = (q.u + dt * 0.35) % 1; q.a += dt * 2.2;
+      const r = q.u * 0.6;
+      const below = i % 2 === 0;
+      dm.position.set(r * Math.cos(q.a), below ? 0.06 + 0.02 * Math.sin(q.a * 3) : 0.35, r * Math.sin(q.a)); dm.updateMatrix(); onDeck.setMatrixAt(i, dm.matrix);
+    }
+    for (let i = 0; i < 10; i++) {
+      const q = ls[i]; q.u = (q.u + dt * 0.12) % 1; q.a += dt * 1.2;
+      dm.position.set(q.u * 0.6 * Math.cos(q.a), 0.38, q.u * 0.6 * Math.sin(q.a)); dm.updateMatrix(); lumps.setMatrixAt(i, dm.matrix);
+    }
+    fall.instanceMatrix.needsUpdate = onDeck.instanceMatrix.needsUpdate = lumps.instanceMatrix.needsUpdate = true;
+  });
+  return { x };
+})();
+(() => { // QC: bench with particle-size analyzer, floor-standing XRD
+  const bx = 33.3, bz = 1.6;
+  const g = new THREE.Group(); g.position.set(bx, 0, bz); scene.add(g);
+  put(g, mk(box(1.9, 0.05, 0.75), std({ color: 0x31373e, roughness: 0.4 })), 0, 0.9, 0);
+  for (const sx of [-0.85, 0.85]) for (const sz of [-0.32, 0.32]) put(g, mk(box(0.05, 0.88, 0.05), M.steelB), sx, 0.44, sz);
+  put(g, mk(box(0.5, 0.36, 0.45), M.paint), -0.45, 1.105, -0.05);
+  put(g, mk(box(0.22, 0.08, 0.2), M.dark), -0.45, 1.32, -0.05);
+  put(g, mk(box(0.32, 0.42, 0.34), M.paint), 0.72, 1.135, -0.12);                      // BET analyzer (g shape)
+  put(g, mk(cyl(0.07, 0.07, 0.22, 16), M.steel), 0.72, 1.46, -0.12);
+  makeScreen(g, V(0.3, 1.18, 0.0), -0.2, 0.46, 0.32, (x, W, H, s, p) => {
+    x.fillStyle = '#7fc7ff'; x.font = 'bold 14px system-ui'; x.fillText('PSD (모식)', 10, 20);
+    x.strokeStyle = '#2b4a60'; x.lineWidth = 2; x.beginPath(); x.moveTo(12, H - 26); x.lineTo(W - 12, H - 26); x.stroke();
+    const on = s === 7, k = on ? clamp01(p * 1.5) : 0;
+    x.strokeStyle = '#ffb547'; x.lineWidth = 3; x.beginPath();
+    for (let i = 0; i <= 60; i++) {
+      const u = i / 60, v = Math.exp(-((u - 0.45) ** 2) / 0.012);
+      const px = 12 + u * (W - 24), py = H - 26 - v * (H - 70) * k;
+      i ? x.lineTo(px, py) : x.moveTo(px, py);
+    }
+    x.stroke();
+    x.fillStyle = '#9db0c2'; x.font = '12px system-ui'; x.fillText('사양 D90/D50 ≤ 2', 10, H - 8);
+  });
+  const xg = new THREE.Group(); xg.position.set(bx + 0.4, 0, -1.7); scene.add(xg);
+  put(xg, mk(box(1.2, 1.9, 0.95), M.paint), 0, 0.95, 0);
+  put(xg, mk(box(0.95, 0.85, 0.02), std({ color: 0xffd28a, roughness: 0.05, transparent: true, opacity: 0.35 }), false), 0, 1.3, 0.48);
+  const arc = new THREE.TorusGeometry(0.3, 0.02, 8, 32, Math.PI); put(xg, mk(arc, M.steelB), 0, 1.15, 0.2);
+  put(xg, mk(cyl(0.06, 0.06, 0.2, 12), M.steel), -0.3, 1.2, 0.2).rotation.z = 0.8;
+  put(xg, mk(cyl(0.05, 0.05, 0.18, 12), M.steel), 0.3, 1.2, 0.2).rotation.z = -0.8;
+  put(xg, mk(cyl(0.05, 0.05, 0.12, 12), std({ color: 0xf0b400, emissive: 0xf0b400, emissiveIntensity: 0.6 })), 0.45, 1.97, 0.3);
+})();
+
+/* ------------------------------ labels ------------------------------ */
+const stageAnchor = [
+  V(-27.0, 5.2, 0), V(-22, 6.2, 0), V(2.6, 3.5, ZB), V(-13.1, 3.0, 0), V(10.2, 5.4, 0),
+  V(16.4, 3.9, 0), V(24.5, 4.4, 0), V(31.2, 4.1, 0),
+  V(-35.2, 4.6, 0), V(-17.6, 4.4, 0), V(-6.6, 5.1, 0), V(-1.6, 4.5, 0), V(4.6, 4.2, 0),
+  V(-17.6, 3.4, ZB), V(-12.2, 5.5, ZB), V(-6.4, 3.5, ZB)];
+const stageTags = STAGES.map((st, i) => label(`<b>${i + 1}</b>${st.name}`, stageAnchor[i], 'tag', i));
+const SUBS = [
+  [0, 'Ti 슬러리 탱크', V(-28.4, 3.3, 2.3)], [0, 'Ba(OH)₂·8H₂O 빅백·계량 호퍼', V(-26.4, 4.7, -1.2)], [0, '순수(DI) 탱크', V(-29.6, 3.4, -2.4)], [0, '스크루 피더', V(-24.4, 3.6, -0.9)], [0, 'N₂ 실린더·레귤레이터', V(-24.0, 2.0, -2.9)],
+  [1, '가열 자켓', V(-21.0, 2.6, 1.0)], [1, 'Ti 내통 (접액부)', V(-22.7, 3.1, 0.75)], [1, 'BaTiO₃ 결정 석출', V(-22, 2.0, 0.6)], [1, '압력계·안전밸브', V(-21.4, 4.9, -0.4)], [1, 'N₂ 퍼지 노즐', V(-22.5, 4.55, 0.3)],
+  [2, '새거 (알루미나 용기)', V(-1.3, 1.6, ZB + 0.4)], [2, '예열·하소·냉각대', V(1.9, 2.6, ZB + 0.8)], [2, 'CO₂ 배기', V(1.1, 5.0, ZB)],
+  [3, '필터 프레스', V(-13.4, 2.3, 0.6)], [3, '여액', V(-12.9, 0.6, 0.9)], [3, '세척수 탱크', V(-15.9, 2.6, 2.3)], [3, '케이크 배출', V(-11.95, 1.05, 1.1)],
+  [4, '자켓 반응기', V(10.2, 2.0, 1.2)], [4, 'Y(NO₃)₃ 도징', V(8.0, 2.3, -2.4)], [4, 'NH₄OH 도징', V(12.4, 2.3, -2.4)], [4, 'pH 센서', V(10.2, 4.4, -0.6)],
+  [5, '바스켓 원심분리기', V(14.6, 1.7, 0.6)], [5, '더블콘 진공 건조기', V(18.5, 3.3, 0.3)], [5, '진공 펌프', V(19.0, 1.2, -2.6)],
+  [6, '발열체·내화물', V(25.3, 1.6, 0.4)], [6, '리프트 도어', V(24.5, 3.4, 1.1)], [6, '새거 장입 카트', V(24.5, 1.0, 2.1)],
+  [7, '진동체', V(30.2, 1.7, 0.6)], [7, '자석 (철 이물)', V(29.15, 1.3, 0.55)], [7, '제품 드럼·계량', V(28.95, 0.7, 1.25)], [7, '입도·BET', V(33.1, 1.75, 1.6)], [7, 'XRD', V(33.7, 2.2, -1.7)],
+  [8, '중화조 (가온·교반)', V(-35.2, 2.0, 1.0)], [8, 'TiCl₄ 탱크', V(-37.5, 2.4, -2.3)], [8, 'NaOH 탱크', V(-33.0, 2.4, -2.3)], [8, '누체 필터·수세', V(-34.3, 1.9, 2.9)], [8, 'pH 제어반', V(-37.4, 2.05, 1.4)],
+  [9, 'CO₂ 스파저 링', V(-17.6, 1.3, 0.75)], [9, 'CO₂ 실린더', V(-16.15, 1.9, -2.4)], [9, 'pH 센서', V(-17.25, 3.7, -0.35)], [9, '제어반 (pH 추이)', V(-19.1, 1.45, 2.2)],
+  [10, '케이크 호퍼·투입 스크루', V(-8.65, 3.0, 0)], [10, '분산 로터', V(-7.6, 1.15, 0.6)], [10, '열풍 발생기', V(-7.8, 1.0, -1.25)], [10, '건조관', V(-7.6, 3.1, 0.2)], [10, '사이클론', V(-5.95, 4.15, 0.25)], [10, '백필터·배기팬', V(-4.55, 3.55, 0)],
+  [11, '새거 장입 카트', V(-1.6, 1.0, 2.1)], [11, '리프트 도어', V(-1.6, 3.4, 1.1)], [11, '발열체', V(-0.8, 1.6, 0.4)],
+  [12, '분쇄실·노즐 링', V(4.2, 1.75, 0.7)], [12, '피더·인젝터', V(3.1, 2.95, 0.32)], [12, '압축기·리시버', V(2.9, 1.95, -2.2)], [12, '사이클론', V(5.55, 3.9, -1.35)], [12, '백필터', V(6.5, 3.3, -2.15)],
+  [13, '볼밀 (ZrO₂ 볼)', V(-17.8, 2.6, ZB + 0.6)], [13, '원료 계량대', V(-20.3, 1.6, ZB + 0.5)], [13, '슬러리 이송 펌프', V(-15.2, 0.9, ZB + 1.0)],
+  [14, '회전 디스크 분무기', V(-12.2, 4.6, ZB + 0.3)], [14, '건조 챔버', V(-12.2, 2.6, ZB + 1.0)], [14, '열풍 발생기', V(-13.95, 1.3, ZB - 0.95)], [14, '사이클론 (미분)', V(-10.45, 3.9, ZB + 0.2)],
+  [15, '레토르트관·히터 3존', V(-6.4, 2.25, ZB + 0.6)], [15, '공급 호퍼·스크루', V(-9.55, 3.25, ZB)], [15, '라이딩 링·구동', V(-8.75, 0.95, ZB + 0.55)], [15, '배출 후드', V(-3.4, 2.0, ZB)], [15, '공정 공기 송풍기', V(-2.75, 1.0, ZB + 0.7)],
+].map(([s, t, p]) => ({ s, el: label(t, p, 'sub') }));
+
+/* ------------------------------ UI ------------------------------ */
+/* ------------------------------ process flow (branches) ------------------------------
+   FLOW lists the steps in process order. A number is a STAGES index. An object
+   { i, label, mark } overrides the list label, or marks the step 'repeat' / 'parallel'.
+   A fork { fork, title, opts: [{ key, label, steps, note, onSelect }], def } is a point where the
+   line splits into alternative routes. Only the chosen option's steps play; an option
+   with no steps skips straight to the step after the fork.
+   STAGES indices never change: the animation code keys on them. */
+const ROUTE = {};
+FLOW.forEach((e) => { if (e.fork) ROUTE[e.fork] = e.def || e.opts[0].key; });
+const asStep = (x) => (typeof x === 'number' ? { i: x } : x);
+let SEQ = [];
+const forkStart = {};
+function buildSeq() {
+  SEQ = [];
+  for (const e of FLOW) {
+    if (!e.fork) { SEQ.push(asStep(e)); continue; }
+    forkStart[e.fork] = SEQ.length;
+    const o = e.opts.find((q) => q.key === ROUTE[e.fork]);
+    o.steps.forEach((x) => SEQ.push({ ...asStep(x), fork: e, opt: o }));
+  }
+}
+buildSeq();
+
+const ol = document.getElementById('stages');
+let seqBtns = [];
+function stepButton(step, n, onClick) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  const mk = step.mark === 'repeat' ? '<span class="mk">↻ 반복</span>' : step.mark === 'parallel' ? '<span class="mk">∥ 병행</span>' : step.mark === 'opt' ? '<span class="mk">◇ 선택</span>' : '';
+  b.innerHTML = `<span class="n">${n}</span><span style="flex:1">${step.label || STAGES[step.i].name}${mk}<div class="bar"></div></span>`;
+  b.addEventListener('click', onClick);
+  return b;
+}
+function renderFlow() {
+  ol.innerHTML = ''; seqBtns = [];
+  let k = 0;
+  for (const e of FLOW) {
+    const li = document.createElement('li');
+    if (!e.fork) {
+      const kk = k++;
+      const b = stepButton(asStep(e), kk + 1, () => jumpK(kk));
+      seqBtns[kk] = b; li.appendChild(b); ol.appendChild(li); continue;
+    }
+    li.className = 'fork';
+    const head = document.createElement('div'); head.className = 'fork-head';
+    head.innerHTML = `<span class="fk">⑂ ${e.title}</span>`;
+    const seg = document.createElement('div'); seg.className = 'seg';
+    seg.setAttribute('role', 'radiogroup'); seg.setAttribute('aria-label', e.title);
+    for (const o of e.opts) {
+      const sb = document.createElement('button');
+      sb.type = 'button'; sb.textContent = o.label; sb.setAttribute('role', 'radio');
+      sb.setAttribute('aria-checked', String(ROUTE[e.fork] === o.key));
+      sb.addEventListener('click', () => { if (ROUTE[e.fork] !== o.key) setRoute(e.fork, o.key); });
+      seg.appendChild(sb);
+    }
+    head.appendChild(seg); li.appendChild(head);
+    for (const o of e.opts) {
+      const on = ROUTE[e.fork] === o.key;
+      const box = document.createElement('div'); box.className = `opt ${on ? 'on' : 'off'}`;
+      const lab = document.createElement('div'); lab.className = 'opt-label'; lab.textContent = o.label; box.appendChild(lab);
+      if (!o.steps.length) {
+        const sk = document.createElement('div'); sk.className = 'skip';
+        sk.textContent = o.note || '이 경로에서는 해당 단계를 거치지 않습니다.'; box.appendChild(sk);
+      }
+      for (const x of o.steps) {
+        const st = asStep(x);
+        if (on) { const kk = k++; const b = stepButton(st, kk + 1, () => jumpK(kk)); seqBtns[kk] = b; box.appendChild(b); }
+        else box.appendChild(stepButton(st, '·', () => setRoute(e.fork, o.key, st.i)));
+      }
+      li.appendChild(box);
+    }
+    ol.appendChild(li);
+  }
+  // 3D stage tags: number by the active route, fade stations the route skips.
+  const num = new Map();
+  SEQ.forEach((q, n) => { if (!num.has(q.i)) num.set(q.i, n + 1); });
+  stageTags.forEach((el, i) => {
+    el.classList.toggle('off', !num.has(i));
+    const b = el.querySelector('b'); if (b) b.textContent = num.has(i) ? num.get(i) : '·';
+  });
+}
+let curK = 0, lastK = -1;
+function jumpK(k) {
+  curK = ((k % SEQ.length) + SEQ.length) % SEQ.length;
+  simT = curK * STAGE_DUR + 0.01; lastK = -1;
+}
+function setRoute(fid, key, focus = null) {
+  ROUTE[fid] = key; buildSeq(); renderFlow();
+  const opt = FLOW.find((e) => e.fork === fid).opts.find((q) => q.key === key);
+  if (opt.onSelect) opt.onSelect();     // e.g. swap equipment shown for this route
+  let k = focus === null ? -1 : SEQ.findIndex((q) => q.i === focus);
+  if (k < 0) k = forkStart[fid];          // first step of the chosen option, or the step after the fork
+  jumpK(k);
+}
+// Jump by STAGES index (3D tag clicks). A station off the active route switches to its route.
+function jumpTo(i) {
+  const k = SEQ.findIndex((q) => q.i === i);
+  if (k >= 0) { jumpK(k); return; }
+  for (const e of FLOW) if (e.fork) for (const o of e.opts) {
+    if (o.steps.some((x) => asStep(x).i === i)) { setRoute(e.fork, o.key, i); return; }
+  }
+}
+renderFlow();
+
+
+const info = document.getElementById('info');
+if (window.innerHeight < 720 || window.innerWidth < 820) info.classList.add('collapsed');
+function renderInfo(k) {
+  const q = SEQ[k], st = STAGES[q.i];
+  info.innerHTML = `
+    <div class="head"><div><div class="kicker">STEP ${k + 1} / ${SEQ.length}${q.opt ? ` · ${q.fork.title}: ${q.opt.label}` : ''} · ${st.en}</div>
+    <h2>${q.label || st.name}</h2></div><button class="fold" id="fold">${info.classList.contains('collapsed') ? '펼치기' : '접기'}</button></div>
+    <div class="body">
+    <p>${st.desc}</p>
+    <h3>설비</h3><ul>${st.equip.map((e) => `<li>${e}</li>`).join('')}</ul>
+    <h3>공정 조건 (문헌 예)</h3><ul>${st.params.map((e) => `<li>${e}</li>`).join('')}</ul>
+    <h3>입자 상태 (모식도)</h3>
+    <div class="canvas-wrap"><canvas id="micro" width="600" height="250"></canvas>
+      <div class="cap" id="microCap"></div></div>
+    <h3>경로별 열처리 온도 창 (문헌값)</h3>
+    <div class="canvas-wrap"><canvas id="lit" width="600" height="330"></canvas>
+      <div class="cap">출처 ${KB} ${KD} ${K('us9771274', 'us6129903', 'us4643984', 'us7431911', 'us20090264276', 'us7179441', 'us5783165')} · 막대 = 범위, 점 = 단일값 · 같은 공정도 출처마다 범위가 달라 둘 다 표기</div></div>
+    <div class="foot">대괄호 키 중 위키 페이지 이름(<code>batio3-powder-synthesis</code> 등)은 <code>wiki/</code>의 개념·질의 페이지이고,
+      나머지(특허 번호, <code>hosokawa-bt-web</code> 등)는 <code>resources/manufacturing/eq-01-powder.md</code>의 출처 표에 있습니다.
+      특허 예시는 실험·시험 조건이며 양산 레시피가 아닙니다. <span class="g">(g)</span>는 출처 없는 일반 관행입니다.
+      설비는 특정 제조사 모델이 아닌 대표 구조로 그렸고, 크기 비율은 실제와 다릅니다 (결정·볼·입자는 보이도록 크게 과장).</div></div>`;
+  document.getElementById('fold').addEventListener('click', () => {
+    info.classList.toggle('collapsed');
+    document.getElementById('fold').textContent = info.classList.contains('collapsed') ? '펼치기' : '접기';
+  });
+}
+
+let simT = 0.01, playing = true, speed = 1, autoTour = true, lastStage = -1;
+const playBtn = document.getElementById('play');
+playBtn.addEventListener('click', () => { playing = !playing; playBtn.textContent = playing ? '❚❚ 일시정지' : '▶ 재생'; });
+document.getElementById('speed').addEventListener('change', (e) => { speed = parseFloat(e.target.value); });
+const tourBox = document.getElementById('tour');
+tourBox.addEventListener('change', (e) => { autoTour = e.target.checked; if (autoTour) flyTo(lastStage); });
+document.getElementById('cut').addEventListener('change', (e) => setCut(e.target.checked));
+document.getElementById('overview').addEventListener('click', () => { autoTour = false; tourBox.checked = false; flyToView(OV_POS.clone(), OV_TGT.clone()); });
+function setCut(on) {
+  cutParts.forEach((m) => { m.visible = on; });
+  fullParts.forEach((m) => { m.visible = !on; });
+  pipeMat.opacity = on ? 0.5 : 1; pipeMat.depthWrite = !on; pipeMat.transparent = on; pipeMat.needsUpdate = true;
+}
+setCut(true);
+
+/* ------------------------------ camera tour ------------------------------ */
+let tween = null;
+// Narrow (portrait) screens see less width, so pull the camera back along its view line.
+function viewScale() { const a = camera.aspect; return a < 0.8 ? 1.5 : a < 1.2 ? 1.25 : 1; }
+function flyToView(pos, tgt) {
+  const p1 = tgt.clone().add(pos.clone().sub(tgt).multiplyScalar(viewScale()));
+  tween = { p0: camera.position.clone(), t0: controls.target.clone(), p1, t1: tgt, k: 0 };
+}
+function flyTo(i) {
+  if (i < 0) return;
+  const { tx, tz = 0, cam } = STAGES[i];
+  flyToView(V(tx + cam[0], cam[1], tz + cam[2]), V(tx, 1.6, tz));
+}
+controls.addEventListener('start', () => { if (tween) tween = null; if (autoTour) { autoTour = false; tourBox.checked = false; } });
+
+/* ------------------------------ microview + literature canvases ------------------------------ */
+const rng = (() => { let s = 11; return () => (s = (s * 16807) % 2147483647) / 2147483647; })();
+const ions = Array.from({ length: 46 }, (_, i) => ({ x: rng(), y: rng(), ph: rng() * 6.28, ba: i % 2 === 0 }));
+const gels = Array.from({ length: 6 }, () => ({ x: 0.12 + rng() * 0.76, y: 0.2 + rng() * 0.6, lobes: Array.from({ length: 5 }, () => [(rng() - 0.5) * 30, (rng() - 0.5) * 24, 12 + rng() * 10]) }));
+const xtals = Array.from({ length: 16 }, (_, i) => ({ x: 0.08 + (i % 6) * 0.15 + rng() * 0.05, y: 0.18 + Math.floor(i / 6) * 0.3 + rng() * 0.08, rot: (rng() - 0.5) * 0.6 }));
+const ssA = Array.from({ length: 10 }, () => ({ x: 0.08 + rng() * 0.84, y: 0.15 + rng() * 0.7 }));
+const ssB = Array.from({ length: 18 }, () => ({ x: 0.08 + rng() * 0.84, y: 0.15 + rng() * 0.7 }));
+const coatP = Array.from({ length: 7 }, (_, i) => ({ x: 0.1 + i * 0.13, y: 0.45 + (i % 2 ? 0.18 : -0.12) }));
+const yIons = Array.from({ length: 70 }, (_, i) => ({ j: i % 7, ang: rng() * 6.28, x0: rng(), y0: rng() * 0.25, ord: rng() }));
+const sieveP = Array.from({ length: 40 }, (_, i) => ({ x: 0.05 + rng() * 0.75, r: i % 9 === 0 ? 18 + rng() * 6 : 4 + rng() * 6, ph: rng() }));
+function drawMicro(s, p, t) {
+  const cv = document.getElementById('micro'); if (!cv) return;
+  const x = cv.getContext('2d'), W = cv.width, H = cv.height;
+  x.clearRect(0, 0, W, H);
+  x.fillStyle = [0, 1, 3, 4, 8, 9, 13].includes(s) ? '#1f2a33' : '#24282c'; x.fillRect(0, 0, W, H);
+  x.font = '18px system-ui';
+  const crystal = (cx, cy, a, rot, alpha = 1) => {
+    x.save(); x.translate(cx, cy); x.rotate(rot); x.globalAlpha = alpha;
+    x.fillStyle = '#f2ede0'; x.fillRect(-a / 2, -a / 2, a, a);
+    x.strokeStyle = 'rgba(120,110,90,.6)'; x.lineWidth = 1;
+    for (let k = 1; k < 3; k++) { x.beginPath(); x.moveTo(-a / 2 + a * k / 3, -a / 2); x.lineTo(-a / 2 + a * k / 3, a / 2); x.moveTo(-a / 2, -a / 2 + a * k / 3); x.lineTo(a / 2, -a / 2 + a * k / 3); x.stroke(); }
+    x.restore(); x.globalAlpha = 1;
+  };
+  const drawIons = (count, fade = 1, drift = 0) => {
+    for (let i = 0; i < count; i++) {
+      const q = ions[i];
+      const px = ((q.x + drift * t * 0.08) % 1) * W + Math.sin(t * 2 + q.ph) * 6, py = q.y * H + Math.cos(t * 1.7 + q.ph) * 6;
+      x.fillStyle = q.ba ? `rgba(255,181,71,${0.9 * fade})` : `rgba(143,208,255,${0.9 * fade})`;
+      x.beginPath(); x.arc(px, py, 4, 0, 7); x.fill();
+    }
+  };
+  let msg = '';
+  if (s === 0 || s === 1) {
+    const gf = s === 0 ? 1 : 1 - clamp01(p * 1.4);
+    for (const gl of gels) for (const [dx, dy, r] of gl.lobes) {
+      x.fillStyle = `rgba(160,175,190,${0.55 * gf})`; x.beginPath(); x.arc(gl.x * W + dx, gl.y * H + dy, r * (0.6 + 0.4 * gf), 0, 7); x.fill();
+    }
+    drawIons(s === 0 ? 46 : Math.round(46 * (1 - clamp01(p * 1.2))));
+    if (s === 1) {
+      const gr = clamp01((p - 0.1) / 0.7);
+      xtals.forEach((q, i) => { if (i / xtals.length < 0.2 + 0.8 * gr) crystal(q.x * W, q.y * H, 6 + 26 * gr, q.rot); });
+      msg = p < 0.3 ? '승온: 겔이 녹고 BaTiO₃ 핵 생성' : '용해–석출로 결정 성장 (하소 없이 결정성)';
+      x.fillStyle = '#ffb59c'; x.fillText('100–250 °C · 가압', 12, H - 12);
+    } else msg = 'Ba²⁺ / OH⁻ 이온 + 함수 TiO₂ 겔 (반응 전)';
+    x.fillStyle = '#ffb547'; x.fillText('● Ba²⁺', W - 180, 24); x.fillStyle = '#8fd0ff'; x.fillText('● OH⁻', W - 95, 24);
+    if (s === 0) { x.fillStyle = '#c3ccd6'; x.fillText('TiO₂·nH₂O 겔', 12, 24); }
+  } else if (s === 13 || s === 14) {
+    // BaCO3 + TiO2: segregated → mixed (ball mill), then droplets drying into mixed granules (spray dryer)
+    const mix = s === 13 ? sm(clamp01(p / 0.8)) : 1;
+    const drawMix = (ox, oy, sc) => {
+      for (const q of ssA) { const px = ox + ((q.x * 0.45) * (1 - mix) + q.x * mix) * W * sc, py = oy + q.y * H * sc; x.fillStyle = '#f2ede0'; x.beginPath(); x.ellipse(px, py, 14 * sc + 4, 5 * sc + 2, q.x * 3, 0, 7); x.fill(); }
+      for (const q of ssB) { const px = ox + ((0.55 + q.x * 0.45) * (1 - mix) + q.x * mix) * W * sc, py = oy + q.y * H * sc; x.fillStyle = '#9aa5b4'; x.beginPath(); x.arc(px, py, 6 * sc + 2, 0, 7); x.fill(); }
+    };
+    if (s === 13) {
+      drawMix(0, 0, 1);
+      msg = p < 0.4 ? '계량한 원료가 아직 따로 뭉쳐 있음' : '볼 충돌로 BaCO₃·TiO₂가 1차 입자 수준까지 섞임';
+    } else {
+      const k = sm(clamp01(p / 0.85));
+      for (let i = 0; i < 4; i++) {
+        const cx = W * (0.14 + i * 0.24), cy = H * 0.52, R0 = 70 - 22 * k;
+        x.fillStyle = `rgba(111,184,240,${0.35 * (1 - k)})`; x.beginPath(); x.arc(cx, cy, R0, 0, 7); x.fill();
+        x.save(); x.beginPath(); x.arc(cx, cy, R0 - 4, 0, 7); x.clip(); drawMix(cx - R0, cy - R0, (2 * R0) / Math.max(W, H) * 1.6); x.restore();
+        x.strokeStyle = k < 0.9 ? 'rgba(143,208,255,.8)' : 'rgba(242,237,224,.6)'; x.lineWidth = 2; x.beginPath(); x.arc(cx, cy, R0, 0, 7); x.stroke();
+      }
+      for (let i = 0; i < 6; i++) { const yy = H - ((t * 50 + i * 37) % H); x.fillStyle = `rgba(111,184,240,${0.6 * (1 - k)})`; x.fillText('H₂O↑', W * (0.08 + i * 0.16), yy); }
+      msg = k < 0.6 ? '슬러리 방울이 열풍 속에서 마름' : '방울 하나가 혼합 분말 과립 하나로';
+    }
+    x.fillStyle = '#f2ede0'; x.fillText('● BaCO₃', 12, 24); x.fillStyle = '#9aa5b4'; x.fillText('● TiO₂', 120, 24);
+  } else if (s === 15 || s === 2) {
+    // Kawamura model: BaTiO3 nucleates on TiO2 surfaces, Ba diffuses in; then full conversion + necking
+    const k = s === 15 ? sm(clamp01(p / 0.85)) : 1, g2 = s === 2 ? sm(clamp01(p / 0.8)) : 0;
+    const pts = ssB.map((q) => [(q.x * 0.8 + 0.1) * W, (q.y * 0.8 + 0.1) * H]);
+    if (g2 > 0) {
+      x.strokeStyle = `rgba(242,237,224,${0.8 * g2})`; x.lineWidth = 8 * g2;
+      for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) {
+        const d = Math.hypot(pts[i][0] - pts[j][0], pts[i][1] - pts[j][1]);
+        if (d < 70) { x.beginPath(); x.moveTo(...pts[i]); x.lineTo(...pts[j]); x.stroke(); }
+      }
+    }
+    if (s === 15) for (const q of ssA) { const rr = 12 * (1 - k); if (rr > 0.5) { x.fillStyle = '#d9d2bf'; x.beginPath(); x.ellipse((q.x * 0.8 + 0.1) * W, (q.y * 0.8 + 0.1) * H, rr + 3, rr * 0.4 + 1, q.x * 3, 0, 7); x.fill(); } }
+    pts.forEach(([px, py]) => {
+      const R0 = 13 + 5 * g2;
+      x.fillStyle = s === 2 ? '#f2ede0' : '#9aa5b4'; x.beginPath(); x.arc(px, py, R0, 0, 7); x.fill();
+      if (s === 15) {
+        const n = Math.round(10 * k);
+        for (let i = 0; i < n; i++) { const a = i / 10 * 6.283; x.fillStyle = '#f2ede0'; x.beginPath(); x.arc(px + Math.cos(a) * R0, py + Math.sin(a) * R0, 3.5, 0, 7); x.fill(); }
+      }
+    });
+    if (s === 15 || g2 < 0.5) for (let i = 0; i < 6; i++) { const yy = H * 0.5 - ((t * 60 + i * 40) % (H * 0.5)); x.fillStyle = `rgba(143,208,255,${s === 15 ? 0.8 * k : 0.4})`; x.fillText('CO₂↑', W * (0.2 + i * 0.12), yy); }
+    if (s === 15) {
+      x.fillStyle = '#d9d2bf'; x.fillText('● BaCO₃', 12, 24); x.fillStyle = '#9aa5b4'; x.fillText('● TiO₂', 120, 24); x.fillStyle = '#f2ede0'; x.fillText('● BaTiO₃', 210, 24);
+      x.fillStyle = '#ffb59c'; x.fillText('600–700 °C (1차, 예)', W - 200, H - 12);
+      msg = 'TiO₂ 표면에 BaTiO₃ 미립이 먼저 생기고, Ba가 TiO₂ 안으로 확산';
+    } else {
+      x.fillStyle = '#ffb59c'; x.fillText('900–1000 °C (예) · 위키 1100–1400 °C', W - 330, H - 12);
+      msg = '반응 완료·입자 성장 → 입자끼리 넥(목)으로 붙어 응집 (뒤에서 해쇄)';
+    }
+  } else if (s === 8) {
+    const gr = sm(clamp01(p / 0.5)), wash = clamp01((p - 0.55) / 0.3);
+    for (const gl of gels) for (const [dx, dy, r] of gl.lobes) {
+      x.fillStyle = `rgba(160,175,190,${0.6 * gr})`; x.beginPath(); x.arc(gl.x * W + dx, gl.y * H + dy, r * gr, 0, 7); x.fill();
+    }
+    for (let i = 0; i < 46; i++) {
+      const q = ions[i]; if (i / 46 < wash) continue;
+      const px = ((q.x + wash * 0.6) % 1) * W + Math.sin(t * 2 + q.ph) * 6, py = q.y * H + Math.cos(t * 1.7 + q.ph) * 6;
+      x.fillStyle = q.ba ? 'rgba(255,181,71,.9)' : 'rgba(143,208,255,.9)'; x.beginPath(); x.arc(px, py, 4, 0, 7); x.fill();
+    }
+    x.fillStyle = '#c3ccd6'; x.fillText('TiO₂·nH₂O 침전', 12, 24); x.fillStyle = '#ffb547'; x.fillText('● Na⁺', W - 180, 24); x.fillStyle = '#8fd0ff'; x.fillText('● Cl⁻', W - 95, 24);
+    x.fillStyle = '#ffb59c'; x.fillText('pH 2.5 · 55 °C (예)', 12, H - 12);
+    msg = p < 0.5 ? 'TiCl₄ + NaOH → 함수 산화티탄 침전' : '수세로 Na⁺·Cl⁻ 제거 → 110 g/L로 재분산';
+  } else if (s === 9) {
+    xtals.forEach((q) => crystal(q.x * W, q.y * H, 30, q.rot));
+    const fix = clamp01((p - 0.45) / 0.4);
+    for (let i = 0; i < 46; i += 2) {
+      const q = ions[i], P = xtals[(i / 2) % xtals.length];
+      const fx = q.x * W + Math.sin(t * 2 + q.ph) * 6, fy = q.y * H + Math.cos(t * 1.7 + q.ph) * 6;
+      const tx = P.x * W + 17, ty = P.y * H - 17;
+      x.fillStyle = fix > 0.5 ? 'rgba(242,237,224,.95)' : 'rgba(255,181,71,.9)';
+      x.beginPath(); x.arc(fx + (tx - fx) * sm(fix), fy + (ty - fy) * sm(fix), 4, 0, 7); x.fill();
+    }
+    if (p > 0.45) for (let i = 0; i < 7; i++) { const yy = H - ((t * 70 + i * 33) % H); x.strokeStyle = 'rgba(143,208,255,.8)'; x.lineWidth = 1.5; x.beginPath(); x.arc(W * (0.08 + i * 0.13), yy, 6, 0, 7); x.stroke(); }
+    x.fillStyle = '#ffb547'; x.fillText('● 미반응 Ba²⁺', 12, 24); x.fillStyle = '#8fd0ff'; x.fillText('○ CO₂', W - 95, 24);
+    x.fillStyle = '#ffb59c'; x.fillText(p < 0.45 ? 'pH ~13 (모식)' : 'pH → 6.5', 12, H - 12);
+    msg = p < 0.45 ? '반응 뒤 슬러리: 녹은 Ba가 남아 있음' : 'CO₂로 Ba를 불용성으로 고정 → Ba/Ti 1.00 (예)';
+  } else if (s === 10 || s === 11 || s === 12) {
+    if (s === 12) {
+      const br = sm(clamp01(p / 0.8));
+      for (let c = 0; c < 4; c++) {
+        const cx = W * (0.15 + c * 0.23), cy = H * 0.5;
+        for (let j = 0; j < 5; j++) {
+          const a = j / 5 * 6.283 + c, d = 16 + br * (40 + 20 * Math.sin(j * 2 + c));
+          crystal(cx + Math.cos(a + br * 2) * d, cy + Math.sin(a + br * 2) * d, 22, a);
+        }
+      }
+      x.fillStyle = 'rgba(143,208,255,.8)'; for (let i = 0; i < 5; i++) x.fillText('→', ((t * 220 + i * 120) % W), H * (0.15 + 0.17 * i));
+      x.fillStyle = '#ffb59c'; x.fillText('압축 공기 제트', 12, H - 12);
+      msg = br < 0.5 ? '하소 때 붙은 응집체(> 1 µm)' : '입자끼리 부딪쳐 1차 입자로 풀림 (매체 없음)';
+    } else {
+      const gr = s === 11 ? clamp01((p - 0.2) / 0.5) : 0;
+      xtals.forEach((q) => crystal(q.x * W * 0.9 + 20, q.y * H, 28 + 6 * gr, q.rot));
+      if (s === 10) {
+        for (const q of xtals) { x.strokeStyle = `rgba(111,184,240,${0.6 * (1 - p)})`; x.lineWidth = 5; x.strokeRect(q.x * W * 0.9 + 20 - 20, q.y * H - 20, 40, 40); }
+        for (let i = 0; i < 6; i++) { const yy = H - ((t * 60 + i * 37) % H); x.fillStyle = 'rgba(111,184,240,.6)'; x.fillText('H₂O↑', W * (0.1 + i * 0.15), yy); }
+        x.fillStyle = '#ffb59c'; x.fillText('열풍 · 수분 수십 % → < 1 %', 12, H - 12);
+        msg = '열풍 속에서 케이크가 흩어지며 마름';
+      } else {
+        for (let i = 0; i < 6; i++) { const yy = H - ((t * 45 + i * 37) % H); x.fillStyle = `rgba(143,208,255,${0.7 * (1 - gr * 0.6)})`; x.fillText('OH⁻↑', W * (0.08 + i * 0.15), yy); }
+        x.fillStyle = '#ffb59c'; x.fillText('880 °C × 2 h (예)', 12, H - 12);
+        msg = '결정성·입경 증가, 격자 OH⁻ 감소 (정방정성과의 관계는 문헌끼리 엇갈림)';
+      }
+    }
+  } else if (s === 3) {
+    xtals.forEach((q) => crystal(q.x * W * 0.82, q.y * H, 30, q.rot));
+    x.setLineDash([6, 6]); x.strokeStyle = 'rgba(143,208,255,.7)'; x.lineWidth = 2;
+    x.beginPath(); x.moveTo(W * 0.86, 0); x.lineTo(W * 0.86, H); x.stroke(); x.setLineDash([]);
+    x.fillStyle = '#8fd0ff'; x.fillText('여과포', W * 0.87, 24);
+    drawIons(Math.round(40 * (1 - p)), 1, 1);
+    msg = '세척수로 모액 이온 제거 · 분말은 케이크로 남음';
+  } else {
+    const coat = s === 4 ? clamp01(p * 1.6 - 0.5) : 1;
+    const fused = s === 6 ? clamp01((p - 0.2) / 0.5) : s > 6 ? 1 : 0;
+    for (const q of coatP) {
+      const cx = q.x * W + 20, cy = q.y * H;
+      if (s === 5) {
+        const wr = 30 + 12 * (1 - p);
+        x.strokeStyle = `rgba(111,184,240,${0.6 * (1 - p)})`; x.lineWidth = 6; x.beginPath(); x.arc(cx, cy, wr, 0, 7); x.stroke();
+      }
+      if (fused > 0) {
+        x.strokeStyle = `rgba(${s === 6 && p < 0.86 ? '255,154,90' : '143,208,255'},${fused})`; x.lineWidth = 4; x.beginPath(); x.arc(cx, cy, 25, 0, 7); x.stroke();
+      }
+      x.fillStyle = '#f2ede0'; x.beginPath(); x.arc(cx, cy, 22, 0, 7); x.fill();
+    }
+    if (s !== 7) for (const q of yIons) {
+      const P = coatP[q.j], cx = P.x * W + 20, cy = P.y * H;
+      const k = s === 4 ? clamp01(coat * 1.5 - q.ord * 0.5) : 1;
+      const sx = cx + Math.cos(q.ang) * 25, sy = cy + Math.sin(q.ang) * 25;
+      const fx = q.x0 * W, fy = q.y0 * H + Math.sin(t * 2 + q.ang) * 5;
+      if (s === 4 && p < 0.45) continue;
+      x.fillStyle = `rgba(143,208,255,${1 - fused})`; x.beginPath(); x.arc(fx + (sx - fx) * sm(k), fy + (sy - fy) * sm(k), 3.5, 0, 7); x.fill();
+    }
+    if (s === 5) for (let i = 0; i < 6; i++) { const yy = H - ((t * 50 + i * 37) % H); x.fillStyle = 'rgba(111,184,240,.6)'; x.fillText('H₂O↑', W * (0.1 + i * 0.15), yy); }
+    if (s === 7) {
+      x.fillStyle = '#24282c'; x.fillRect(0, 0, W, H);
+      x.strokeStyle = '#9db0c2'; x.lineWidth = 2; x.setLineDash([10, 6]); x.beginPath(); x.moveTo(0, H * 0.5); x.lineTo(W, H * 0.5); x.stroke(); x.setLineDash([]);
+      for (const q of sieveP) {
+        const big = q.r > 15, u = (q.ph + t * 0.25) % 1;
+        const yy = big ? Math.min(H * 0.5 - q.r, u * H) : u * H;
+        x.fillStyle = big ? '#d9d2bf' : '#f2ede0';
+        x.beginPath(); x.arc(q.x * W + 40, yy, q.r, 0, 7); x.fill();
+        if (!big) { x.strokeStyle = 'rgba(143,208,255,.8)'; x.lineWidth = 1.5; x.beginPath(); x.arc(q.x * W + 40, yy, q.r + 2, 0, 7); x.stroke(); }
+      }
+      x.fillStyle = '#9db0c2'; x.fillText('체 눈', W - 70, H * 0.5 - 8);
+    }
+    if (s === 4) { x.fillStyle = '#8fd0ff'; x.fillText('● Y³⁺ (질산염)', 12, 24); x.fillStyle = '#ffb59c'; x.fillText('pH 8.5–9.0', W - 120, 24); }
+    if (s === 5) { x.fillStyle = '#ffb59c'; x.fillText('80 °C 진공', W - 120, 24); }
+    if (s === 6) { x.fillStyle = '#ffb59c'; x.fillText('600 °C × 2 h, 공기', W - 190, 24); x.fillStyle = '#8fd0ff'; x.fillText('→ 3–10 nm 산화물 코팅', 12, H - 12); }
+    msg = s === 4 ? (p < 0.45 ? '분말 재분산 · pH 조정' : 'Y³⁺가 입자 표면에 흡착·석출') : s === 5 ? '물·에탄올 세척 후 진공 건조 (표면 염 유지)'
+      : s === 6 ? '표면 염 → 연속 산화물 껍질 (소결 후 shell)' : '조대 응집체는 체 위에 남고, 코팅 입자만 통과';
+  }
+  const cap = document.getElementById('microCap'); if (cap) cap.textContent = `${msg} · 모식도, 축척 없음`;
+}
+const LIT = [
+  { name: '수열 합성 (위키)', lo: 100, hi: 250, stage: 1 },
+  { name: '수열 합성 (특허 예)', lo: 150, hi: 200, stage: 1 },
+  { name: '케이크 건조 (예)', lo: 110, hi: 130, stage: 10 },
+  { name: '후열처리 (예)', lo: 880, hi: 880, stage: 11 },
+  { name: '1차 하소 · 로터리', lo: 600, hi: 700, stage: 15 },
+  { name: '2차 하소 · 배치로', lo: 900, hi: 1000, stage: 2 },
+  { name: '고상 하소 (위키)', lo: 1100, hi: 1400, stage: 2 },
+  { name: '옥살산염 하소 (위키)', lo: 600, hi: 900, stage: -1 },
+  { name: '옥살산염 하소 (특허)', lo: 700, hi: 1250, stage: -1 },
+  { name: '코팅 후 진공 건조', lo: 80, hi: 80, stage: 5 },
+  { name: '코팅 하소 (2 h)', lo: 600, hi: 600, stage: 6 },
+];
+function drawLit(s) {
+  const cv = document.getElementById('lit'); if (!cv) return;
+  const x = cv.getContext('2d'), W = cv.width, H = cv.height;
+  x.clearRect(0, 0, W, H);
+  const L = 195, R = W - 20, B = H - 34, rowH = (B - 10) / LIT.length;
+  const X = (v) => L + v / 1500 * (R - L);
+  x.strokeStyle = 'rgba(255,255,255,.12)'; x.lineWidth = 1;
+  x.fillStyle = '#9db0c2'; x.font = '16px system-ui'; x.textAlign = 'center';
+  for (const v of [0, 300, 600, 900, 1200, 1500]) { x.beginPath(); x.moveTo(X(v), 6); x.lineTo(X(v), B); x.stroke(); x.fillText(String(v), X(v), B + 20); }
+  x.textAlign = 'left'; x.fillText('°C', R - 22, B - 6);
+  LIT.forEach((r, i) => {
+    const y = 10 + rowH * (i + 0.5), act = r.stage === s;
+    x.fillStyle = act ? '#ffffff' : '#c3ccd6'; x.font = act ? 'bold 17px system-ui' : '16px system-ui';
+    x.fillText(r.name, 6, y + 6);
+    x.fillStyle = act ? '#ffb547' : 'rgba(255,181,71,.38)';
+    if (r.hi > r.lo) { x.fillRect(X(r.lo), y - 9, X(r.hi) - X(r.lo), 18); }
+    else { x.beginPath(); x.arc(X(r.lo), y, 8, 0, 7); x.fill(); }
+    x.fillStyle = act ? '#ffe2a8' : '#9db0c2'; x.font = '14px system-ui';
+    const txt = r.hi > r.lo ? `${r.lo}–${r.hi}` : `${r.lo}`;
+    x.fillText(txt, (r.hi > r.lo ? X(r.hi) : X(r.lo)) + 10, y + 5);
+  });
+}
+
+/* ------------------------------ loop ------------------------------ */
+const clock = new THREE.Clock();
+const dmy = new THREE.Object3D();
+// Tank level by position in the active route (SEQ), so appended stage indices work.
+// fw / dw = part of the fill / drain stage over which the level moves.
+function levelAt(o, k, p) {
+  const { fill, drain, lo, hi, fw = [0, 0.6], dw = [0, 0.7] } = o;
+  const kf = SEQ.findIndex((q) => q.i === fill), kd = SEQ.findIndex((q) => q.i === drain);
+  if (kf < 0 || kd < 0) return lo;
+  if (k === kf) return lo + (hi - lo) * sm(clamp01((p - fw[0]) / (fw[1] - fw[0])));
+  if (k === kd) return hi - (hi - lo) * sm(clamp01((p - dw[0]) / (dw[1] - dw[0])));
+  const hold = kf < kd ? (k > kf && k < kd) : (k > kf || k < kd);
+  return hold ? hi : lo;
+}
+let infoTick = 0;
+function frame() {
+  const dt = Math.min(clock.getDelta(), 0.05);
+  if (playing) simT += dt * speed;
+  const total = simT / STAGE_DUR;
+  const k = Math.floor(total) % SEQ.length, p = total - Math.floor(total), t = simT;
+  const s = SEQ[k].i;
+  if (k !== lastK) {
+    lastK = curK = k; lastStage = s;
+    seqBtns.forEach((b, n) => b.classList.toggle('active', n === k));
+    { // keep the active step visible in the list (horizontal on phones, scrolling panel on short screens)
+      const btn = seqBtns[k], list = document.getElementById('stages'), panel = document.getElementById('left');
+      if (btn) {
+        const br = btn.getBoundingClientRect();
+        if (list.scrollWidth > list.clientWidth + 2) { const lr = list.getBoundingClientRect(); list.scrollTo({ left: list.scrollLeft + br.left - lr.left - (list.clientWidth - br.width) / 2, behavior: 'smooth' }); }
+        if (panel.scrollHeight > panel.clientHeight + 2) { const pr = panel.getBoundingClientRect(); if (br.top < pr.top || br.bottom > pr.bottom) panel.scrollTo({ top: panel.scrollTop + br.top - pr.top - (panel.clientHeight - br.height) / 2, behavior: 'smooth' }); }
+      }
+    }
+    stageTags.forEach((el, i) => el.classList.toggle('active', i === s));
+    SUBS.forEach((q) => q.el.classList.toggle('show', q.s === s));
+    renderInfo(k);
+    if (autoTour) flyTo(s);
+  }
+  seqBtns.forEach((b, n) => { b.querySelector('.bar').style.width = n === k ? `${p * 100}%` : '0'; });
+
+  for (const r of rotors) {
+    const target = r.run.includes(s) ? r.w : r.w * 0.06;
+    r.cur += (target - r.cur) * Math.min(1, dt * 1.5);
+    r.obj.rotation[r.axis] += r.cur * dt;
+  }
+  for (const o of levels) setLevel(o.T, levelAt(o, k, p));
+  for (const P of pipes) {
+    const on = P.stages.includes(s) && (!P.win || (p >= P.win[0] && p < P.win[1])) && (!P.when || P.when());
+    P.inst.visible = on;
+    if (!on) continue;
+    const ns = P.samples.length - 1;
+    for (let i = 0; i < P.n; i++) {
+      let u = (i / P.n + (t * P.speed) / P.len) % 1;
+      if (P.reverse) u = 1 - u;
+      const f = u * ns, k = Math.floor(f), a = P.samples[k], b = P.samples[Math.min(ns, k + 1)];
+      dmy.position.lerpVectors(a, b, f - k); dmy.updateMatrix(); P.inst.setMatrixAt(i, dmy.matrix);
+    }
+    P.inst.instanceMatrix.needsUpdate = true;
+  }
+  for (const u of updaters) u(dt, s, p, t);
+
+  if (tween) {
+    tween.k = Math.min(1, tween.k + dt / 2.2);
+    const e = sm(tween.k);
+    camera.position.lerpVectors(tween.p0, tween.p1, e);
+    controls.target.lerpVectors(tween.t0, tween.t1, e);
+    if (tween.k >= 1) tween = null;
+  }
+  infoTick += dt;
+  if (infoTick > 1 / 30) { infoTick = 0; drawMicro(s, p, t); drawLit(s); }
+
+  controls.update();
+  renderer.render(scene, camera);
+  labelRenderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight); labelRenderer.setSize(window.innerWidth, window.innerHeight);
+});
+bakeStatic(scene);
+document.getElementById('loading').remove();
+frame();
+</script>
+</body>
+</html>

@@ -2,8 +2,9 @@
 title: Internal-Electrode Printing (Screen / Gravure / Inkjet)
 type: concept
 created: 2026-11-10
-updated: 2026-11-10
+updated: 2026-11-11
 sources:
+  - resources/manufacturing/eq-04-printing.md
   - resources/manufacturing/30-electrode-printing.md
 tags:
   - paper
@@ -49,6 +50,8 @@ Electrode patterns are aligned with camera-read target marks and an X-Y-θ stage
 
 Electrode and blank paste dry at 70–120 °C for 1–10 min [us7641727]; hot air at 45–80 °C [us5935365].
 
+**Order on the line (2026-11-11).** Three patents print the electrode first, dry it (TDK example: 75 °C, 1.5 min), then print the step-compensation ceramic paste and dry again (90 °C) [us7661361], [us20050016661], [us7739950]. [us7661361] predicts that the reverse order works too. The line runs: unwind → dancer → printer → intermediate dry → second printer → buffer loop → main dryer → inspection → EPC → destaticizer → take-up [us7661361]. Details: [[mlcc-process-equipment-research-notes]].
+
 ## Step height
 
 Each electrode layer adds thickness only where the electrode is. Stacking hundreds of layers therefore builds a **step** between the electrode region and the margins. This is the main print-related cause of delamination and is handled by [[step-height-compensation]].
@@ -71,5 +74,6 @@ Each electrode layer adds thickness only where the electrode is. Stacking hundre
 - [[metal-electrode-shrinkage-effect]] · [[mlcc-delamination]]
 
 ## References
+- [[mlcc-process-equipment-research-notes]]
 - [[mlcc-printing-lamination-research-notes]]
 - [[okuma-2021-mlcc-electrode-nanoct]]

@@ -2,7 +2,7 @@
 title: Activity Log
 type: log
 created: 2026-05-19
-updated: 2026-11-10
+updated: 2026-11-11
 ---
 
 # Activity Log
@@ -10,6 +10,27 @@ updated: 2026-11-10
 Chronological record of wiki operations. Newest entries first.
 
 ---
+
+## [2026-11-11] ingest | MLCC process equipment & line sequence (10 steps)
+
+Equipment and step-order survey to back the 3D process pages in `visualizations/`. Raw notes are `resources/manufacturing/eq-01-powder.md` … `eq-10-test-sort-pack.md`. There are about 150 sources: mostly apparatus patents (Murata, TDK, SEMCO, Taiyo Yuden, KYOCERA, ESI/Palomar, Sakai) and equipment-maker pages (KEKO, HIMA, Micro Tech, Tipton, Sintokogio, Hosokawa, Shibuya, Tokyo Weld). They are equipment specs and patent embodiments, not production settings.
+
+**Source page created:** [[mlcc-process-equipment-research-notes]].
+**Pages updated:**
+- [[mlcc-process-substeps-and-equipment]]: new "line sequence in detail" section, and several (g) rows are now sourced.
+- [[barrel-chamfering-mlcc]]: chamfering is mostly done on green chips; added centrifugal-barrel equipment.
+- [[slurry-preparation-mlcc]]: milling-order variants.
+- [[internal-electrode-printing]]: electrode → intermediate dry → step-compensation print → main dry.
+- [[mlcc-manufacturing-process]]: step 11 note.
+
+**Contradictions logged:**
+- wet vs dry chamfering ([us6367134] vs [jp2010283164a]);
+- SEMCO milling order vs the earlier wiki sequence;
+- solid-state calcination temperature 900–1000 vs 1100–1400 °C;
+- re-oxidation PO₂;
+- side-margin thermo-compression temperature.
+
+**Still open:** `resources/bibliography.md` does not exist, so the new keys are traceable only through the raw-notes Sources tables.
 
 ## [2026-11-10] query | MLCC process sub-steps and equipment
 
